@@ -29,10 +29,10 @@ const TILE_SIZE = 16;
 const DISPLAY_TILE_SIZE = 48;                 // zoom ×4 (échelle entière → net)
 const WORLD_SCALE = DISPLAY_TILE_SIZE / TILE_SIZE;
 
-const MAP_COLS = 30;
-const MAP_ROWS = 20;
-const MAP_WIDTH = MAP_COLS * TILE_SIZE;       // 480 (coordonnées logiques)
-const MAP_HEIGHT = MAP_ROWS * TILE_SIZE;      // 320
+let MAP_COLS = 30;
+let MAP_ROWS = 20;
+let MAP_WIDTH = MAP_COLS * TILE_SIZE;       // 480 (coordonnées logiques)
+let MAP_HEIGHT = MAP_ROWS * TILE_SIZE;      // 320
 
 const VIEWPORT_COLS = 19;                     // 19 × 64 = 1280 px ≈ 1280
 const VIEWPORT_ROWS = 13;                     // 11 × 64 = 704 px
@@ -50,8 +50,8 @@ const WORLD_MOVEMENT = { stepDurationMs: 140, fastStepDurationMs: 90, stepRepeat
 const WORLD_ENCOUNTER_CHANCE = 0.12;          // par tuile d'herbe traversée
 const WORLD_GRACE_TILES = 3;                  // grâce après combat / chargement
 
-const WORLD_START_X = Math.floor(MAP_COLS / 2) * TILE_SIZE - TILE_SIZE / 2;
-const WORLD_START_Y = Math.floor(MAP_ROWS / 2) * TILE_SIZE - TILE_SIZE / 2;
+let WORLD_START_X = Math.floor(MAP_COLS / 2) * TILE_SIZE - TILE_SIZE / 2;
+let WORLD_START_Y = Math.floor(MAP_ROWS / 2) * TILE_SIZE - TILE_SIZE / 2;
 
 /* ============================================================
    CARTE (ancien world.js — déterministe : les positions
@@ -83,7 +83,7 @@ const mapData = [
 
 /* Normalisation défensive : chaque ligne fait exactement MAP_COLS
    colonnes, bordures gauche/droite garanties fermées. */
-const worldMap = mapData.map(row => {
+let worldMap = mapData.map(row => {
     const copy = Array.isArray(row) ? row.slice(0, MAP_COLS) : [];
     while (copy.length < MAP_COLS) copy.push(TILE_TYPES.TREE);
     copy[0] = TILE_TYPES.TREE;
@@ -106,6 +106,7 @@ let worldMapCanvas = null;    // carte pré-rendue à l'échelle d'affichage
 ============================================================ */
 
 function drawTileArt(ctx, type, S) {
+    if (typeof drawMapEditorRuntimeTile === "function" && drawMapEditorRuntimeTile(ctx, type, S)) return;
     const u = S / 16;
 
     if (type === TILE_TYPES.TREE) {
@@ -377,7 +378,22 @@ function snapOverworldPlayerToGrid() { const col = Math.min(Math.max(Math.round(
    RENCONTRES SAUVAGES
 ============================================================ */
 
-function tryWorldEncounter() { if (overworldState.graceDistance > 0) return; const centerX = overworldState.playerX + TILE_SIZE / 2; const centerY = overworldState.playerY + TILE_SIZE / 2; const col = Math.floor(centerX / TILE_SIZE); const row = Math.floor(centerY / TILE_SIZE); if (row < 0 || row >= MAP_ROWS || col < 0 || col >= MAP_COLS) return; if (worldMap[row][col] !== TILE_TYPES.TALL_GRASS) return; if (Math.random() >= WORLD_ENCOUNTER_CHANCE) return; overworldState.graceDistance = WORLD_GRACE_TILES * TILE_SIZE; stopOverworldMode(); showWorldDialogue("Un monstre sauvage apparaît !", 1400); if (typeof runEncounterTransition === "function") { runEncounterTransition() } else { setTimeout(() => { if (typeof triggerWildBattle === "function") { triggerWildBattle() } }, 450) } }
+function tryWorldEncounter() {
+    if (overworldState.graceDistance > 0) return;
+    const centerX = overworldState.playerX + TILE_SIZE / 2;
+    const centerY = overworldState.playerY + TILE_SIZE / 2;
+    const col = Math.floor(centerX / TILE_SIZE);
+    const row = Math.floor(centerY / TILE_SIZE);
+    if (row < 0 || row >= MAP_ROWS || col < 0 || col >= MAP_COLS) return;
+    if (typeof tryMapEditorEncounter === "function" && tryMapEditorEncounter(col, row)) return;
+    if (worldMap[row][col] !== TILE_TYPES.TALL_GRASS) return;
+    if (Math.random() >= WORLD_ENCOUNTER_CHANCE) return;
+    overworldState.graceDistance = WORLD_GRACE_TILES * TILE_SIZE;
+    stopOverworldMode();
+    showWorldDialogue("Un monstre sauvage apparaît !", 1400);
+    if (typeof runEncounterTransition === "function") runEncounterTransition();
+    else setTimeout(() => { if (typeof triggerWildBattle === "function") triggerWildBattle() }, 450);
+}
 
 /* ============================================================
    DIALOGUE
