@@ -386,7 +386,7 @@ function tryWorldEncounter() {
     const row = Math.floor(centerY / TILE_SIZE);
     if (row < 0 || row >= MAP_ROWS || col < 0 || col >= MAP_COLS) return;
     if (typeof tryMapEditorEncounter === "function" && tryMapEditorEncounter(col, row)) return;
-    if (worldMap[row][col] !== TILE_TYPES.TALL_GRASS) return;
+    if (worldMap[row][col] !== TILE_TYPES.TALL_GRASS && worldMap[row][col] !== "tall-grass") return;
     if (Math.random() >= WORLD_ENCOUNTER_CHANCE) return;
     overworldState.graceDistance = WORLD_GRACE_TILES * TILE_SIZE;
     stopOverworldMode();
