@@ -23,6 +23,7 @@ let mapEditorSelectedTile = null;
 let mapEditorDragging = false;
 let mapEditorPan = null;
 let mapEditorTestMode = false;
+let mapEditorTestSnapshot = null;
 
 const MAP_EDITOR_DEFAULT_TILES = [
     { id:"grass", name:"Herbe", collision:false, terrainType:"grass", encounters:true, description:"Terrain traversable.", imageKey:null, fallback:"#8fbf6a" },
@@ -249,9 +250,11 @@ async function mapEditorLoadRuntimeImages(){
     }
 }
 
-function isMapEditorRuntimeBlocked(tileId){
+function isMapEditorRuntimeBlocked(tileId,col,row){
     const tile=mapEditorFindTile(tileId);
-    return tile?tile.collision:true;
+    if(tile?.collision)return true;
+    const obj=mapEditorCurrent()?.objects?.find(o=>o.x===col&&o.y===row&&o.collision!==false);
+    return !!obj;
 }
 
 function mapEditorTileHasEncounter(tileId){
@@ -496,9 +499,12 @@ function mapEditorOpenChestForm(existing=null){
     document.getElementById("me-loot-add").onclick=()=>{const div=document.createElement("div");div.className="me-loot-row";div.innerHTML='<select data-loot-item="'+loot.children.length+'">'+MAP_EDITOR_ITEM_CATALOG.map(x=>'<option value="'+x.id+'">'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-loot-chance="'+loot.children.length+'" value="100"><input type="number" min="1" data-loot-min="'+loot.children.length+'" value="1"><input type="number" min="1" data-loot-max="'+loot.children.length+'" value="1"><button type="button">×</button>';div.querySelector("button").onclick=()=>div.remove();loot.appendChild(div);};
     loot.querySelectorAll("button[data-loot-del]").forEach(b=>b.onclick=()=>b.parentElement.remove());
     document.getElementById("me-c-cancel").onclick=mapEditorCloseDialog;
-    document.getElementById("me-c-save").onclick=()=>{
+    document.getElementById("me-c-save").onclick=async()=>{
         const m=mapEditorCurrent();m.objects=Array.isArray(m.objects)?m.objects:[];let target=m.objects.find(x=>x.id===o.id);if(!target){target=mapEditorClone(o);m.objects.push(target);}
         target.id=mapEditorNormalizeId(document.getElementById("me-c-id").value,o.id);target.name=document.getElementById("me-c-name").value;target.x=Math.max(0,Math.min(m.cols-1,Number(document.getElementById("me-c-x").value)||0));target.y=Math.max(0,Math.min(m.rows-1,Number(document.getElementById("me-c-y").value)||0));target.collision=document.getElementById("me-c-collision").checked;target.type="container";target.opened=!!target.opened;
+        const closedFile=document.getElementById("me-c-closed").files[0],openFile=document.getElementById("me-c-open").files[0];
+        if(closedFile)target.closedImageKey=(await mapEditorImportImage(closedFile)).key;
+        if(openFile)target.openImageKey=(await mapEditorImportImage(openFile)).key;
         target.lootTable=[...loot.children].map(row=>({itemId:row.querySelector("[data-loot-item]")?.value,chance:Number(row.querySelector("[data-loot-chance]")?.value)||0,min:Number(row.querySelector("[data-loot-min]")?.value)||1,max:Number(row.querySelector("[data-loot-max]")?.value)||1})).filter(x=>x.itemId);
         mapEditorSaveCurrent();mapEditorCloseDialog();mapEditorRender();
     };
@@ -530,7 +536,12 @@ function mapEditorBuildUi(){
     document.body.appendChild(wrap);
     document.getElementById("map-editor-close").onclick=mapEditorClose;
     document.getElementById("me-new").onclick=mapEditorCreateMap;document.getElementById("me-dup").onclick=mapEditorDuplicateMap;document.getElementById("me-del").onclick=mapEditorDeleteMap;document.getElementById("me-import").onclick=()=>document.getElementById("map-editor-import-file").click();document.getElementById("me-export").onclick=mapEditorExport;document.getElementById("me-undo").onclick=mapEditorUndoAction;document.getElementById("me-redo").onclick=mapEditorRedoAction;
-    document.getElementById("me-test").onclick=()=>{mapEditorTestMode=!mapEditorTestMode;mapEditorClose();if(mapEditorTestMode)startOverworldMode();};
+    document.getElementById("me-test").onclick=()=>{
+        mapEditorTestMode=true;
+        mapEditorTestSnapshot=mapEditorClone(mapEditorCurrent());
+        const r=document.getElementById("map-editor-root");if(r)r.classList.add("hidden");
+        if(typeof startOverworldMode==="function")startOverworldMode();
+    };
     document.getElementById("me-new-tile").onclick=()=>mapEditorOpenTileForm();
     document.getElementById("me-chest").onclick=()=>mapEditorOpenChestForm();
     document.querySelectorAll(".map-editor-tools [data-tool]").forEach(b=>b.onclick=()=>{mapEditorTool=b.dataset.tool;});
@@ -546,7 +557,17 @@ function mapEditorBuildUi(){
 function openMapEditor(){
     mapEditorBuildUi();if(typeof closeDevMenu==="function")closeDevMenu();document.getElementById("map-editor-root").classList.remove("hidden");mapEditorRender();mapEditorLoadRuntimeImages();
 }
-function mapEditorClose(){const r=document.getElementById("map-editor-root");if(r)r.classList.add("hidden");mapEditorTestMode=false;}
+function mapEditorClose(){
+    if(mapEditorTestMode){
+        const m=mapEditorCurrent();
+        if(m&&mapEditorTestSnapshot){const i=mapEditorMaps.findIndex(x=>x.id===m.id);if(i>=0)mapEditorMaps[i]=normalizeMapEditorMap(mapEditorTestSnapshot);mapEditorPersist();mapEditorApplyRuntime();}
+        mapEditorTestMode=false;mapEditorTestSnapshot=null;
+        if(typeof stopOverworldMode==="function")stopOverworldMode();
+        if(typeof openMapEditor==="function")openMapEditor();
+        return;
+    }
+    const r=document.getElementById("map-editor-root");if(r)r.classList.add("hidden");
+}
 function mapEditorAddDevButton(){
     const main=document.getElementById("dev-menu-main");if(!main||document.getElementById("dev-cat-maps"))return;
     const b=document.createElement("button");b.id="dev-cat-maps";b.className="secondary-button";b.type="button";b.textContent="🗺 Créateur de Map";main.insertBefore(b,document.getElementById("dev-export-disk-btn"));b.onclick=openMapEditor;
@@ -556,7 +577,8 @@ document.addEventListener("DOMContentLoaded",()=>{
     mapEditorLoadMaps();mapEditorApplyRuntime();mapEditorBuildUi();mapEditorAddDevButton();mapEditorLoadRuntimeImages();
     document.addEventListener("keydown",e=>{
         if(e.key==="e"&&!document.getElementById("map-editor-root")?.classList.contains("hidden")&&document.activeElement?.tagName!=="INPUT"&&document.activeElement?.tagName!=="TEXTAREA")mapEditorInteract();
-        if(e.key==="Escape"&&!document.getElementById("map-editor-root")?.classList.contains("hidden"))mapEditorClose();
+        if(e.key==="Escape"&&(mapEditorTestMode||!document.getElementById("map-editor-root")?.classList.contains("hidden"))){e.preventDefault();mapEditorClose();}
+        if((e.key==="e"||e.key==="Enter"||e.key===" ")&&typeof isWorldScreenActive==="function"&&isWorldScreenActive()&&!mapEditorTestMode){mapEditorInteract();}
     });
 });
 
@@ -569,6 +591,7 @@ window.triggerWildBattle = function(){
     if(pending){
         state.config.monsterName=pending.monster.Nom||pending.monster.name||state.config.monsterName;
         state.config.monsterCount=1;
+        window.__mapEditorSelectedMonster=pending.monster;
         const before=typeof rollEnemyLevel==="function"?rollEnemyLevel:null;
         if(before){
             const desired=pending.level;
