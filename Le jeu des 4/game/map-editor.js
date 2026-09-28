@@ -637,7 +637,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     document.addEventListener("keydown",e=>{
         if(e.key==="e"&&!document.getElementById("map-editor-root")?.classList.contains("hidden")&&document.activeElement?.tagName!=="INPUT"&&document.activeElement?.tagName!=="TEXTAREA")mapEditorInteract();
         if(e.key==="Escape"&&(mapEditorTestMode||!document.getElementById("map-editor-root")?.classList.contains("hidden"))){e.preventDefault();mapEditorClose();}
-        if((e.key==="e"||e.key==="Enter"||e.key===" ")&&typeof isWorldScreenActive==="function"&&isWorldScreenActive()&&!mapEditorTestMode){mapEditorInteract();}
+        if(typeof isWorldScreenActive==="function"&&isWorldScreenActive()&&!mapEditorTestMode&&typeof getKeyAction==="function"&&getKeyAction(e.key)==="confirm"){mapEditorInteract();}
     });
 });
 
