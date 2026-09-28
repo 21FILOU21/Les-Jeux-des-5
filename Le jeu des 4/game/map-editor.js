@@ -386,18 +386,25 @@ function mapEditorValidate(m){
     return [...new Set(errors)];
 }
 
-function mapEditorExport(){
+async function mapEditorExport(){
     const m=mapEditorCurrent();if(!m)return;
-    const blob=new Blob([JSON.stringify(m,null,2)],{type:"application/json"});
+    const data=mapEditorClone(m);data.assets={};
+    const keys=new Set();
+    for(const t of mapEditorAllTiles())if(t.imageKey)keys.add(t.imageKey);
+    for(const o of m.objects||[]){if(o.closedImageKey)keys.add(o.closedImageKey);if(o.openImageKey)keys.add(o.openImageKey);}
+    for(const key of keys){const asset=await mapEditorGetAsset(key);if(asset)data.assets[key]=asset;}
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
     const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=(m.id||"map")+".json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);
 }
 
 function mapEditorImport(file){
-    return file.text().then(text=>{
-        const data=normalizeMapEditorMap(JSON.parse(text));const errors=mapEditorValidate(data);
+    return file.text().then(async text=>{
+        const raw=JSON.parse(text),assets=raw.assets||{};delete raw.assets;
+        for(const [key,dataUrl] of Object.entries(assets)){await mapEditorPutAsset(key,dataUrl);}
+        const data=normalizeMapEditorMap(raw);const errors=mapEditorValidate(data);
         if(errors.length)throw new Error(errors.join("\n"));
         if(mapEditorMaps.some(m=>m.id===data.id))data.id=mapEditorNormalizeId(data.id+"-import","map-import");
-        mapEditorMaps.push(data);mapEditorActiveId=data.id;mapEditorPersist();mapEditorRender();
+        mapEditorMaps.push(data);mapEditorActiveId=data.id;mapEditorPersist();mapEditorApplyRuntime();mapEditorRender();mapEditorLoadRuntimeImages();
     });
 }
 
