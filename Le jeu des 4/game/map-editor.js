@@ -209,9 +209,20 @@ function mapEditorApplyRuntime(requestedId){
     mapEditorRuntime=m;
     MAP_COLS=m.cols;MAP_ROWS=m.rows;MAP_WIDTH=MAP_COLS*TILE_SIZE;MAP_HEIGHT=MAP_ROWS*TILE_SIZE;
     WORLD_START_X=m.spawn.x*TILE_SIZE;WORLD_START_Y=m.spawn.y*TILE_SIZE;
-    const layer=m.layers.find(l=>l.visible)!==undefined?m.layers.find(l=>l.visible):m.layers[0];
+    const visibleLayers=m.layers.filter(l=>l.visible!==false);
     worldMap=[];
-    for(let y=0;y<m.rows;y++)worldMap[y]=(layer?.cells||[]).slice(y*m.cols,(y+1)*m.cols);
+    for(let y=0;y<m.rows;y++){
+        const row=[];
+        for(let x=0;x<m.cols;x++){
+            let tileId=m.tileset[0]||"grass";
+            for(const layer of visibleLayers){
+                const candidate=layer.cells?.[y*m.cols+x];
+                if(candidate!==null&&candidate!==undefined&&candidate!=="")tileId=candidate;
+            }
+            row.push(tileId);
+        }
+        worldMap.push(row);
+    }
     while(worldMap.length<m.rows)worldMap.push(Array(m.cols).fill(m.tileset[0]||"grass"));
     if(typeof buildWorldMapCanvas==="function")worldMapCanvas=buildWorldMapCanvas();
     if(worldCanvas){worldCanvas.width=VIEWPORT_WIDTH;worldCanvas.height=VIEWPORT_HEIGHT;}
@@ -447,7 +458,10 @@ function mapEditorPaintAt(event){
     if(mapEditorTool==="fill"){
         mapEditorPushUndo();const target=layer.cells[index];const replacement=mapEditorSelectedTile;if(target!==replacement){for(let i=0;i<layer.cells.length;i++)if(layer.cells[i]===target)layer.cells[i]=replacement;}mapEditorTool="paint";mapEditorSaveCurrent();mapEditorRender();return;
     }
-    if(next===null){if(layer.cells[index]===undefined)return;layer.cells[index]=m.tileset[0]||"grass";}
+    if(next===null){
+        if(layer.cells[index]===undefined)return;
+        layer.cells[index]=layer.id==="terrain"?(m.tileset[0]||"grass"):null;
+    }
     else {if(!m.tileset.includes(next))m.tileset.push(next);layer.cells[index]=next;}
     mapEditorSaveCurrent();mapEditorRender();
 }
@@ -466,7 +480,7 @@ function mapEditorResize(){
 function mapEditorAddLayer(){
     const m=mapEditorCurrent();if(!m)return;
     const name=prompt("Nom du nouveau calque :","Décor");if(!name)return;
-    mapEditorPushUndo();m.layers.push({id:mapEditorNormalizeId(name,mapEditorUid("layer")),name,visible:true,cells:Array(m.cols*m.rows).fill(m.tileset[0]||"grass")});mapEditorSaveCurrent();mapEditorRender();
+    mapEditorPushUndo();m.layers.push({id:mapEditorNormalizeId(name,mapEditorUid("layer")),name,visible:true,cells:Array(m.cols*m.rows).fill(null)});mapEditorSaveCurrent();mapEditorRender();
 }
 function mapEditorOpenEncounterForm(){
     const m=mapEditorCurrent();if(!m)return;
