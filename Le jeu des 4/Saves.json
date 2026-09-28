@@ -1,0 +1,998 @@
+{
+    "version": 1,
+    "autoSave": {
+        "name": "Sauvegarde automatique",
+        "date": "2026-09-28T21:58:41.292Z",
+        "globalState": {
+            "adventureStarted": true,
+            "monsterKilled": 0,
+            "playerHp": 0,
+            "playerMaxHp": 0,
+            "playerEnergy": 0,
+            "playerMaxEnergy": 0,
+            "coins": 0,
+            "itemPotionForce": 0,
+            "itemBandage": 0,
+            "itemTotem": 0,
+            "itemArmor": 0,
+            "playerLevel": 1,
+            "playerXp": 0,
+            "playerXpToNext": 25,
+            "playerXpTotal": 0,
+            "evolutionDeclinedThreshold": null,
+            "evolutionDeclinedLevel": null
+        },
+        "state": {
+            "contenu": null,
+            "config": {
+                "playerName": "Joueur",
+                "monsterName": "Monstre",
+                "monsterCount": 1,
+                "skipAnimation": true,
+                "enemyPool": "monstres"
+            },
+            "selectedHero": {
+                "Nom": "Yrone",
+                "TypeEnergie": "Ki",
+                "TypeEnergie2": "",
+                "Rarete": "Commun",
+                "VisibleSelection": true,
+                "PuissanceBase": 3,
+                "Vie": 100,
+                "Armure": 1,
+                "MinRoulette": 2,
+                "MaxRoulette": 10,
+                "NombreRoulette": 2,
+                "MinEnergie": 0,
+                "MaxEnergie": 90,
+                "Vitesse": 0,
+                "Image": "assets/personnages/Yrone.png",
+                "Attaques": [],
+                "Evolution": {
+                    "Cible": "Yronegun",
+                    "NiveauRequis": 16
+                }
+            },
+            "hero": {
+                "Nom": "Yrone",
+                "TypeEnergie": "Ki",
+                "TypeEnergie2": "",
+                "Rarete": "Commun",
+                "VisibleSelection": true,
+                "PuissanceBase": 3,
+                "Vie": 100,
+                "Armure": 1,
+                "MinRoulette": 2,
+                "MaxRoulette": 10,
+                "NombreRoulette": 2,
+                "MinEnergie": 0,
+                "MaxEnergie": 90,
+                "Vitesse": 0,
+                "Image": "assets/personnages/Yrone.png",
+                "Attaques": [],
+                "Evolution": {
+                    "Cible": "Yronegun",
+                    "NiveauRequis": 16
+                }
+            },
+            "heroEnergyData": null,
+            "heroAttacks": [],
+            "playerArmorBase": 1,
+            "playerMinRoulette": 2,
+            "playerMaxRoulette": 10,
+            "playerNombreRoulette": 2,
+            "playerPowerBase": 3,
+            "playerPowerModifier": 0,
+            "playerArmorModifier": 0,
+            "playerStatusEffects": [],
+            "pendingXp": 0,
+            "monsterHp": 0,
+            "monsterMaxHp": 0,
+            "monsterMinRoulette": 1,
+            "monsterMaxRoulette": 10,
+            "monsterNombreRoulette": 1,
+            "monsterArmorRandom": 1,
+            "monsterPowerRandom": 1,
+            "monsters": [],
+            "selectedMonsterId": null,
+            "currentMonsterNumber": 1,
+            "remainingMonsters": 1,
+            "turn": "player",
+            "battleOver": false,
+            "busy": false,
+            "escapeAttempts": 0,
+            "playerHp": 100,
+            "playerMaxHp": 100,
+            "playerEnergy": 90,
+            "playerMaxEnergy": 90,
+            "itemPotionForce": 0,
+            "itemBandage": 0,
+            "itemTotem": 0,
+            "itemArmor": 0,
+            "coins": 0
+        },
+        "ui": {
+            "screen": "world"
+        },
+        "overworld": {
+            "playerX": 240,
+            "playerY": 160,
+            "facing": "right"
+        }
+    },
+    "sauvegardes": [
+        {
+            "name": "Shaun Lvl. 50",
+            "date": "2026-09-26T02:43:38.823Z",
+            "globalState": {
+                "adventureStarted": true,
+                "monsterKilled": 267,
+                "playerHp": 0,
+                "playerMaxHp": 0,
+                "playerEnergy": 0,
+                "playerMaxEnergy": 0,
+                "coins": 0,
+                "itemPotionForce": 0,
+                "itemBandage": 0,
+                "itemTotem": 0,
+                "itemArmor": 0,
+                "playerLevel": 50,
+                "playerXp": 53,
+                "playerXpToNext": 2248,
+                "playerXpTotal": 51202,
+                "evolutionDeclinedThreshold": null,
+                "evolutionDeclinedLevel": null
+            },
+            "state": {
+                "contenu": null,
+                "config": {
+                    "playerName": "LeBron",
+                    "monsterName": "Jerry West",
+                    "monsterCount": 2,
+                    "skipAnimation": true
+                },
+                "selectedHero": {
+                    "Nom": "Rao-Shaun",
+                    "TypeEnergie": "Mana",
+                    "TypeEnergie2": "Aura",
+                    "Rarete": "Légendaire",
+                    "VisibleSelection": false,
+                    "PuissanceBase": 3.5,
+                    "Vie": 125,
+                    "Armure": 3,
+                    "MinRoulette": 7,
+                    "MaxRoulette": 11,
+                    "NombreRoulette": 6,
+                    "MinEnergie": 0,
+                    "MaxEnergie": 150,
+                    "Vitesse": 0,
+                    "Image": "",
+                    "Attaques": [
+                        "LA PEAK BAGUETTE",
+                        "Le vrai buzzer!",
+                        "Dieu du 3 points",
+                        "Jugement du tir des mortels !"
+                    ],
+                    "Evolution": null
+                },
+                "hero": {
+                    "Nom": "Rao-Shaun",
+                    "TypeEnergie": "Mana",
+                    "TypeEnergie2": "Aura",
+                    "Rarete": "Légendaire",
+                    "VisibleSelection": false,
+                    "PuissanceBase": 3.5,
+                    "Vie": 125,
+                    "Armure": 3,
+                    "MinRoulette": 7,
+                    "MaxRoulette": 11,
+                    "NombreRoulette": 6,
+                    "MinEnergie": 0,
+                    "MaxEnergie": 150,
+                    "Vitesse": 0,
+                    "Image": "",
+                    "Attaques": [
+                        "LA PEAK BAGUETTE",
+                        "Le vrai buzzer!",
+                        "Dieu du 3 points",
+                        "Jugement du tir des mortels !"
+                    ],
+                    "Evolution": null
+                },
+                "heroEnergyData": {
+                    "Nom": "Mana",
+                    "RechargeAutomatique": true,
+                    "GainParTour": 5,
+                    "Faiblesse": "Aura",
+                    "Avantage": "Ki"
+                },
+                "heroAttacks": [
+                    {
+                        "Nom": "LA PEAK BAGUETTE",
+                        "Description": "{HERO} brandit son énorme baguette et frappe le sol avec ce qui crée un trmblement de terre qui fait 3 fois le tour de la planéte et revient pour re-frapper l'ennemi et lui faire des degats a l'infini et pendant ce temps, {HERO} shoot des 3 points en riant.",
+                        "Personnage": "Rao-Shaun",
+                        "TypeEnergie": "Mana",
+                        "CoutEnergie": 100,
+                        "Effets": [
+                            {
+                                "Nom": "La baguette dunk",
+                                "Type": "Degats",
+                                "Valeur": 30,
+                                "Cible": "ennemy",
+                                "Tours": 1
+                            },
+                            {
+                                "Nom": "Buff de puissance de fou",
+                                "Type": "Buff de puissance",
+                                "Valeur": 6,
+                                "Cible": "Joueur",
+                                "Tours": 1
+                            },
+                            {
+                                "Nom": "Débuff de puissance infinie -6",
+                                "Type": "Debuff de puissance",
+                                "Valeur": 6,
+                                "Cible": "Tous les ennemis",
+                                "Tours": 999999
+                            },
+                            {
+                                "Nom": "Réduction d'armure infinie -50",
+                                "Type": "Réduire l'armure",
+                                "Valeur": 50,
+                                "Cible": "Tous les ennemis",
+                                "Tours": 999999
+                            }
+                        ],
+                        "Statuts": [],
+                        "TypeEnergie2": "Aura"
+                    },
+                    {
+                        "Nom": "Le vrai buzzer!",
+                        "Description": "\"Impossible!\" dit le commentateur, {HERO} tir un game winner 75ft full court shot avec 0.42 secondes restantes. Se buzzer était magique et a permis de rendre {HERO} un peu plus connu, bref, en tout cas ce buzzer est le dieu des buzzers et godamn ca le boost !",
+                        "Personnage": "Rao-Shaun",
+                        "TypeEnergie": "Mana",
+                        "CoutEnergie": 35,
+                        "Effets": [
+                            {
+                                "Nom": "Soin x3",
+                                "Type": "Soin",
+                                "Valeur": 3,
+                                "Cible": "Joueur",
+                                "Tours": 1
+                            },
+                            {
+                                "Nom": "Dégats x10 infini",
+                                "Type": "Buff de puissance",
+                                "Valeur": 10,
+                                "Cible": "Joueur",
+                                "Tours": 999999
+                            },
+                            {
+                                "Nom": "Réduction d'armure infinie -50",
+                                "Type": "Réduire l'armure",
+                                "Valeur": 50,
+                                "Cible": "Tous les ennemis",
+                                "Tours": 999999
+                            },
+                            {
+                                "Nom": "x2 dégats tous les ennemis",
+                                "Type": "Degats",
+                                "Valeur": 2,
+                                "Cible": "Tous les ennemis",
+                                "Tours": 1
+                            },
+                            {
+                                "Nom": "X2 dégats",
+                                "Type": "Degats",
+                                "Valeur": 2,
+                                "Cible": "Ennemi",
+                                "Tours": 1
+                            },
+                            {
+                                "Nom": "Attaque tout les ennemis",
+                                "Type": "Degats",
+                                "Valeur": 1,
+                                "Cible": "Tous les ennemis",
+                                "Tours": 1
+                            }
+                        ],
+                        "Statuts": [],
+                        "TypeEnergie2": "Aura",
+                        "NombreMaxCoups": 2
+                    },
+                    {
+                        "Nom": "Dieu du 3 points",
+                        "Description": "{HERO} se rappelant qui il est vraiment il dépasse le chef lui même Curry. Son tir à deux mains, que l'on apprend maitenant dans toutes les écoles, rend le ballon si puissant et si rapide que l'espace-temps semble se déchirer rien qu'a son contact. L'ennemi ne peut plus voir tant d'aura et succombre et le ballon qui va plus vite que le rayonnement solaire finit le travail.",
+                        "Personnage": "Rao-Shaun",
+                        "TypeEnergie": "Mana",
+                        "CoutEnergie": 30,
+                        "Effets": [
+                            {
+                                "Nom": "Dégats touts .8x",
+                                "Type": "Degats",
+                                "Valeur": 0.8,
+                                "Cible": "Tous les ennemis",
+                                "Tours": 1
+                            },
+                            {
+                                "Nom": "x3 dégats ennemie",
+                                "Type": "Degats",
+                                "Valeur": 3,
+                                "Cible": "Ennemi",
+                                "Tours": 1
+                            },
+                            {
+                                "Nom": "Attaque tout les ennemis",
+                                "Type": "Degats",
+                                "Valeur": 1,
+                                "Cible": "Tous les ennemis",
+                                "Tours": 1
+                            },
+                            {
+                                "Nom": "Brulure 100 5 tours",
+                                "Type": "Brûlure",
+                                "Valeur": 100,
+                                "Cible": "Ennemi",
+                                "Tours": 5
+                            }
+                        ],
+                        "Statuts": [],
+                        "TypeEnergie2": "Aura"
+                    },
+                    {
+                        "Nom": "Jugement du tir des mortels !",
+                        "Description": "{HERO} arrive et juge les tirs des humains et quand il y en a qui ne vas pas {HERO} dit tout simplement:\"Hmphh\". Ce qui rend l'ennemi jugé si bête et si nul que cet ennemi se sent comme un caca posé par un lapin oublié et mort sur l'autorute. Une merde quoi.",
+                        "Personnage": "Rao-Shaun",
+                        "TypeEnergie": "Mana",
+                        "CoutEnergie": 60,
+                        "Effets": [],
+                        "Statuts": [],
+                        "TypeEnergie2": "Aura"
+                    }
+                ],
+                "playerArmorBase": 3,
+                "playerMinRoulette": 19,
+                "playerMaxRoulette": 36,
+                "playerNombreRoulette": 15,
+                "playerPowerBase": 151.69,
+                "playerPowerModifier": 0,
+                "playerArmorModifier": 0,
+                "playerStatusEffects": [],
+                "pendingXp": 0,
+                "monsterHp": 0,
+                "monsterMaxHp": 0,
+                "monsterMinRoulette": 1,
+                "monsterMaxRoulette": 10,
+                "monsterNombreRoulette": 1,
+                "monsterArmorRandom": 1,
+                "monsterPowerRandom": 1,
+                "monsters": [
+                    {
+                        "id": "monster-266-0",
+                        "number": 266,
+                        "name": "Édouard",
+                        "energyType": "Mana",
+                        "energyTypes": [
+                            "Mana"
+                        ],
+                        "hp": 0,
+                        "maxHp": 1641,
+                        "power": 54,
+                        "armor": 54,
+                        "level": 53,
+                        "wheels": [
+                            {
+                                "min": 14,
+                                "max": 36
+                            },
+                            {
+                                "min": 14,
+                                "max": 36
+                            },
+                            {
+                                "min": 14,
+                                "max": 36
+                            },
+                            {
+                                "min": 14,
+                                "max": 36
+                            },
+                            {
+                                "min": 14,
+                                "max": 36
+                            },
+                            {
+                                "min": 14,
+                                "max": 36
+                            },
+                            {
+                                "min": 14,
+                                "max": 36
+                            },
+                            {
+                                "min": 14,
+                                "max": 36
+                            },
+                            {
+                                "min": 14,
+                                "max": 36
+                            },
+                            {
+                                "min": 14,
+                                "max": 36
+                            },
+                            {
+                                "min": 14,
+                                "max": 36
+                            }
+                        ],
+                        "minRoulette": 14,
+                        "maxRoulette": 36,
+                        "nombreRoulette": 11,
+                        "isBoss": false,
+                        "powerModifier": 0,
+                        "armorModifier": 0,
+                        "statusEffects": [
+                            {
+                                "kind": "burn",
+                                "value": 100,
+                                "remainingTurns": 5
+                            }
+                        ],
+                        "deathAnimationPlayed": true,
+                        "defeatHandled": true,
+                        "attacks": [
+                            "Tir du croissant",
+                            "Chute du plus dur",
+                            "Tir du plus haut",
+                            "La baguette d'or"
+                        ],
+                        "items": {
+                            "force": 2,
+                            "bandage": 1,
+                            "armor": 0,
+                            "totem": 0
+                        },
+                        "Vitesse": 0,
+                        "Image": "assets/monstres/edouard.png",
+                        "rarete": "Commun"
+                    },
+                    {
+                        "id": "monster-267-1",
+                        "number": 267,
+                        "name": "Édouard",
+                        "energyType": "Mana",
+                        "energyTypes": [
+                            "Mana"
+                        ],
+                        "hp": 0,
+                        "maxHp": 414091,
+                        "power": 86,
+                        "armor": 86,
+                        "level": 59,
+                        "wheels": [
+                            {
+                                "min": 15,
+                                "max": 39
+                            },
+                            {
+                                "min": 15,
+                                "max": 39
+                            },
+                            {
+                                "min": 15,
+                                "max": 39
+                            },
+                            {
+                                "min": 15,
+                                "max": 39
+                            },
+                            {
+                                "min": 15,
+                                "max": 39
+                            },
+                            {
+                                "min": 15,
+                                "max": 39
+                            },
+                            {
+                                "min": 15,
+                                "max": 39
+                            },
+                            {
+                                "min": 15,
+                                "max": 39
+                            },
+                            {
+                                "min": 15,
+                                "max": 39
+                            },
+                            {
+                                "min": 15,
+                                "max": 39
+                            },
+                            {
+                                "min": 15,
+                                "max": 39
+                            },
+                            {
+                                "min": 15,
+                                "max": 39
+                            }
+                        ],
+                        "minRoulette": 15,
+                        "maxRoulette": 39,
+                        "nombreRoulette": 12,
+                        "isBoss": true,
+                        "powerModifier": 0,
+                        "armorModifier": 0,
+                        "statusEffects": [
+                            {
+                                "kind": "burn",
+                                "value": 100,
+                                "remainingTurns": 5
+                            }
+                        ],
+                        "deathAnimationPlayed": true,
+                        "defeatHandled": true,
+                        "attacks": [
+                            "Tir du croissant",
+                            "Chute du plus dur",
+                            "Tir du plus haut",
+                            "La baguette d'or"
+                        ],
+                        "items": {
+                            "force": 2,
+                            "bandage": 3,
+                            "armor": 3,
+                            "totem": 0
+                        },
+                        "Vitesse": 0,
+                        "Image": "assets/monstres/edouard.png",
+                        "rarete": "Commun"
+                    }
+                ],
+                "selectedMonsterId": "monster-267-1",
+                "currentMonsterNumber": 268,
+                "remainingMonsters": 0,
+                "turn": "player",
+                "battleOver": true,
+                "busy": false,
+                "escapeAttempts": 0,
+                "playerHp": 5480,
+                "playerMaxHp": 5480,
+                "playerEnergy": 1815,
+                "playerMaxEnergy": 2100,
+                "itemPotionForce": 28,
+                "itemBandage": 64,
+                "itemTotem": 22,
+                "itemArmor": 36,
+                "coins": 0
+            },
+            "ui": {
+                "screen": "world"
+            },
+            "overworld": {
+                "playerX": 320,
+                "playerY": 80,
+                "facing": "left"
+            }
+        },
+        {
+            "name": "Will Lvl. 35",
+            "date": "2026-09-25T03:10:55.192Z",
+            "globalState": {
+                "adventureStarted": true,
+                "monsterKilled": 153,
+                "playerHp": 0,
+                "playerMaxHp": 0,
+                "playerEnergy": 0,
+                "playerMaxEnergy": 0,
+                "coins": 0,
+                "itemPotionForce": 0,
+                "itemBandage": 0,
+                "itemTotem": 0,
+                "itemArmor": 0,
+                "playerLevel": 35,
+                "playerXp": 155,
+                "playerXpToNext": 1491,
+                "playerXpTotal": 23690,
+                "evolutionDeclinedThreshold": null,
+                "evolutionDeclinedLevel": null
+            },
+            "state": {
+                "contenu": null,
+                "config": {
+                    "playerName": "Joueur",
+                    "monsterName": "Monstre",
+                    "monsterCount": 3,
+                    "skipAnimation": true
+                },
+                "selectedHero": {
+                    "Nom": "William",
+                    "TypeEnergie": "Ki",
+                    "TypeEnergie2": "",
+                    "PuissanceBase": 3,
+                    "Vie": 100,
+                    "Armure": 3,
+                    "Vitesse": 0,
+                    "MinRoulette": 0,
+                    "MaxRoulette": 13,
+                    "NombreRoulette": 1,
+                    "MinEnergie": 0,
+                    "MaxEnergie": 60,
+                    "Image": "assets/personnages/William.png",
+                    "Attaques": [
+                        "Broyage du bicep",
+                        "Charge sans limite",
+                        "Tuerie des petits",
+                        "Coup de paf",
+                        "Back in my days"
+                    ],
+                    "Evolution": {
+                        "Cible": "Willoalthères",
+                        "ExpRequise": 3000
+                    }
+                },
+                "hero": {
+                    "Nom": "William",
+                    "TypeEnergie": "Ki",
+                    "TypeEnergie2": "",
+                    "PuissanceBase": 3,
+                    "Vie": 100,
+                    "Armure": 3,
+                    "Vitesse": 0,
+                    "MinRoulette": 0,
+                    "MaxRoulette": 13,
+                    "NombreRoulette": 1,
+                    "MinEnergie": 0,
+                    "MaxEnergie": 60,
+                    "Image": "assets/personnages/William.png",
+                    "Attaques": [
+                        "Broyage du bicep",
+                        "Charge sans limite",
+                        "Tuerie des petits",
+                        "Coup de paf",
+                        "Back in my days"
+                    ],
+                    "Evolution": {
+                        "Cible": "Willoalthères",
+                        "ExpRequise": 3000
+                    }
+                },
+                "heroEnergyData": {
+                    "Nom": "Ki",
+                    "RechargeAutomatique": false,
+                    "GainParTour": 0,
+                    "Faiblesse": "Mana",
+                    "Avantage": "Aura"
+                },
+                "heroAttacks": [
+                    {
+                        "Nom": "Broyage du bicep",
+                        "Description": "{HERO} gonfle ses biceps a un point ou meme les montagnes paraissent petites et il place son ennemi entre ses biceps et il fint écraser.",
+                        "Personnage": "William",
+                        "TypeEnergie": "Ki",
+                        "CoutEnergie": 5,
+                        "Effets": [
+                            {
+                                "Nom": "Dégats",
+                                "Type": "Degats",
+                                "Valeur": 1,
+                                "Cible": "Ennemi",
+                                "Tours": 1
+                            },
+                            {
+                                "Nom": "Buff 1.5x 3 tours",
+                                "Type": "Buff de puissance",
+                                "Valeur": 1.5,
+                                "Cible": "Joueur",
+                                "Tours": 3
+                            },
+                            {
+                                "Nom": "Dégats sois même",
+                                "Type": "Degats",
+                                "Valeur": 0.01,
+                                "Cible": "Joueur",
+                                "Tours": 1
+                            }
+                        ],
+                        "Statuts": []
+                    },
+                    {
+                        "Nom": "Charge sans limite",
+                        "Description": "{HERO} charge son ennemi avec une telle force que son ennemi ne peut plus se défendre et finit par mourir sous le poids de tellement de muscles.",
+                        "Personnage": "William",
+                        "TypeEnergie": "Ki",
+                        "CoutEnergie": 5,
+                        "Effets": [
+                            {
+                                "Nom": "Dégats",
+                                "Type": "Degats",
+                                "Valeur": 1,
+                                "Cible": "Ennemi",
+                                "Tours": 1
+                            }
+                        ],
+                        "Statuts": []
+                    },
+                    {
+                        "Nom": "Tuerie des petits",
+                        "Description": "{HERO} fonce sur son adversaire le plus petit et ce faisant l'écrase avec une telle force qu'il massacre des centaines de Édouard bien roux.",
+                        "Personnage": "William",
+                        "TypeEnergie": "Ki",
+                        "CoutEnergie": 5,
+                        "Effets": [
+                            {
+                                "Nom": "Attaque tout les ennemis",
+                                "Type": "Degats",
+                                "Valeur": 1,
+                                "Cible": "Tous les ennemis",
+                                "Tours": 1
+                            }
+                        ],
+                        "Statuts": []
+                    },
+                    {
+                        "Nom": "Coup de paf",
+                        "Description": "{HERO} libère son arme la plus puissante, son paf. il enfourche et encule son adversaire jusqu'a que la pénétration de force tue son adversaire. D'après des témoignages, chaque ennemis a finis enceinte après cette attaque.",
+                        "Personnage": "William",
+                        "TypeEnergie": "Ki",
+                        "CoutEnergie": 5,
+                        "Effets": [
+                            {
+                                "Nom": "Dégats",
+                                "Type": "Degats",
+                                "Valeur": 1,
+                                "Cible": "Ennemi",
+                                "Tours": 1
+                            },
+                            {
+                                "Nom": "Réduction d'armure 5 3 tours ennemi",
+                                "Type": "Réduire l'armure",
+                                "Valeur": 5,
+                                "Cible": "Ennemi",
+                                "Tours": 3
+                            }
+                        ],
+                        "Statuts": []
+                    },
+                    {
+                        "Nom": "Back in my days",
+                        "Description": "{HERO} par la maîtrise de son paf qui entraine depuis 7.6 millions d'années avant J.C., il rape complètement son ennemi. L'ennemi n'avait jamais vu un paf aussi bien maîtriser que celui de {HERO}, impresionner, il ne porte plus attention au combat. Peut rendre enceinte l'ennemi.",
+                        "Personnage": "William",
+                        "TypeEnergie": "Ki",
+                        "CoutEnergie": 60,
+                        "Effets": [
+                            {
+                                "Nom": "La baguette dunk",
+                                "Type": "Degats",
+                                "Valeur": 30,
+                                "Cible": "ennemy",
+                                "Tours": 1
+                            }
+                        ],
+                        "Statuts": []
+                    }
+                ],
+                "playerArmorBase": 3,
+                "playerMinRoulette": 8,
+                "playerMaxRoulette": 30,
+                "playerNombreRoulette": 8,
+                "playerPowerBase": 41,
+                "playerPowerModifier": 0,
+                "playerArmorModifier": 0,
+                "playerStatusEffects": [],
+                "pendingXp": 0,
+                "monsterHp": 0,
+                "monsterMaxHp": 0,
+                "monsterMinRoulette": 1,
+                "monsterMaxRoulette": 10,
+                "monsterNombreRoulette": 1,
+                "monsterArmorRandom": 1,
+                "monsterPowerRandom": 1,
+                "monsters": [
+                    {
+                        "id": "monster-152-0",
+                        "number": 152,
+                        "name": "Monstre",
+                        "energyType": "Mana",
+                        "energyTypes": [
+                            "Mana"
+                        ],
+                        "hp": 0,
+                        "maxHp": 14040,
+                        "power": 78,
+                        "armor": 36,
+                        "level": 43,
+                        "wheels": [
+                            {
+                                "min": 4,
+                                "max": 12
+                            },
+                            {
+                                "min": 5,
+                                "max": 14
+                            },
+                            {
+                                "min": 6,
+                                "max": 16
+                            },
+                            {
+                                "min": 7,
+                                "max": 18
+                            }
+                        ],
+                        "minRoulette": 4,
+                        "maxRoulette": 12,
+                        "nombreRoulette": 4,
+                        "isBoss": true,
+                        "powerModifier": 0,
+                        "armorModifier": 0,
+                        "statusEffects": [],
+                        "deathAnimationPlayed": true,
+                        "defeatHandled": true,
+                        "attacks": [
+                            "Chute du plus dur",
+                            "0.42sec buzzer",
+                            "Plaquage par le dos d'acier",
+                            "ChatGPT a mon back"
+                        ],
+                        "items": {
+                            "force": 3,
+                            "bandage": 4,
+                            "armor": 1,
+                            "totem": 0
+                        },
+                        "Vitesse": 0,
+                        "Image": ""
+                    },
+                    {
+                        "id": "monster-153-1",
+                        "number": 153,
+                        "name": "Monstre",
+                        "energyType": "Mana",
+                        "energyTypes": [
+                            "Mana"
+                        ],
+                        "hp": 0,
+                        "maxHp": 10800,
+                        "power": 60,
+                        "armor": 32,
+                        "level": 31,
+                        "wheels": [
+                            {
+                                "min": 4,
+                                "max": 12
+                            },
+                            {
+                                "min": 5,
+                                "max": 14
+                            },
+                            {
+                                "min": 6,
+                                "max": 16
+                            },
+                            {
+                                "min": 7,
+                                "max": 18
+                            }
+                        ],
+                        "minRoulette": 4,
+                        "maxRoulette": 12,
+                        "nombreRoulette": 4,
+                        "isBoss": true,
+                        "powerModifier": 0,
+                        "armorModifier": 0,
+                        "statusEffects": [],
+                        "deathAnimationPlayed": true,
+                        "defeatHandled": true,
+                        "attacks": [
+                            "Chute du plus dur",
+                            "Explosion de la baguette",
+                            "La baguette dunk",
+                            "Ailes d'acier"
+                        ],
+                        "items": {
+                            "force": 2,
+                            "bandage": 1,
+                            "armor": 3,
+                            "totem": 2
+                        },
+                        "Vitesse": 0,
+                        "Image": ""
+                    },
+                    {
+                        "id": "monster-154-2",
+                        "number": 154,
+                        "name": "Monstre",
+                        "energyType": "Aura",
+                        "energyTypes": [
+                            "Aura"
+                        ],
+                        "hp": 0,
+                        "maxHp": 14310,
+                        "power": 74,
+                        "armor": 42,
+                        "level": 44,
+                        "wheels": [
+                            {
+                                "min": 4,
+                                "max": 12
+                            },
+                            {
+                                "min": 5,
+                                "max": 14
+                            },
+                            {
+                                "min": 6,
+                                "max": 16
+                            },
+                            {
+                                "min": 7,
+                                "max": 18
+                            }
+                        ],
+                        "minRoulette": 4,
+                        "maxRoulette": 12,
+                        "nombreRoulette": 4,
+                        "isBoss": true,
+                        "powerModifier": 0,
+                        "armorModifier": 0,
+                        "statusEffects": [],
+                        "deathAnimationPlayed": false,
+                        "defeatHandled": false,
+                        "attacks": [
+                            "Ragebaiting",
+                            "Vitesse du macaque",
+                            "EZZZZZZZZZZ",
+                            "Explosion de la banane"
+                        ],
+                        "items": {
+                            "force": 3,
+                            "bandage": 3,
+                            "armor": 2,
+                            "totem": 0
+                        },
+                        "Vitesse": 0,
+                        "Image": ""
+                    }
+                ],
+                "selectedMonsterId": "monster-153-1",
+                "currentMonsterNumber": 154,
+                "remainingMonsters": 0,
+                "turn": "player",
+                "battleOver": true,
+                "busy": false,
+                "escapeAttempts": 0,
+                "playerHp": 1381,
+                "playerMaxHp": 1381,
+                "playerEnergy": 92,
+                "playerMaxEnergy": 441,
+                "itemPotionForce": 14,
+                "itemBandage": 43,
+                "itemTotem": 7,
+                "itemArmor": 14,
+                "coins": 0
+            },
+            "ui": {
+                "screen": "world"
+            },
+            "overworld": {
+                "playerX": 384,
+                "playerY": 192,
+                "facing": "left"
+            }
+        },
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+    ],
+    "dossier": "Le jeu des 4",
+    "fichier": "Saves.json"
+}

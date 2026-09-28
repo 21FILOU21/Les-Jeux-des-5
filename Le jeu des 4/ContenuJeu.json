@@ -1,0 +1,491 @@
+{
+  "Personnages": [
+    {
+      "Nom": "F\u00E9lix",
+      "TypeEnergie": "Mana",
+      "PuissanceBase": 1,
+      "Vie": 100,
+      "Armure": 4,
+      "Vitesse": 0,
+      "MinRoulette": 2,
+      "MaxRoulette": 10,
+      "NombreRoulette": 2,
+      "MinEnergie": 0,
+      "MaxEnergie": 100,
+      "Image": "assets/personnages/F\u00E9lix.png",
+      "Attaques": [
+        "Ailes d\u0027acier",
+        "Tir du plus haut",
+        "Plaquage par le dos d\u0027acier",
+        "Chute du plus dur",
+        "ChatGPT a mon back"
+      ]
+    },
+    {
+      "Nom": "L\u00E9andre",
+      "TypeEnergie": "Aura",
+      "PuissanceBase": 1.5,
+      "Vie": 100,
+      "Armure": 2,
+      "Vitesse": 0,
+      "MinRoulette": 2,
+      "MaxRoulette": 12,
+      "NombreRoulette": 2,
+      "MinEnergie": 0,
+      "MaxEnergie": 80,
+      "Image": "",
+      "Attaques": [
+        "Singe volant",
+        "Ragebaiting",
+        "Vitesse du macaque",
+        "Explosion de la banane",
+        "EZZZZZZZZZZ"
+      ]
+    },
+    {
+      "Nom": "William",
+      "TypeEnergie": "Ki",
+      "PuissanceBase": 3,
+      "Vie": 100,
+      "Armure": 3,
+      "Vitesse": 0,
+      "MinRoulette": 0,
+      "MaxRoulette": 13,
+      "NombreRoulette": 1,
+      "MinEnergie": 0,
+      "MaxEnergie": 60,
+      "Image": "assets/personnages/William.png",
+      "Attaques": [
+        "Broyage du bicep",
+        "Charge sans limite",
+        "Tuerie des petits",
+        "Coup de paf",
+        "Back in my days"
+      ]
+    },
+    {
+      "Nom": "Shaun",
+      "TypeEnergie": "Mana",
+      "PuissanceBase": 2,
+      "Vie": 100,
+      "Armure": 1,
+      "Vitesse": 0,
+      "MinRoulette": 4,
+      "MaxRoulette": 7,
+      "NombreRoulette": 3,
+      "MinEnergie": 0,
+      "MaxEnergie": 80,
+      "Image": "assets/personnages/Shaun.png",
+      "Attaques": [
+        "Explosion de la baguette",
+        "Tir du croissant",
+        "0.42sec buzzer",
+        "La baguette d\u0027or",
+        "La baguette dunk"
+      ]
+    }
+  ],
+  "Attaques": [
+    {
+      "Nom": "Ailes d\u0027acier",
+      "Description": "{HERO} d\u00E9coupe sons squelette pour former des ailes tranchantes comme un penis bien aiguis\u00E9.",
+      "Personnage": "F\u00E9lix",
+      "TypeEnergie": "Mana",
+      "CoutEnergie": 5,
+      "Effets": [
+        {
+          "Nom": "D\u00E9gats",
+          "Type": "Degats",
+          "Valeur": 1,
+          "Cible": "Ennemi",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    },
+    {
+      "Nom": "Tir du plus haut",
+      "Description": "{HERO} tir un rayon qui va si haut que meme si tu te fais envoyer au 7eme ciel tu n\u0027es pas assez haut clairement. Cette attaque retombe avec une puissance comparable a la ceinture du daron.",
+      "Personnage": "F\u00E9lix",
+      "TypeEnergie": "Mana",
+      "CoutEnergie": 5,
+      "Effets": [
+        {
+          "Nom": "D\u00E9gats",
+          "Type": "Degats",
+          "Valeur": 1,
+          "Cible": "Ennemi",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    },
+    {
+      "Nom": "Plaquage par le dos d\u0027acier",
+      "Description": "{HERO} plaque son ennemi comme un catcheur se qui broient les os de son ennemis et inflige une douleur comparable a 1000 suppositoires enfonc\u00E9s en meme temps.",
+      "Personnage": "F\u00E9lix",
+      "TypeEnergie": "Mana",
+      "CoutEnergie": 5,
+      "Effets": [
+        {
+          "Nom": "D\u00E9gats",
+          "Type": "Degats",
+          "Valeur": 1,
+          "Cible": "Ennemi",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    },
+    {
+      "Nom": "Chute du plus dur",
+      "Description": "{HERO} tombe et ,p\u00E9nis en avant, cr\u00E9e une secousse sismique qui fait trembler la terre enti\u00E8re.",
+      "Personnage": "F\u00E9lix",
+      "TypeEnergie": "Mana",
+      "CoutEnergie": 5,
+      "Effets": [
+        {
+          "Nom": "D\u00E9gats",
+          "Type": "Degats",
+          "Valeur": 1,
+          "Cible": "Ennemi",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    },
+    {
+      "Nom": "Singe volant",
+      "Description": "{HERO} saute si haut que l\u0027apesanteur ne peut plus le retenir et sa vitesse et sa puissance sont \u00E9normes.",
+      "Personnage": "L\u00E9andre",
+      "TypeEnergie": "Aura",
+      "CoutEnergie": 5,
+      "Effets": [
+        {
+          "Nom": "D\u00E9gats",
+          "Type": "Degats",
+          "Valeur": 1,
+          "Cible": "Ennemi",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    },
+    {
+      "Nom": "Ragebaiting",
+      "Description": "{HERO} ragebait si fort son ennemi que l\u0027ennemi se frappe lui meme a r\u00E9p\u00E9tition jusqu\u0027a que mort s\u0027en suive",
+      "Personnage": "L\u00E9andre",
+      "TypeEnergie": "Aura",
+      "CoutEnergie": 5,
+      "Effets": [
+        {
+          "Nom": "D\u00E9gats",
+          "Type": "Degats",
+          "Valeur": 1,
+          "Cible": "Ennemi",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    },
+    {
+      "Nom": "Vitesse du macaque",
+      "Description": "{HERO} avec ses jambes si noires, si muscl\u00E9es, s\u0027\u00E9lance \u00E0 une vitesse immesurable, frappant son ennemi avec son aura, sans m\u00EAme le toucher.",
+      "Personnage": "L\u00E9andre",
+      "TypeEnergie": "Aura",
+      "CoutEnergie": 5,
+      "Effets": [
+        {
+          "Nom": "D\u00E9gats",
+          "Type": "Degats",
+          "Valeur": 1,
+          "Cible": "Ennemi",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    },
+    {
+      "Nom": "Explosion de la banane",
+      "Description": "{HERO} sorti un fruit exotique African de sa poche et le lan\u00E7a directement sur son ennemi. Une horde d\u0027africains s\u0027abattirent alors sur l\u0027adversaire.",
+      "Personnage": "L\u00E9andre",
+      "TypeEnergie": "Aura",
+      "CoutEnergie": 5,
+      "Effets": [
+        {
+          "Nom": "D\u00E9gats",
+          "Type": "Degats",
+          "Valeur": 1,
+          "Cible": "Ennemi",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    },
+    {
+      "Nom": "Broyage du bicep",
+      "Description": "{HERO} gonfle ses biceps a un point ou meme les montagnes paraissent petites et il place son ennemi entre ses biceps et il fint \u00E9craser.",
+      "Personnage": "William",
+      "TypeEnergie": "Ki",
+      "CoutEnergie": 5,
+      "Effets": [
+        {
+          "Nom": "D\u00E9gats",
+          "Type": "Degats",
+          "Valeur": 1,
+          "Cible": "Ennemi",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    },
+    {
+      "Nom": "Charge sans limite",
+      "Description": "{HERO} charge son ennemi avec une telle force que son ennemi ne peut plus se d\u00E9fendre et finit par mourir sous le poids de tellement de muscles.",
+      "Personnage": "William",
+      "TypeEnergie": "Ki",
+      "CoutEnergie": 5,
+      "Effets": [
+        {
+          "Nom": "D\u00E9gats",
+          "Type": "Degats",
+          "Valeur": 1,
+          "Cible": "Ennemi",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    },
+    {
+      "Nom": "Tuerie des petits",
+      "Description": "{HERO} fonce sur son adversaire le plus petit et ce faisant l\u0027\u00E9crase avec une telle force qu\u0027il massacre des centaines de \u00C9douard bien roux.",
+      "Personnage": "William",
+      "TypeEnergie": "Ki",
+      "CoutEnergie": 5,
+      "Effets": [
+        {
+          "Nom": "D\u00E9gats",
+          "Type": "Degats",
+          "Valeur": 1,
+          "Cible": "Ennemi",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    },
+    {
+      "Nom": "Coup de paf",
+      "Description": "{HERO} lib\u00E8re son arme la plus puissante, son paf. il enfourche et encule son adversaire jusqu\u0027a que la p\u00E9n\u00E9tration de force tue son adversaire. D\u0027apr\u00E8s des t\u00E9moignages, chaque ennemis a finis enceinte apr\u00E8s cette attaque.",
+      "Personnage": "William",
+      "TypeEnergie": "Ki",
+      "CoutEnergie": 5,
+      "Effets": [
+        {
+          "Nom": "D\u00E9gats",
+          "Type": "Degats",
+          "Valeur": 1,
+          "Cible": "Ennemi",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    },
+    {
+      "Nom": "Explosion de la baguette",
+      "Description": "{HERO} sorti sa citoyennet\u00E9 fran\u00E7aise et la brandit devant son adversaire. Il dit alors le mot interdit : Baguette. Son ennemi se transforma alors en baguette et explosa dans la bouche de {HERO}. App\u00E9tissant!",
+      "Personnage": "Shaun",
+      "TypeEnergie": "Mana",
+      "CoutEnergie": 5,
+      "Effets": [
+        {
+          "Nom": "D\u00E9gats",
+          "Type": "Degats",
+          "Valeur": 1,
+          "Cible": "Ennemi",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    },
+    {
+      "Nom": "Tir du croissant",
+      "Description": "{HERO} se mit en position de tir. Lorsqu\u0027il rel\u00E2cha la balle, la forme de son tir devint soudainement une venoiserie qui \u00E9crasa violemment son adversaire.",
+      "Personnage": "Shaun",
+      "TypeEnergie": "Mana",
+      "CoutEnergie": 5,
+      "Effets": [
+        {
+          "Nom": "D\u00E9gats",
+          "Type": "Degats",
+          "Valeur": 1,
+          "Cible": "Ennemi",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    },
+    {
+      "Nom": "0.42sec buzzer",
+      "Description": "{HERO} jeta un compteur dans les airs. Lorsque celui-ci atteignit 0, l\u0027ennemi re\u00E7u une baguette g\u00E9ante dans l\u0027anus et explosa de l\u0027int\u00E9rieur.",
+      "Personnage": "Shaun",
+      "TypeEnergie": "Mana",
+      "CoutEnergie": 5,
+      "Effets": [
+        {
+          "Nom": "D\u00E9gats",
+          "Type": "Degats",
+          "Valeur": 1,
+          "Cible": "Ennemi",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    },
+    {
+      "Nom": "La baguette d\u0027or",
+      "Description": "{HERO} pris une baguette et se jeta avec force sur son adversaire. Un sac de boulangerie apparu derri\u00E8re l\u0027ennemi au moment ou {HERO} mis violemment la baguette dans son sac, chargeant l\u0027ennemi si m\u00E9chamment qu\u0027il finit \u00E0 terre.",
+      "Personnage": "Shaun",
+      "TypeEnergie": "Mana",
+      "CoutEnergie": 5,
+      "Effets": [
+        {
+          "Nom": "D\u00E9gats",
+          "Type": "Degats",
+          "Valeur": 1,
+          "Cible": "Ennemi",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    },
+    {
+      "Nom": "ChatGPT a mon back",
+      "Description": "{HERO} depuis son dos d\u0027acier, il appele le Big G et se tourne 180 degr\u00E9s. Triple T le G.O.A.T. vole tout droit vers l\u0027ennemi \u00E0 une vitesse inmesurable et plante son Tung Tung dans l\u0027ennemi.",
+      "Personnage": "F\u00E9lix",
+      "TypeEnergie": "Mana",
+      "CoutEnergie": 60,
+      "Effets": [
+        {
+          "Nom": "ChatGPT a mon back",
+          "Type": "Degats",
+          "Valeur": 30,
+          "Cible": "ennemy",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    },
+    {
+      "Nom": "EZZZZZZZZZZ",
+      "Description": "L\u0027aura \u002B la tribu d\u0027Afrique affam\u00E9e, {HERO} massacre son adversaire.",
+      "Personnage": "L\u00E9andre",
+      "TypeEnergie": "Aura",
+      "CoutEnergie": 60,
+      "Effets": [
+        {
+          "Nom": "EZZZZZZZZZZ",
+          "Type": "Degats",
+          "Valeur": 30,
+          "Cible": "ennemy",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    },
+    {
+      "Nom": "Back in my days",
+      "Description": "{HERO} par la ma\u00EEtrise de son paf qui entraine depuis 7.6 millions d\u0027ann\u00E9es avant J.C., il rape compl\u00E8tement son ennemi. L\u0027ennemi n\u0027avait jamais vu un paf aussi bien ma\u00EEtriser que celui de {HERO}, impresionner, il ne porte plus attention au combat. Peut rendre enceinte l\u0027ennemi.",
+      "Personnage": "William",
+      "TypeEnergie": "Ki",
+      "CoutEnergie": 60,
+      "Effets": [
+        {
+          "Nom": "La baguette dunk",
+          "Type": "Degats",
+          "Valeur": 30,
+          "Cible": "ennemy",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    },
+    {
+      "Nom": "La baguette dunk",
+      "Description": "{HERO} prend quelques pas par en arri\u00E8re et s\u0027\u00E9lance a pleine vitesse tout droit vers son ennemi. {HERO} ramasse des baguettes qui rentraient dans ces poches comme par magie et les dunk dessus l\u0027ennemi.",
+      "Personnage": "Shaun",
+      "TypeEnergie": "Mana",
+      "CoutEnergie": 60,
+      "Effets": [
+        {
+          "Nom": "La baguette dunk",
+          "Type": "Degats",
+          "Valeur": 30,
+          "Cible": "ennemy",
+          "Tours": 1
+        }
+      ],
+      "Statuts": []
+    }
+  ],
+  "Effets": [
+    {
+      "Nom": "D\u00E9gats",
+      "Type": "Degats",
+      "Valeur": 1,
+      "Cible": "Ennemi",
+      "Tours": 1
+    },
+    {
+      "Nom": "Back in my days",
+      "Type": "Degats",
+      "Valeur": 30,
+      "Cible": "ennemy",
+      "Tours": 1
+    },
+    {
+      "Nom": "La baguette dunk",
+      "Type": "Degats",
+      "Valeur": 30,
+      "Cible": "ennemy",
+      "Tours": 1
+    },
+    {
+      "Nom": "EZZZZZZZZZZ",
+      "Type": "Degats",
+      "Valeur": 30,
+      "Cible": "ennemy",
+      "Tours": 1
+    },
+    {
+      "Nom": "ChatGPT a mon back",
+      "Type": "Degats",
+      "Valeur": 30,
+      "Cible": "ennemy",
+      "Tours": 1
+    }
+  ],
+  "Energies": [
+    {
+      "Nom": "Mana",
+      "RechargeAutomatique": true,
+      "GainParTour": 5,
+      "Faiblesse": "Aura",
+      "Avantage": "Ki"
+    },
+    {
+      "Nom": "Ki",
+      "RechargeAutomatique": false,
+      "GainParTour": 0,
+      "Faiblesse": "Mana",
+      "Avantage": "Aura"
+    },
+    {
+      "Nom": "Aura",
+      "RechargeAutomatique": true,
+      "GainParTour": 10,
+      "Faiblesse": "Ki",
+      "Avantage": "Mana"
+    }
+  ],
+  "Statuts": []
+}

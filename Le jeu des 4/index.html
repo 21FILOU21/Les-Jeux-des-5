@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Les Jeux des 5</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- =========================================================
+         APPLICATION
+    ========================================================== -->
+
+    <div id="app">
+
+        <!-- =====================================================
+             ÉCRAN DE CHARGEMENT
+        ====================================================== -->
+
+        <section id="loading-screen" class="screen active">
+
+            <div class="loading-box">
+
+                <div class="game-logo">
+                    LES JEUX
+                    <span>DES 5</span>
+                </div>
+
+                <div class="loader"></div>
+
+                <p id="loading-text">
+                    Chargement du jeu...
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             ÉCRAN DE CONFIGURATION
+        ====================================================== -->
+
+        <section id="setup-screen" class="screen">
+
+            <div class="setup-container">
+
+                <header class="screen-header">
+
+                    <p class="eyebrow">
+                        LES JEUX DES 5
+                    </p>
+
+                    <h1>Configuration</h1>
+
+                    <p>
+                        Prépare ton aventure avant de commencer le combat.
+                    </p>
+
+                </header>
+
+
+                <div class="setup-card">
+
+                    <div class="input-group">
+
+                        <label for="player-name">
+                            Nom du joueur
+                        </label>
+
+                        <input type="text" id="player-name" placeholder="Ton nom" maxlength="30" autocomplete="off">
+
+                    </div>
+
+
+                    <div class="input-group">
+
+                        <label for="monster-name">
+                            Nom des monstres
+                        </label>
+
+                        <input type="text" id="monster-name" value="Monstre" maxlength="30" autocomplete="off">
+
+                    </div>
+
+
+                    <div class="input-group">
+
+                        <label for="monster-count">
+                            Nombre de monstres
+                        </label>
+
+                        <input type="number" id="monster-count" value="1" min="1" step="1">
+
+                    </div>
+
+
+                    <label class="checkbox-row">
+
+                        <input type="checkbox" id="skip-animation">
+
+                        <span class="custom-checkbox"></span>
+
+                        <span>
+                            Désactiver l'animation de roulette
+                        </span>
+
+                    </label>
+
+                    <div class="input-group">
+                        <label for="enemy-pool">
+                            Quelles types de monstres veux-tu affronter
+                        </label>
+                        <select id="enemy-pool">
+                            <option value="monstres">Monstres</option>
+                            <option value="personnages">Personnages</option>
+                        </select>
+                    </div>
+
+                    <button id="start-selection-btn" class="primary-button large-button">
+                        Continuer
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             SÉLECTION DU PERSONNAGE
+        ====================================================== -->
+
+        <section id="character-screen" class="screen">
+
+            <div class="character-container">
+
+                <header class="screen-header">
+
+                    <p class="eyebrow">
+                        ÉTAPE 2
+                    </p>
+
+                    <h1>Choisis ton personnage</h1>
+
+                    <p>
+                        Chaque personnage possède ses propres statistiques,
+                        énergie et roulettes.
+                    </p>
+
+                </header>
+
+
+                <div id="character-list" class="character-grid"></div>
+
+
+                <div class="selection-footer">
+
+                    <button id="back-to-setup-btn" class="secondary-button">
+                        ← Retour
+                    </button>
+
+                    <button id="confirm-character-btn" class="primary-button" disabled>
+                        Commencer le combat
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- =====================================================
+             ÉCRAN DU MONDE 2D (OVERWORLD)
+        ====================================================== -->
+        <section id="world-screen" class="screen">
+            <div class="world-container">
+                <div class="world-hud">
+                    <span class="eyebrow">Exploration</span>
+                    <p>Utilise les flèches ou WASD pour vous déplacer dans les hautes herbes.</p>
+                </div>
+
+                <div class="canvas-wrapper">
+                    <canvas id="world-canvas" width="1280" height="720"></canvas>
+                    <div id="world-dialogue" class="world-dialogue hidden">
+                        <p id="dialogue-text"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- =====================================================
+             ÉCRAN DE COMBAT
+        ====================================================== -->
+
+        <section id="battle-screen" class="screen">
+
+            <!-- TOP BAR -->
+
+            <header class="battle-header">
+
+                <div>
+
+                    <p class="eyebrow">
+                        LES JEUX DES 5
+                    </p>
+
+                    <h1>Combat</h1>
+
+                </div>
+            </header>
+
+
+            <!-- COMBAT -->
+
+            <main class="battle-main">
+
+
+                <!-- ==============================
+                     JOUEUR
+                =============================== -->
+
+                <article id="player-panel" class="fighter-panel player-panel">
+
+                    <div class="fighter-top">
+
+                        <div>
+
+                            <span class="fighter-label">
+                                JOUEUR
+                            </span>
+
+                            <h2 id="player-display-name">
+                                Joueur
+                            </h2>
+
+                        </div>
+
+                        <div class="fighter-top-badges">
+                            <span id="player-level-badge" class="level-type">Niv. 1</span>
+                            <div id="player-energy-type" class="energy-type">
+                                Mana
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                    <div class="fighter-art player-art">
+
+                        <img id="player-image" class="fighter-image" src="" alt="Personnage joueur">
+
+                        <div id="player-art-content" class="fighter-art-content">
+                            ?
+                        </div>
+
+                    </div>
+
+
+                    <!-- HP -->
+
+                    <div class="resource-block">
+
+                        <div class="resource-header">
+
+                            <span>Vie</span>
+
+                            <span>
+                                <strong id="player-hp">
+                                    100
+                                </strong>
+                                /
+                                <span id="player-max-hp">
+                                    100
+                                </span>
+                            </span>
+
+                        </div>
+
+                        <div class="resource-bar hp-bar">
+
+                            <div id="player-hp-fill" class="resource-fill" style="width: 100%;"></div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- ENERGY -->
+
+                    <div class="resource-block">
+
+                        <div class="resource-header">
+
+                            <span id="player-energy-label">
+                                Mana
+                            </span>
+
+                            <span>
+                                <strong id="player-energy">
+                                    0
+                                </strong>
+                                /
+                                <span id="player-max-energy">
+                                    100
+                                </span>
+                            </span>
+
+                        </div>
+
+                        <div class="resource-bar energy-bar">
+
+                            <div id="player-energy-fill" class="resource-fill" style="width: 100%;"></div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- XP -->
+
+                    <div class="resource-block">
+
+                        <div class="resource-header">
+
+                            <span>
+                                XP
+                            </span>
+
+                            <span>
+                                <strong id="player-xp">
+                                    0
+                                </strong>
+                                /
+                                <span id="player-xp-next">
+                                    40
+                                </span>
+                            </span>
+
+                        </div>
+
+                        <div class="resource-bar xp-bar">
+
+                            <div id="player-xp-fill" class="resource-fill" style="width: 0%;"></div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- STATS -->
+
+                    <div class="stats-grid">
+
+                        <div class="stat-box">
+
+                            <span>Puissance</span>
+
+                            <strong id="player-power">
+                                1
+                            </strong>
+
+                        </div>
+
+                        <div class="stat-box">
+
+                            <span>Armure</span>
+
+                            <strong id="player-armor">
+                                0
+                            </strong>
+
+                        </div>
+
+                        <div class="stat-box">
+
+                            <span>Roulettes</span>
+
+                            <strong id="player-wheels">
+                                1
+                            </strong>
+
+                        </div>
+
+                        <div class="stat-box">
+
+                            <span>Roulette</span>
+
+                            <strong id="player-range">
+                                1 - 10
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+
+                <!-- ==============================
+                     CENTRE
+                =============================== -->
+
+                <div class="battle-center">
+
+                    <div class="vs-text">
+                        VS
+                    </div>
+
+
+                    <!-- Roulette -->
+
+                    <div class="roulette-card">
+
+                        <span class="roulette-label">
+                            PUISSANCE
+                        </span>
+
+                        <div class="roulette-display">
+
+                            <div class="roulette-number" id="roulette-value">
+                                —
+                            </div>
+
+                        </div>
+
+                        <div id="roulette-status" class="roulette-status">
+                            En attente
+                        </div>
+
+                    </div>
+
+
+                    <!-- Monster status -->
+
+                    <div class="monster-number-card">
+
+                        <span>
+                            ENNEMI
+                        </span>
+
+                        <strong id="monster-number">
+                            #1
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ==============================
+                     MONSTRE
+                =============================== -->
+
+                <article id="monster-panel" class="fighter-panel monster-roster-panel">
+                    <div class="fighter-top monster-roster-header">
+                        <div>
+                            <span class="fighter-label">ENNEMIS</span>
+                            <h2>Monstres en combat</h2>
+                        </div>
+                    </div>
+                    <div id="monster-list" class="monster-list" aria-label="Monstres en combat"></div>
+                </article>
+
+            </main>
+
+
+            <!-- =================================================
+                 ACTIONS
+            ================================================== -->
+
+            <section class="action-area">
+
+                <div class="turn-indicator">
+
+                    <span class="turn-dot"></span>
+
+                    <span id="turn-text">
+                        Tour du joueur
+                    </span>
+
+                </div>
+
+
+                <div id="action-buttons" class="action-buttons">
+
+                    <button id="attack-btn" class="action-button attack-action">
+                        <span class="action-number">1</span>
+                        <span>
+                            <strong>Attaquer</strong>
+                            <small>Choisir une attaque</small>
+                        </span>
+                    </button>
+
+
+                    <button id="heal-btn" class="action-button">
+                        <span class="action-number">2</span>
+                        <span>
+                            <strong>Soigner</strong>
+                            <small>Utiliser la roulette</small>
+                        </span>
+                    </button>
+
+
+                    <button id="item-btn" class="action-button hidden">
+                        <span class="action-number">3</span>
+                        <span>
+                            <strong>Objet</strong>
+                            <small>Ouvrir la boutique</small>
+                        </span>
+                    </button>
+
+
+                    <button id="ignore-btn" class="action-button">
+                        <span class="action-number">3</span>
+                        <span>
+                            <strong>S'enfuir</strong>
+                            <small>Tenter de fuir le combat</small>
+                        </span>
+                    </button>
+
+
+                    <button id="recharge-btn" class="action-button">
+                        <span class="action-number">4</span>
+                        <span>
+                            <strong>Recharger</strong>
+                            <small>Récupérer de l'énergie</small>
+                        </span>
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 BAS
+            ================================================== -->
+
+            <section class="bottom-grid">
+
+
+                <!-- INVENTAIRE -->
+
+                <div class="inventory-card">
+
+                    <div class="section-title">
+
+                        <span>
+                            Inventaire
+                        </span>
+
+                    </div>
+
+
+                    <div class="inventory-grid">
+
+                        <div class="inventory-item">
+
+                            <span class="item-icon">
+                                ⚔
+                            </span>
+
+                            <div>
+                                <small>Force</small>
+                                <strong id="item-force">0</strong>
+                            </div>
+
+                        </div>
+
+
+                        <div class="inventory-item">
+
+                            <span class="item-icon">
+                                ♥
+                            </span>
+
+                            <div>
+                                <small>Bandage</small>
+                                <strong id="item-bandage">0</strong>
+                            </div>
+
+                        </div>
+
+
+                        <div class="inventory-item">
+
+                            <span class="item-icon">
+                                🛡
+                            </span>
+
+                            <div>
+                                <small>Armure</small>
+                                <strong id="item-armor">0</strong>
+                            </div>
+
+                        </div>
+
+
+                        <div class="inventory-item">
+
+                            <span class="item-icon">
+                                ✦
+                            </span>
+
+                            <div>
+                                <small>Totem</small>
+                                <strong id="item-totem">0</strong>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- JOURNAL -->
+
+                <div class="log-card">
+
+                    <div class="section-title">
+
+                        <span>
+                            Journal de combat
+                        </span>
+
+                        <button id="clear-log-btn" class="small-button">
+                            Effacer
+                        </button>
+
+                    </div>
+
+
+                    <div id="combat-log" class="combat-log"></div>
+
+                </div>
+
+            </section>
+
+        </section>
+
+
+        <!-- =====================================================
+             MODAL ATTAQUES
+        ====================================================== -->
+
+        <div id="attack-modal" class="modal hidden">
+
+            <div class="modal-content attack-modal-content">
+
+                <div class="modal-header">
+
+                    <div>
+
+                        <span id="attack-selection-title" class="eyebrow">
+                            ATTAQUES
+                        </span>
+
+                        <h2>Choisis ton attaque</h2>
+
+                    </div>
+
+                    <button id="close-attack-modal" class="close-button">
+                        ×
+                    </button>
+
+                </div>
+
+
+                <div id="attack-list" class="attack-list"></div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             MODAL OBJETS
+        ====================================================== -->
+
+        <div id="item-modal" class="modal hidden">
+
+            <div class="modal-content item-modal-content">
+
+                <div class="modal-header">
+
+                    <div>
+
+                        <span class="eyebrow">
+                            BOUTIQUE
+                        </span>
+
+                        <h2>Objets</h2>
+
+                    </div>
+
+                    <button id="close-item-modal" class="close-button">
+                        ×
+                    </button>
+
+                </div>
+
+
+                <div class="shop-money">
+
+                    Pièces disponibles :
+
+                    <strong id="shop-coins">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div id="shop-list" class="shop-list"></div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             ÉCRAN DE FIN
+        ====================================================== -->
+
+        <section id="end-screen" class="screen">
+
+            <div class="end-container">
+
+                <div id="end-icon" class="end-icon">
+                    ⚔
+                </div>
+
+                <p id="end-eyebrow" class="eyebrow">
+                    FIN DU COMBAT
+                </p>
+
+                <h1 id="end-title">
+                    Victoire
+                </h1>
+
+                <p id="end-description">
+                    Le combat est terminé.
+                </p>
+
+                <div class="end-stats">
+
+                    <div class="end-stat">
+                        <span>Monstres vaincus</span>
+                        <strong id="end-kills">0</strong>
+                    </div>
+
+                    <div class="end-stat hidden">
+                        <span>Pièces</span>
+                        <strong id="end-coins">0</strong>
+                    </div>
+
+                    <div class="end-stat">
+                        <span>Niveau</span>
+                        <strong id="end-level">1</strong>
+                    </div>
+
+                    <div class="end-stat">
+                        <span>Vie restante</span>
+                        <strong id="end-health">0</strong>
+                    </div>
+
+                </div>
+
+                <button id="restart-btn" class="primary-button large-button">
+                    Recommencer
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             TOAST
+        ====================================================== -->
+
+        <div id="toast" class="toast hidden">
+            <strong id="toast-title">
+                Information
+            </strong>
+
+            <span id="toast-message">
+                —
+            </span>
+        </div>
+
+    </div>
+
+    <!-- ============================================================
+     MENU SAUVEGARDE / CHARGEMENT
+============================================================ -->
+
+    <div id="save-menu" class="save-menu hidden">
+
+        <div class="save-menu-content">
+
+            <div class="save-menu-header">
+                <div>
+                    <span class="eyebrow">MENU DU JEU</span>
+                    <h2>Sauvegardes</h2>
+                    <p>Choisissez un emplacement de sauvegarde.</p>
+                </div>
+
+                <button id="close-save-menu" class="close-button" type="button" aria-label="Fermer">
+                    ×
+                </button>
+            </div>
+
+
+            <div id="save-slots" class="save-slots">
+
+                <!-- Les 10 slots sont générés automatiquement par JavaScript -->
+
+            </div>
+
+
+            <div class="save-menu-footer">
+
+                <button id="save-game-btn" class="primary-button" type="button">
+                    Sauvegarder
+                </button>
+
+                <button id="load-game-btn" class="secondary-button" type="button">
+                    Charger
+                </button>
+
+                <button id="manage-save-files-btn" class="secondary-button" type="button">
+                    Fichiers
+                </button>
+
+                <button id="cancel-save-menu" class="secondary-button" type="button">
+                    Retour
+                </button>
+                <button id="open-settings-btn" class="secondary-button" type="button" style="grid-column: 1 / -1;">
+                    Réglages
+                </button>
+            </div>
+
+
+            <div class="save-menu-help">
+                <span><kbd>P</kbd></span>
+                <span><kbd>Entrée</kbd></span>
+                <span>Ouvrir / fermer</span>
+
+                <span class="save-help-separator">•</span>
+
+                <span><kbd>Échap</kbd></span>
+                <span>Fermer</span>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ============================================================
+     MENU FICHIERS DE SAUVEGARDE
+============================================================ -->
+
+    <div id="save-files-menu" class="save-menu hidden">
+
+        <div class="save-menu-content save-files-content">
+
+            <div class="save-menu-header">
+
+                <div>
+                    <span class="eyebrow">GESTION DES FICHIERS</span>
+
+                    <h2>Fichiers de sauvegarde</h2>
+
+                    <p>
+                        Gérez les fichiers Saves.json utilisés par le jeu.
+                    </p>
+                </div>
+
+                <button id="close-save-files-menu" class="close-button" type="button" aria-label="Fermer">
+                    ×
+                </button>
+
+            </div>
+
+
+            <!-- FICHIER ACTUEL -->
+
+            <div class="current-save-file">
+
+                <div class="current-save-file-icon">
+                    📁
+                </div>
+
+                <div class="current-save-file-info">
+
+                    <span class="current-save-file-label">
+                        FICHIER ACTUEL
+                    </span>
+
+                    <strong id="current-save-file-name">
+                        Aucun fichier sélectionné
+                    </strong>
+
+                    <span id="current-save-file-path">
+                        Aucun dossier sélectionné
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- INFORMATIONS -->
+
+            <div id="save-file-details" class="save-file-details">
+
+                <div class="save-file-stat">
+                    <span>Slots</span>
+                    <strong>10</strong>
+                </div>
+
+                <div class="save-file-stat">
+                    <span>Sauvegardes</span>
+                    <strong id="save-file-count">0</strong>
+                </div>
+
+                <div class="save-file-stat">
+                    <span>État</span>
+                    <strong id="save-file-status">Non chargé</strong>
+                </div>
+
+            </div>
+
+
+            <!-- ACTIONS -->
+
+            <div class="save-file-actions">
+
+                <button id="open-save-file-btn" class="primary-button" type="button">
+                    Ouvrir Saves.json
+                </button>
+
+                <button id="change-save-folder-btn" class="secondary-button" type="button">
+                    Changer de dossier
+                </button>
+
+                <button id="create-save-file-btn" class="secondary-button" type="button">
+                    Créer un nouveau fichier
+                </button>
+
+                <button id="write-save-file-btn" class="secondary-button" type="button">
+                    Écrire Saves.json maintenant
+                </button>
+            </div>
+
+
+            <div class="save-menu-help">
+
+                <span>
+                    Saves.json contient les 10 slots · Contenu.json contient le contenu créé.
+                </span>
+
+            </div>
+
+
+            <div class="save-menu-footer">
+
+                <button id="back-to-save-menu" class="secondary-button" type="button">
+                    Retour aux sauvegardes
+                </button>
+
+                <button id="close-save-files-footer" class="secondary-button" type="button">
+                    Fermer
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ============================================================
+         MENU MODE DÉVELOPPEUR (CRÉATEUR DE CONTENU)
+    ============================================================ -->
+
+    <div id="dev-menu" class="save-menu hidden">
+
+        <div class="save-menu-content dev-menu-content">
+
+            <div class="save-menu-header">
+                <div>
+                    <span class="eyebrow">MODE DÉVELOPPEUR</span>
+                    <h2>Créateur de contenu</h2>
+                    <p>Crée, modifie et supprime du contenu intégré directement au jeu.</p>
+                </div>
+
+                <button id="close-dev-menu" class="close-button" type="button" aria-label="Fermer">
+                    ×
+                </button>
+            </div>
+
+            <!-- MENU PRINCIPAL -->
+            <div id="dev-menu-main" class="dev-category-grid">
+
+                <button id="dev-cat-personnages" class="secondary-button" type="button">
+                    👤 Personnages
+                </button>
+
+                <button id="dev-cat-monstres" class="secondary-button" type="button">
+                    👹 Monstres
+                </button>
+
+                <button id="dev-cat-attaques" class="secondary-button" type="button">
+                    ⚔ Attaques
+                </button>
+
+                <button id="dev-cat-effets" class="secondary-button" type="button">
+                    ✨ Effets
+                </button>
+
+                <button id="dev-cat-energies" class="secondary-button" type="button">
+                    ⚡ Énergies
+                </button>
+
+                <button id="dev-cat-statuts" class="secondary-button" type="button">
+                    🌀 Statuts
+                </button>
+
+                <button id="dev-cat-vfx" class="secondary-button" type="button">
+                    🎞 Effets visuels
+                </button>
+
+                <button id="dev-export-disk-btn" class="secondary-button" type="button" style="grid-column: 1 / -1;">
+                    💾 Écrire sur le disque (Contenu.json + Saves.json + images)
+                </button>
+
+                <button id="close-dev-menu-footer" class="secondary-button" type="button" style="grid-column: 1 / -1;">
+                    Fermer (M)
+                </button>
+
+            </div>
+
+            <!-- FORMULAIRES / LISTES (remplis par JavaScript) -->
+            <div id="dev-panel" class="hidden"></div>
+
+            <div class="save-menu-help">
+                <span><kbd>M</kbd></span>
+                <span>Ouvrir / fermer le mode développeur</span>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ============================================================
+         MENU RÉGLAGES
+    ============================================================ -->
+
+    <div id="settings-menu" class="save-menu hidden">
+
+        <div class="save-menu-content">
+
+            <div class="save-menu-header">
+                <div>
+                    <span class="eyebrow">RÉGLAGES</span>
+                    <h2>Options du jeu</h2>
+                    <p>Combat, notifications et contrôles.</p>
+                </div>
+
+                <button id="close-settings-menu" class="close-button" type="button" aria-label="Fermer">
+                    ×
+                </button>
+            </div>
+
+            <div class="dev-section-title">Combat</div>
+
+            <label class="dev-check-item"><input type="checkbox" id="setting-skip-roulette"><span>Passer l'animation de
+                    roulette</span></label>
+
+            <label class="dev-check-item" style="margin-top:8px;"><input type="checkbox"
+                    id="setting-popup-skip"><span>Autoriser le passage des notifications d'attaque</span></label>
+
+            <div class="input-group" style="margin-top:12px;">
+                <label for="setting-escape-gen">Formule de fuite (génération Pokémon)</label>
+                <select id="setting-escape-gen">
+                    <option value="1">Génération I–II</option>
+                    <option value="3">Génération III–IV</option>
+                    <option value="5">Génération V+ (défaut)</option>
+                </select>
+            </div>
+
+            <div id="skip-attack-keybind-row"></div>
+
+            <div class="dev-section-title">Contrôles</div>
+
+            <div id="keybind-list"></div>
+
+            <button id="reset-keybinds-btn" class="secondary-button" type="button" style="width:100%;margin-top:12px;">
+                Rétablir les touches par défaut
+            </button>
+
+            <div class="save-menu-footer">
+                <button id="close-settings-footer" class="secondary-button" type="button">
+                    Fermer
+                </button>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ============================================================
+         POPUP D'ATTAQUE UNIFIÉ (FAÇON POKÉMON)
+    ============================================================ -->
+
+    <div id="battle-popup" class="battle-popup hidden">
+        <div class="battle-popup-lines">
+            <span id="battle-popup-text"></span>
+            <span id="battle-popup-effectiveness" class="battle-popup-effectiveness hidden"></span>
+        </div>
+        <button id="battle-popup-skip" class="battle-popup-skip hidden" type="button">
+            Passer ▶
+        </button>
+    </div>
+
+    <input type="file" id="dev-image-input" accept="image/png" class="hidden">
+
+    <!-- ============================================================
+         TRANSITION DE RENCONTRE (FONDU POKÉMON)
+    ============================================================ -->
+
+    <div id="encounter-transition" class="encounter-transition hidden"></div>
+
+    <script src="world.js"></script>
+    <script src="game/constants.js"></script>
+    <script src="game/core.js"></script>
+    <script src="game/settings.js"></script>
+    <script src="game/utils.js"></script>
+    <script src="game/save.js"></script>
+    <script src="game/save-menu.js"></script>
+    <script src="game/progression.js"></script>
+    <script src="game/types.js"></script>
+    <script src="game/effects.js"></script>
+    <script src="game/enemy.js"></script>
+    <script src="game/player.js"></script>
+    <script src="game/battle-ui.js"></script>
+    <script src="game/battle-flow.js"></script>
+    <script src="game/evolution.js"></script>
+    <script src="game/creator-core.js"></script>
+    <script src="game/creator-images.js"></script>
+    <script src="game/creator-personnage.js"></script>
+    <script src="game/creator-monstre.js"></script>
+    <script src="game/creator-attaque.js"></script>
+    <script src="game/creator-effet.js"></script>
+    <script src="game/creator-energie.js"></script>
+    <script src="game/creator-statut.js"></script>
+    <script src="game/creator-vfx.js"></script>
+    <script src="game/vfx.js"></script>
+</body>
+
+</html>
