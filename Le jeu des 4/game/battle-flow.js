@@ -707,15 +707,23 @@ function runEncounterTransition() {
 }
 
 function triggerWildBattle() {
-    const monsterCount = randomInt(1, 3);
+    const pending = window.__mapEditorPendingEncounter || null;
+    window.__mapEditorPendingEncounter = null;
 
-    state.config.monsterCount = monsterCount;
-
-    state.config.monsterName = state.config.monsterName || "Monstre";
+    if (pending) {
+        state.config.monsterCount = 1;
+        state.config.monsterName = pending.monster?.Nom || pending.monster?.name || "Monstre";
+        window.__mapEditorSelectedMonster = pending.monster;
+        window.__mapEditorLevelOverride = pending.level;
+    } else {
+        state.config.monsterCount = randomInt(1, 3);
+        state.config.monsterName = state.config.monsterName || "Monstre";
+        window.__mapEditorLevelOverride = null;
+    }
 
     startBattle();
 
-    addLog(` Combat engagé ! ${monsterCount} ennemi(s) apparaît(vent) dans les hautes herbes !`, "system");
+    addLog(` Combat engagé ! ${state.config.monsterCount} ennemi(s) apparaît(vent) dans les hautes herbes !`, "system");
 }
 
 /* ============================================================
