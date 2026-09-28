@@ -442,6 +442,43 @@ function mapEditorPaintAt(event){
     mapEditorSaveCurrent();mapEditorRender();
 }
 
+
+function mapEditorResize(){
+    const m=mapEditorCurrent();if(!m)return;
+    const cols=Math.max(1,Math.min(MAP_EDITOR_MAX_COLS,Number(prompt("Largeur (cases) :",m.cols))||m.cols));
+    const rows=Math.max(1,Math.min(MAP_EDITOR_MAX_ROWS,Number(prompt("Hauteur (cases) :",m.rows))||m.rows));
+    if(cols===m.cols&&rows===m.rows)return;
+    mapEditorPushUndo();
+    for(const layer of m.layers){const next=Array(cols*rows).fill(m.tileset[0]||"grass");for(let y=0;y<Math.min(rows,m.rows);y++)for(let x=0;x<Math.min(cols,m.cols);x++)next[y*cols+x]=layer.cells[y*m.cols+x];layer.cells=next;}
+    m.cols=cols;m.rows=rows;m.spawn.x=Math.min(cols-1,m.spawn.x);m.spawn.y=Math.min(rows-1,m.spawn.y);
+    m.objects=(m.objects||[]).filter(o=>o.x<cols&&o.y<rows);mapEditorSaveCurrent();mapEditorApplyRuntime();mapEditorRender();
+}
+function mapEditorAddLayer(){
+    const m=mapEditorCurrent();if(!m)return;
+    const name=prompt("Nom du nouveau calque :","Décor");if(!name)return;
+    mapEditorPushUndo();m.layers.push({id:mapEditorNormalizeId(name,mapEditorUid("layer")),name,visible:true,cells:Array(m.cols*m.rows).fill(m.tileset[0]||"grass")});mapEditorSaveCurrent();mapEditorRender();
+}
+function mapEditorOpenEncounterForm(){
+    const m=mapEditorCurrent();if(!m)return;
+    const first=m.encounters?.[0]||{id:mapEditorUid("enc"),name:"Zone de rencontres",chance:12,tiles:[mapEditorSelectedTile||"tall-grass"],monsters:[],minLevel:1,maxLevel:10};
+    const monsterOptions=(state.contenu?.Monstres||[]).map(x=>String(x.Nom||"")).filter(Boolean);
+    const tileOptions=mapEditorAllTiles().map(x=>'<option value="'+x.id+'" '+(first.tiles?.includes(x.id)?"selected":"")+'>'+x.name+'</option>').join("");
+    const monsterRows=(first.monsters||[]).map((e,i)=>'<div class="me-loot-row"><select data-enc-monster="'+i+'">'+monsterOptions.map(n=>'<option '+(n===e.monsterId?"selected":"")+'>'+n+'</option>').join("")+'</select><input type="number" min="1" data-enc-weight="'+i+'" value="'+(e.weight??1)+'"><input type="number" min="1" data-enc-min="'+i+'" value="'+(e.minLevel??first.minLevel??1)+'"><input type="number" min="1" data-enc-max="'+i+'" value="'+(e.maxLevel??first.maxLevel??10)+'"><button type="button" data-enc-del="'+i+'">×</button></div>').join("");
+    mapEditorDialog('<div class="map-editor-dialog"><h3>Table de rencontres</h3><label>Nom<input id="me-e-name" value="'+first.name+'"></label><label>Chance par déclenchement (%)<input id="me-e-chance" type="number" min="0" max="100" value="'+first.chance+'"></label><label>Cases autorisées (Ctrl/Cmd pour plusieurs)<select id="me-e-tiles" multiple>'+tileOptions+'</select></label><label>Niveau min<input id="me-e-min" type="number" min="1" value="'+first.minLevel+'"></label><label>Niveau max<input id="me-e-max" type="number" min="1" value="'+first.maxLevel+'"></label><h4>Monstres pondérés</h4><div id="me-e-monsters">'+monsterRows+'</div><button id="me-e-add" class="secondary-button">+ Monstre</button><div class="dev-form-actions"><button id="me-e-save" class="primary-button">Enregistrer</button><button id="me-e-cancel" class="secondary-button">Annuler</button></div></div>');
+    const box=document.getElementById("me-e-monsters");
+    document.getElementById("me-e-add").onclick=()=>{const i=box.children.length;const d=document.createElement("div");d.className="me-loot-row";d.innerHTML='<select data-enc-monster="'+i+'">'+monsterOptions.map(n=>'<option>'+n+'</option>').join("")+'</select><input type="number" min="1" data-enc-weight="'+i+'" value="1"><input type="number" min="1" data-enc-min="'+i+'" value="'+first.minLevel+'"><input type="number" min="1" data-enc-max="'+i+'" value="'+first.maxLevel+'"><button type="button">×</button>';d.querySelector("button").onclick=()=>d.remove();box.appendChild(d);};
+    box.querySelectorAll("button[data-enc-del]").forEach(b=>b.onclick=()=>b.parentElement.remove());
+    document.getElementById("me-e-cancel").onclick=mapEditorCloseDialog;
+    document.getElementById("me-e-save").onclick=()=>{
+        const selected=[...document.getElementById("me-e-tiles").selectedOptions].map(x=>x.value);
+        const m2=mapEditorCurrent();m2.encounters=Array.isArray(m2.encounters)?m2.encounters:[];
+        let target=m2.encounters.find(x=>x.id===first.id);if(!target){target=mapEditorClone(first);m2.encounters.push(target);}
+        target.name=document.getElementById("me-e-name").value||"Rencontres";target.chance=Number(document.getElementById("me-e-chance").value)||0;target.tiles=selected;target.minLevel=Math.max(1,Number(document.getElementById("me-e-min").value)||1);target.maxLevel=Math.max(target.minLevel,Number(document.getElementById("me-e-max").value)||target.minLevel);
+        target.monsters=[...box.children].map(row=>({monsterId:row.querySelector("[data-enc-monster]")?.value,weight:Number(row.querySelector("[data-enc-weight]")?.value)||0,minLevel:Number(row.querySelector("[data-enc-min]")?.value)||target.minLevel,maxLevel:Number(row.querySelector("[data-enc-max]")?.value)||target.maxLevel})).filter(x=>x.monsterId&&x.weight>0);
+        mapEditorSaveCurrent();mapEditorCloseDialog();
+    };
+}
+
 function mapEditorRender(){
     const root=document.getElementById("map-editor-root");if(!root)return;
     const m=mapEditorCurrent();if(!m)return;
@@ -550,10 +587,11 @@ function mapEditorRender(){
 function mapEditorBuildUi(){
     if(document.getElementById("map-editor-root"))return;
     const wrap=document.createElement("div");wrap.id="map-editor-root";wrap.className="save-menu map-editor-shell hidden";
-    wrap.innerHTML='<div class="save-menu-content map-editor-content"><div class="save-menu-header"><div><span class="eyebrow">OUTIL DÉVELOPPEUR</span><h2>Créateur de Map</h2><p id="map-editor-current-name"></p></div><button id="map-editor-close" class="close-button">×</button></div><div class="map-editor-toolbar"><button id="me-new" class="primary-button">Nouvelle</button><button id="me-dup" class="secondary-button">Dupliquer</button><button id="me-del" class="secondary-button">Supprimer</button><button id="me-import" class="secondary-button">Importer JSON</button><button id="me-export" class="secondary-button">Exporter JSON</button><button id="me-undo" class="secondary-button">↶</button><button id="me-redo" class="secondary-button">↷</button><button id="me-test" class="secondary-button">Tester</button></div><div class="map-editor-layout"><aside><h3>Maps</h3><div id="map-editor-list"></div><h3>Tuiles</h3><div id="map-editor-tiles"></div><button id="me-new-tile" class="secondary-button">+ Tuile</button><button id="me-chest" class="secondary-button">+ Coffre</button><h3>Outils</h3><div class="map-editor-tools"><button data-tool="paint">Pinceau</button><button data-tool="erase">Gomme</button><button data-tool="eyedropper">Pipette</button><button data-tool="fill">Remplir</button><button data-tool="spawn">Spawn</button></div></aside><main><canvas id="map-editor-canvas" width="1100" height="650" data-zoom="2" data-pan-x="0" data-pan-y="0"></canvas><div class="map-editor-hint">Clic gauche : placer · clic droit : effacer · glisser : peindre · molette : zoom · clic molette : déplacer</div></main></div><input id="map-editor-import-file" type="file" accept=".json,application/json" hidden></div>';
+    wrap.innerHTML='<div class="save-menu-content map-editor-content"><div class="save-menu-header"><div><span class="eyebrow">OUTIL DÉVELOPPEUR</span><h2>Créateur de Map</h2><p id="map-editor-current-name"></p></div><button id="map-editor-close" class="close-button">×</button></div><div class="map-editor-toolbar"><button id="me-new" class="primary-button">Nouvelle</button><button id="me-dup" class="secondary-button">Dupliquer</button><button id="me-del" class="secondary-button">Supprimer</button><button id="me-import" class="secondary-button">Importer JSON</button><button id="me-export" class="secondary-button">Exporter JSON</button><button id="me-undo" class="secondary-button">↶</button><button id="me-redo" class="secondary-button">↷</button><button id="me-test" class="secondary-button">Tester</button><button id="me-resize" class="secondary-button">Dimensions</button><button id="me-layer" class="secondary-button">+ Calque</button><button id="me-encounter" class="secondary-button">Rencontres</button></div><div class="map-editor-layout"><aside><h3>Maps</h3><div id="map-editor-list"></div><h3>Tuiles</h3><div id="map-editor-tiles"></div><button id="me-new-tile" class="secondary-button">+ Tuile</button><button id="me-chest" class="secondary-button">+ Coffre</button><h3>Outils</h3><div class="map-editor-tools"><button data-tool="paint">Pinceau</button><button data-tool="erase">Gomme</button><button data-tool="eyedropper">Pipette</button><button data-tool="fill">Remplir</button><button data-tool="spawn">Spawn</button></div></aside><main><canvas id="map-editor-canvas" width="1100" height="650" data-zoom="2" data-pan-x="0" data-pan-y="0"></canvas><div class="map-editor-hint">Clic gauche : placer · clic droit : effacer · glisser : peindre · molette : zoom · clic molette : déplacer</div></main></div><input id="map-editor-import-file" type="file" accept=".json,application/json" hidden></div>';
     document.body.appendChild(wrap);
     document.getElementById("map-editor-close").onclick=mapEditorClose;
     document.getElementById("me-new").onclick=mapEditorCreateMap;document.getElementById("me-dup").onclick=mapEditorDuplicateMap;document.getElementById("me-del").onclick=mapEditorDeleteMap;document.getElementById("me-import").onclick=()=>document.getElementById("map-editor-import-file").click();document.getElementById("me-export").onclick=mapEditorExport;document.getElementById("me-undo").onclick=mapEditorUndoAction;document.getElementById("me-redo").onclick=mapEditorRedoAction;
+    document.getElementById("me-resize").onclick=mapEditorResize;document.getElementById("me-layer").onclick=mapEditorAddLayer;document.getElementById("me-encounter").onclick=mapEditorOpenEncounterForm;
     document.getElementById("me-test").onclick=()=>{
         mapEditorTestMode=true;
         mapEditorTestSnapshot=mapEditorClone(mapEditorCurrent());
