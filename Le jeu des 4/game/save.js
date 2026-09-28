@@ -281,6 +281,10 @@ function openSaveDatabase() {
             if (!db.objectStoreNames.contains(SAVE_DB_STORE)) {
                 db.createObjectStore(SAVE_DB_STORE);
             }
+
+            if (!db.objectStoreNames.contains("mapAssets")) {
+                db.createObjectStore("mapAssets");
+            }
         };
 
         request.onsuccess = () => {
