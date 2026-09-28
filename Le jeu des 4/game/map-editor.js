@@ -25,6 +25,7 @@ let mapEditorDragging = false;
 let mapEditorPan = null;
 let mapEditorTestMode = false;
 let mapEditorTestSnapshot = null;
+let mapEditorOpenedObjectIds = new Set();
 
 const MAP_EDITOR_DEFAULT_TILES = [
     { id:"grass", name:"Herbe", collision:false, terrainType:"grass", encounters:true, description:"Terrain traversable.", imageKey:null, fallback:"#8fbf6a" },
@@ -247,7 +248,7 @@ function drawMapEditorRuntimeObjects(ctx,S){
     const m=mapEditorCurrent(); if(!m)return;
     for(const o of m.objects||[]){
         if(o.type!=="container")continue;
-        const key=o.opened?o.openImageKey:o.closedImageKey;
+        const key=mapEditorOpenedObjectIds.has(o.id)?o.openImageKey:o.closedImageKey;
         const img=key?mapEditorRuntimeImages.get(key):null;
         const x=o.x*S,y=o.y*S;
         if(img&&img.complete){ctx.drawImage(img,x,y,S,S);}
@@ -324,14 +325,14 @@ function tryMapEditorEncounter(col,row){
 }
 
 function getMapEditorOverworldSaveData(){
-    return {mapId:mapEditorActiveId,openedObjectIds:mapEditorCurrent()?.objects?.filter(o=>o.opened).map(o=>o.id)||[]};
+    return {mapId:mapEditorActiveId,openedObjectIds:[...mapEditorOpenedObjectIds]};
 }
 
 function applyMapEditorOverworldSaveData(data){
     if(data?.mapId)loadActiveMapIntoWorld(data.mapId);
     const m=mapEditorCurrent();if(!m)return;
     const opened=new Set(Array.isArray(data?.openedObjectIds)?data.openedObjectIds:[]);
-    m.objects.forEach(o=>{if(o.type==="container")o.opened=opened.has(o.id);});
+    mapEditorOpenedObjectIds=opened;
 }
 
 function mapEditorMonsterLevelOverride(monster,level){
@@ -355,8 +356,8 @@ function mapEditorOpenObjectAt(col,row){
     if(Math.abs(playerCol-col)+Math.abs(playerRow-row)!==1)return false;
     const obj=m.objects.find(o=>o.x===col&&o.y===row);if(!obj)return false;
     if(obj.type!=="container")return true;
-    if(obj.opened){showWorldDialogue("Le coffre est déjà ouvert.",1200);return true;}
-    obj.opened=true;mapEditorSaveCurrent();
+    if(mapEditorOpenedObjectIds.has(obj.id)){showWorldDialogue("Le coffre est déjà ouvert.",1200);return true;}
+    mapEditorOpenedObjectIds.add(obj.id);
     const rewards=[];
     for(const entry of obj.lootTable||[]){
         if(Math.random()*100>=Math.max(0,Math.min(100,Number(entry.chance)||0)))continue;
@@ -500,7 +501,7 @@ function mapEditorRender(){
     for(let x=0;x<=m.cols;x++){ctx.beginPath();ctx.moveTo(x*m.tileSize,0);ctx.lineTo(x*m.tileSize,m.rows*m.tileSize);ctx.stroke();}
     for(let y=0;y<=m.rows;y++){ctx.beginPath();ctx.moveTo(0,y*m.tileSize);ctx.lineTo(m.cols*m.tileSize,y*m.tileSize);ctx.stroke();}
     ctx.fillStyle="#ffd54a";ctx.fillRect(m.spawn.x*m.tileSize+m.tileSize*.25,m.spawn.y*m.tileSize+m.tileSize*.25,m.tileSize*.5,m.tileSize*.5);
-    for(const o of m.objects){ctx.fillStyle=o.opened?"#6b5530":"#b9823d";ctx.fillRect(o.x*m.tileSize+2,o.y*m.tileSize+2,m.tileSize-4,m.tileSize-4);}
+    for(const o of m.objects){ctx.fillStyle=mapEditorOpenedObjectIds.has(o.id)?"#6b5530":"#b9823d";ctx.fillRect(o.x*m.tileSize+2,o.y*m.tileSize+2,m.tileSize-4,m.tileSize-4);}
     ctx.restore();
     root.querySelector("#map-editor-current-name").textContent=m.name+" · "+m.cols+"×"+m.rows;
 }
@@ -596,7 +597,7 @@ function mapEditorBuildUi(){
     document.getElementById("me-resize").onclick=mapEditorResize;document.getElementById("me-layer").onclick=mapEditorAddLayer;document.getElementById("me-encounter").onclick=mapEditorOpenEncounterForm;
     document.getElementById("me-test").onclick=()=>{
         mapEditorTestMode=true;
-        mapEditorTestSnapshot=mapEditorClone(mapEditorCurrent());
+        mapEditorTestSnapshot={map:mapEditorClone(mapEditorCurrent()),opened:new Set(mapEditorOpenedObjectIds)};
         const r=document.getElementById("map-editor-root");if(r)r.classList.add("hidden");
         if(typeof startOverworldMode==="function")startOverworldMode();
     };
@@ -606,9 +607,9 @@ function mapEditorBuildUi(){
     document.getElementById("map-editor-import-file").onchange=e=>{const f=e.target.files[0];if(f)mapEditorImport(f).catch(err=>alert(err.message));e.target.value="";};
     const canvas=document.getElementById("map-editor-canvas");
     canvas.oncontextmenu=e=>e.preventDefault();
-    canvas.onmousedown=e=>{if(e.button===1){mapEditorPan={x:e.clientX,y:e.clientY,px:Number(canvas.dataset.panX)||0,py:Number(canvas.dataset.panY)||0};return;}if(e.button===0){mapEditorPushUndo();mapEditorDragging=true;mapEditorPaintAt(e);}};
+    canvas.onmousedown=e=>{if(e.button===2){mapEditorPushUndo();mapEditorTool="erase";mapEditorDragging=true;mapEditorPaintAt(e);return;}if(e.button===1){mapEditorPan={x:e.clientX,y:e.clientY,px:Number(canvas.dataset.panX)||0,py:Number(canvas.dataset.panY)||0};return;}if(e.button===0){mapEditorPushUndo();mapEditorDragging=true;mapEditorPaintAt(e);}};
     canvas.onmousemove=e=>{if(mapEditorPan){const z=Number(canvas.dataset.zoom)||2;canvas.dataset.panX=mapEditorPan.px-(e.clientX-mapEditorPan.x)/z;canvas.dataset.panY=mapEditorPan.py-(e.clientY-mapEditorPan.y)/z;mapEditorRender();return;}if(mapEditorDragging)mapEditorPaintAt(e);};
-    window.addEventListener("mouseup",e=>{if(e.button===0)mapEditorDragging=false;if(e.button===1)mapEditorPan=null;});
+    window.addEventListener("mouseup",e=>{if(e.button===0||e.button===2)mapEditorDragging=false;if(e.button===1)mapEditorPan=null;});
     canvas.onwheel=e=>{e.preventDefault();const z=Math.max(.5,Math.min(6,(Number(canvas.dataset.zoom)||2)*(e.deltaY<0?1.1:.9)));canvas.dataset.zoom=z;mapEditorRender();};
 }
 
@@ -618,7 +619,7 @@ function openMapEditor(){
 function mapEditorClose(){
     if(mapEditorTestMode){
         const m=mapEditorCurrent();
-        if(m&&mapEditorTestSnapshot){const i=mapEditorMaps.findIndex(x=>x.id===m.id);if(i>=0)mapEditorMaps[i]=normalizeMapEditorMap(mapEditorTestSnapshot);mapEditorPersist();mapEditorApplyRuntime();}
+        if(m&&mapEditorTestSnapshot){const i=mapEditorMaps.findIndex(x=>x.id===m.id);if(i>=0)mapEditorMaps[i]=normalizeMapEditorMap(mapEditorTestSnapshot.map);mapEditorOpenedObjectIds=new Set(mapEditorTestSnapshot.opened);mapEditorPersist();mapEditorApplyRuntime();}
         mapEditorTestMode=false;mapEditorTestSnapshot=null;
         if(typeof stopOverworldMode==="function")stopOverworldMode();
         if(typeof openMapEditor==="function")openMapEditor();
