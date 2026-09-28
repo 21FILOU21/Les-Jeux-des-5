@@ -56,12 +56,13 @@ function mapEditorNormalizeId(value, fallback) {
 }
 
 function mapEditorDefaultMap() {
-    const cols=30, rows=20;
+    const cols=Array.isArray(mapData)&&mapData.length?mapData[0].length:30;
+    const rows=Array.isArray(mapData)&&mapData.length?mapData.length:20;
     const cells=Array(cols*rows).fill("grass");
     for(let y=0;y<rows;y++) for(let x=0;x<cols;x++) {
-        if(x===0||y===0||x===cols-1||y===rows-1) cells[y*cols+x]="tree";
+        const legacy=Array.isArray(mapData?.[y])?mapData[y][x]:0;
+        cells[y*cols+x]=legacy===1?"tree":legacy===2?"tall-grass":"grass";
     }
-    for(let y=3;y<8;y++) for(let x=8;x<13;x++) cells[y*cols+x]="tall-grass";
     return {
         version:1, id:"map-principale", name:"Carte principale", description:"",
         cols, rows, tileSize:16, tileset:["grass","tree","tall-grass"],
