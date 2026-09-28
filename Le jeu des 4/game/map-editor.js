@@ -20,6 +20,7 @@ let mapEditorUndo = [];
 let mapEditorRedo = [];
 let mapEditorTool = "paint";
 let mapEditorSelectedTile = null;
+let mapEditorActiveLayerId = "terrain";
 let mapEditorDragging = false;
 let mapEditorPan = null;
 let mapEditorTestMode = false;
@@ -196,13 +197,13 @@ function mapEditorRedoAction(){
     mapEditorUndo.push(mapEditorClone(m));mapEditorRestore(mapEditorRedo.pop());
 }
 
-function mapEditorTopLayer(){return mapEditorCurrent()?.layers?.[0]||null;}
+function mapEditorTopLayer(){const m=mapEditorCurrent();return m?.layers?.find(l=>l.id===mapEditorActiveLayerId)||m?.layers?.[0]||null;}
 
 function mapEditorApplyRuntime(requestedId){
     const target=requestedId||mapEditorActiveId;
     const m=mapEditorMaps.find(x=>x.id===target)||mapEditorCurrent();
     if(!m)return;
-    mapEditorActiveId=m.id;mapEditorPersist();
+    mapEditorActiveId=m.id;mapEditorActiveLayerId=m.layers.find(l=>l.visible)?.id||m.layers[0]?.id||"terrain";mapEditorPersist();
     mapEditorRuntime=m;
     MAP_COLS=m.cols;MAP_ROWS=m.rows;MAP_WIDTH=MAP_COLS*TILE_SIZE;MAP_HEIGHT=MAP_ROWS*TILE_SIZE;
     WORLD_START_X=m.spawn.x*TILE_SIZE;WORLD_START_Y=m.spawn.y*TILE_SIZE;
@@ -480,6 +481,7 @@ function mapEditorOpenEncounterForm(){
 }
 
 function mapEditorRender(){
+    const layerSelect=document.getElementById("me-layer-select"),cm=mapEditorCurrent();if(layerSelect&&cm){layerSelect.innerHTML=(cm.layers||[]).map(l=>'<option value="'+l.id+'" '+(l.id===mapEditorActiveLayerId?"selected":"")+'>'+l.name+'</option>').join("");layerSelect.onchange=()=>{mapEditorActiveLayerId=layerSelect.value;mapEditorRender();};}
     const root=document.getElementById("map-editor-root");if(!root)return;
     const m=mapEditorCurrent();if(!m)return;
     const canvas=document.getElementById("map-editor-canvas");const ctx=canvas.getContext("2d");
@@ -587,7 +589,7 @@ function mapEditorRender(){
 function mapEditorBuildUi(){
     if(document.getElementById("map-editor-root"))return;
     const wrap=document.createElement("div");wrap.id="map-editor-root";wrap.className="save-menu map-editor-shell hidden";
-    wrap.innerHTML='<div class="save-menu-content map-editor-content"><div class="save-menu-header"><div><span class="eyebrow">OUTIL DÉVELOPPEUR</span><h2>Créateur de Map</h2><p id="map-editor-current-name"></p></div><button id="map-editor-close" class="close-button">×</button></div><div class="map-editor-toolbar"><button id="me-new" class="primary-button">Nouvelle</button><button id="me-dup" class="secondary-button">Dupliquer</button><button id="me-del" class="secondary-button">Supprimer</button><button id="me-import" class="secondary-button">Importer JSON</button><button id="me-export" class="secondary-button">Exporter JSON</button><button id="me-undo" class="secondary-button">↶</button><button id="me-redo" class="secondary-button">↷</button><button id="me-test" class="secondary-button">Tester</button><button id="me-resize" class="secondary-button">Dimensions</button><button id="me-layer" class="secondary-button">+ Calque</button><button id="me-encounter" class="secondary-button">Rencontres</button></div><div class="map-editor-layout"><aside><h3>Maps</h3><div id="map-editor-list"></div><h3>Tuiles</h3><div id="map-editor-tiles"></div><button id="me-new-tile" class="secondary-button">+ Tuile</button><button id="me-chest" class="secondary-button">+ Coffre</button><h3>Outils</h3><div class="map-editor-tools"><button data-tool="paint">Pinceau</button><button data-tool="erase">Gomme</button><button data-tool="eyedropper">Pipette</button><button data-tool="fill">Remplir</button><button data-tool="spawn">Spawn</button></div></aside><main><canvas id="map-editor-canvas" width="1100" height="650" data-zoom="2" data-pan-x="0" data-pan-y="0"></canvas><div class="map-editor-hint">Clic gauche : placer · clic droit : effacer · glisser : peindre · molette : zoom · clic molette : déplacer</div></main></div><input id="map-editor-import-file" type="file" accept=".json,application/json" hidden></div>';
+    wrap.innerHTML='<div class="save-menu-content map-editor-content"><div class="save-menu-header"><div><span class="eyebrow">OUTIL DÉVELOPPEUR</span><h2>Créateur de Map</h2><p id="map-editor-current-name"></p></div><button id="map-editor-close" class="close-button">×</button></div><div class="map-editor-toolbar"><button id="me-new" class="primary-button">Nouvelle</button><button id="me-dup" class="secondary-button">Dupliquer</button><button id="me-del" class="secondary-button">Supprimer</button><button id="me-import" class="secondary-button">Importer JSON</button><button id="me-export" class="secondary-button">Exporter JSON</button><button id="me-undo" class="secondary-button">↶</button><button id="me-redo" class="secondary-button">↷</button><button id="me-test" class="secondary-button">Tester</button><button id="me-resize" class="secondary-button">Dimensions</button><select id="me-layer-select" title="Calque actif"></select><button id="me-layer" class="secondary-button">+ Calque</button><button id="me-encounter" class="secondary-button">Rencontres</button></div><div class="map-editor-layout"><aside><h3>Maps</h3><div id="map-editor-list"></div><h3>Tuiles</h3><div id="map-editor-tiles"></div><button id="me-new-tile" class="secondary-button">+ Tuile</button><button id="me-chest" class="secondary-button">+ Coffre</button><h3>Outils</h3><div class="map-editor-tools"><button data-tool="paint">Pinceau</button><button data-tool="erase">Gomme</button><button data-tool="eyedropper">Pipette</button><button data-tool="fill">Remplir</button><button data-tool="spawn">Spawn</button></div></aside><main><canvas id="map-editor-canvas" width="1100" height="650" data-zoom="2" data-pan-x="0" data-pan-y="0"></canvas><div class="map-editor-hint">Clic gauche : placer · clic droit : effacer · glisser : peindre · molette : zoom · clic molette : déplacer</div></main></div><input id="map-editor-import-file" type="file" accept=".json,application/json" hidden></div>';
     document.body.appendChild(wrap);
     document.getElementById("map-editor-close").onclick=mapEditorClose;
     document.getElementById("me-new").onclick=mapEditorCreateMap;document.getElementById("me-dup").onclick=mapEditorDuplicateMap;document.getElementById("me-del").onclick=mapEditorDeleteMap;document.getElementById("me-import").onclick=()=>document.getElementById("map-editor-import-file").click();document.getElementById("me-export").onclick=mapEditorExport;document.getElementById("me-undo").onclick=mapEditorUndoAction;document.getElementById("me-redo").onclick=mapEditorRedoAction;
