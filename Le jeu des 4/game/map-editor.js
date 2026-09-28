@@ -242,7 +242,25 @@ function drawMapEditorRuntimeTile(ctx,type,S){
 }
 const mapEditorRuntimeImages=new Map();
 
+function drawMapEditorRuntimeObjects(ctx,S){
+    const m=mapEditorCurrent(); if(!m)return;
+    for(const o of m.objects||[]){
+        if(o.type!=="container")continue;
+        const key=o.opened?o.openImageKey:o.closedImageKey;
+        const img=key?mapEditorRuntimeImages.get(key):null;
+        const x=o.x*S,y=o.y*S;
+        if(img&&img.complete){ctx.drawImage(img,x,y,S,S);}
+        else {ctx.fillStyle=o.opened?"#654b2d":"#b87b37";ctx.fillRect(x+S*.12,y+S*.28,S*.76,S*.55);ctx.fillStyle="#e0b34f";ctx.fillRect(x+S*.42,y+S*.44,S*.16,S*.18);}
+    }
+}
+
 async function mapEditorLoadRuntimeImages(){
+    const objectKeys=(mapEditorCurrent()?.objects||[]).flatMap(o=>[o.closedImageKey,o.openImageKey]).filter(Boolean);
+    for(const key of objectKeys){
+        if(mapEditorRuntimeImages.has(key))continue;
+        const data=await mapEditorGetAsset(key);if(!data)continue;
+        const img=new Image();img.onload=()=>{mapEditorRuntimeImages.set(key,img);if(typeof buildWorldMapCanvas==="function"){worldMapCanvas=buildWorldMapCanvas();renderWorld();}};img.src=data;
+    }
     for(const tile of mapEditorAllTiles()){
         if(!tile.imageKey||mapEditorRuntimeImages.has(tile.imageKey))continue;
         const data=await mapEditorGetAsset(tile.imageKey);if(!data)continue;
