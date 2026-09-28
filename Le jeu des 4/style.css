@@ -3658,3 +3658,29 @@ button:disabled {
     font-size: .68rem;
     padding: 4px 8px
 }
+
+/* ============================================================
+   CRÉATEUR DE MAP 2D
+============================================================ */
+.map-editor-shell{z-index:1200}
+.map-editor-content{max-width:1500px;width:min(96vw,1500px);max-height:94vh}
+.map-editor-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.map-editor-layout{display:grid;grid-template-columns:250px 1fr;gap:12px;min-height:650px}
+.map-editor-layout aside{overflow:auto;max-height:70vh;padding:8px;background:rgba(0,0,0,.12);border-radius:10px}
+.map-editor-layout main{min-width:0;overflow:hidden}
+#map-editor-canvas{width:100%;height:650px;display:block;background:#18202b;border-radius:10px;image-rendering:pixelated;cursor:crosshair}
+.map-editor-hint{font-size:.82rem;opacity:.72;padding:8px}
+.map-editor-map-item{display:flex;width:100%;justify-content:space-between;margin-bottom:5px;text-align:left}
+.map-editor-map-item.active{outline:2px solid currentColor}
+.map-editor-tile{display:flex;align-items:center;gap:8px;width:100%;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.1);padding:7px;border-radius:7px;color:inherit;margin-bottom:5px;text-align:left}
+.map-editor-tile span{width:28px;height:28px;display:inline-block;border-radius:4px}
+.map-editor-tile.selected{outline:2px solid #fff}
+.map-editor-tools{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.map-editor-tools button{padding:7px}
+.map-editor-dialog-wrap{position:fixed;inset:0;z-index:1400;display:grid;place-items:center;background:rgba(0,0,0,.62)}
+.map-editor-dialog{width:min(680px,92vw);max-height:90vh;overflow:auto;padding:20px;background:var(--panel-bg,#1b2230);border:1px solid rgba(255,255,255,.15);border-radius:14px;box-shadow:0 20px 70px rgba(0,0,0,.5)}
+.map-editor-dialog label{display:block;margin:8px 0}
+.map-editor-dialog input,.map-editor-dialog select,.map-editor-dialog textarea{width:100%;box-sizing:border-box;margin-top:4px}
+.me-loot-row{display:grid;grid-template-columns:1.5fr .8fr .7fr .7fr 34px;gap:5px;margin:5px 0}
+.me-loot-row input,.me-loot-row select{min-width:0}
+@media(max-width:900px){.map-editor-layout{grid-template-columns:1fr}.map-editor-layout aside{max-height:280px}.map-editor-content{overflow:auto}}
