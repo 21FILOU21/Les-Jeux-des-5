@@ -25,7 +25,7 @@ let currentContentFileHandle = null;
 
 const SAVE_DB_NAME = "MonsterGameSaveDB";
 
-const SAVE_DB_VERSION = 1;
+const SAVE_DB_VERSION = 2;
 
 const SAVE_DB_STORE = "handles";
 
