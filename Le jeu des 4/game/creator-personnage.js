@@ -92,6 +92,11 @@ function startPersonnageCreator(parentEvolution, existing) {
             <div class="input-group"><label for="dev-p-evolution-niveau">Niveau requis pour évoluer</label><input type="number" id="dev-p-evolution-niveau" value="${evolution ? evolution.NiveauRequis : defaultLevel}" min="1" step="1"></div>
             <p class="dev-info-note">Première évolution : niveau ${CREATOR_DEFAULT_EVOLUTION_LEVEL}. Évolution suivante : +${CREATOR_EVOLUTION_STEP_LEVEL} niveaux.</p>
         </div>
+        <div class="input-group"><label for="dev-p-mega-enabled">Méga-Évolution</label><select id="dev-p-mega-enabled"><option value="0">0. Aucune</option><option value="1">1. Méga-Évolution configurée</option></select></div>
+        <div id="dev-p-mega-config" class="hidden">
+            <div class="input-group"><label for="dev-p-mega-target">Personnage Méga cible</label><select id="dev-p-mega-target"><option value="">— Choisir —</option>${cibleOptions}</select></div>
+            <div class="input-group"><label for="dev-p-mega-stone">Méga Stone requise</label><select id="dev-p-mega-stone"><option value="">— Choisir —</option></select></div>
+        </div>
         <div class="dev-form-actions">
             <button type="button" id="dev-p-cancel" class="secondary-button">Annuler</button>
             <button type="button" id="dev-p-save" class="primary-button">${isEdit ? "Enregistrer" : "Créer le personnage"}</button>
@@ -104,6 +109,26 @@ function startPersonnageCreator(parentEvolution, existing) {
             $("#dev-p-evolution-existing").classList.remove("hidden");
         }
     }
+
+    const megaStoneSelect = $("#dev-p-mega-stone");
+
+    if (megaStoneSelect) {
+        const megaStones = (state.contenu?.Items || []).filter(item => item && (item.Categorie === "Méga Stone" || item.Categorie === "Mega Stone" || item.MegaStone));
+        megaStoneSelect.innerHTML = '<option value="">— Choisir —</option>' + megaStones.map(item => '<option value="' + escapeHtml(item.Id || "") + '">' + escapeHtml(item.Nom || item.Id || "") + '</option>').join("");
+    }
+
+    const megaEvolution = isEdit ? (existing.MegaEvolution || null) : null;
+
+    if (megaEvolution && megaEvolution.Cible) {
+        $("#dev-p-mega-enabled").value = "1";
+        $("#dev-p-mega-config").classList.remove("hidden");
+        $("#dev-p-mega-target").value = megaEvolution.Cible;
+        $("#dev-p-mega-stone").value = megaEvolution.StoneId || "";
+    }
+
+    $("#dev-p-mega-enabled").addEventListener("change", event => {
+        $("#dev-p-mega-config").classList.toggle("hidden", event.target.value !== "1");
+    });
 
     $("#dev-p-evolution").addEventListener("change", () => {
         $("#dev-p-evolution-config").classList.toggle("hidden", $("#dev-p-evolution").value !== "1");
