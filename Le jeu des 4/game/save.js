@@ -435,9 +435,12 @@ function loadSaveMemoryBackup() {
 
 function backupSaveBeforeClosing() {
     try {
-        if (globalState.adventureStarted && autoSaveEnabled) {
-            saveMemoryData.autoSave = createSaveData("Sauvegarde automatique");
+        const battleIsStable = !state.busy && (state.turn === "player" || state.battleOver);
+        const overworldIsStable = document.getElementById("world-screen")?.classList.contains("active") && !state.busy;
+        const endIsStable = document.getElementById("end-screen")?.classList.contains("active") && !state.busy;
 
+        if (globalState.adventureStarted && autoSaveEnabled && (battleIsStable || overworldIsStable || endIsStable)) {
+            saveMemoryData.autoSave = createSaveData("Sauvegarde automatique");
             updateSaveMemory();
         } else if (saveJsonString) {
             writeLocalBackup(saveJsonString);
@@ -460,23 +463,20 @@ setInterval(() => {
 }, 30000);
 
 async function autoSaveGame() {
-    if (!autoSaveEnabled) {
-        return;
-    }
+    if (!autoSaveEnabled) return;
+    if (!globalState.adventureStarted) return;
+    if (autoSaveInProgress) return;
 
-    if (!globalState.adventureStarted) {
-        return;
-    }
+    const battleIsStable = !state.busy && (state.turn === "player" || state.battleOver);
+    const overworldIsStable = document.getElementById("world-screen")?.classList.contains("active") && !state.busy;
+    const endIsStable = document.getElementById("end-screen")?.classList.contains("active") && !state.busy;
 
-    if (autoSaveInProgress) {
-        return;
-    }
+    if (!battleIsStable && !overworldIsStable && !endIsStable) return;
 
     autoSaveInProgress = !0;
 
     try {
         saveMemoryData.autoSave = createSaveData("Sauvegarde automatique");
-
         updateSaveMemory();
     } catch (error) {
         console.error("Erreur de sauvegarde automatique :", error);
@@ -484,10 +484,6 @@ async function autoSaveGame() {
         autoSaveInProgress = !1;
     }
 }
-
-/* ============================================================
-   CRÉATION DU PAYLOAD DE SAUVEGARDE
-============================================================ */
 
 function createSaveData(saveName) {
     const savedState = structuredClone(state);
