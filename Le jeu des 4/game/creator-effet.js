@@ -16,7 +16,18 @@ function startEffectCreator(existing) {
 
     panel.classList.remove("hidden");
 
+    if (!id) {
+        showToast("ID invalide", "L'ID de l'effet ne peut pas être vide.");
+        return;
+    }
+
     const isEdit = Boolean(existing);
+    const existingId = existing ? String(existing.Id || existing.Nom || "") : "";
+
+    if ((!isEdit || id !== existingId) && (state.contenu?.Effets || []).some(effect => effect && String(effect.Id || "").trim() === id)) {
+        showToast("ID déjà utilisé", `Un effet avec l'ID « ${id} » existe déjà.`);
+        return;
+    }
 
     const isStockEdit = isEdit && isStockContentName("Effets", existing.Nom);
 
@@ -29,6 +40,7 @@ function startEffectCreator(existing) {
     panel.innerHTML = `
         <h3 style="margin-bottom:12px;">${isEdit ? `Modifier l'effet « ${escapeHtml(existing.Nom)} »` : "Nouvel effet"}</h3>
         <p class="dev-info-note">Les types correspondent aux effets compris par le moteur de combat existant (dégâts, soin, brûlure, buffs, armure, énergie). « Effet personnalisé » délègue vers un autre type d'effet. La « Recharger l'énergie » ne s'applique qu'au joueur (comportement existant).</p>
+        <div class="input-group"><label for="dev-eff-id">ID unique</label><input type="text" id="dev-eff-id" maxlength="60" value="${escapeHtml(existing ? (existing.Id || existing.Nom || "") : "")}"${isStockEdit ? " disabled" : ""}></div>
         <div class="input-group"><label for="dev-eff-nom">Nom de l'effet</label><input type="text" id="dev-eff-nom" maxlength="40" autocomplete="off" value="${escapeHtml(existing ? existing.Nom : "")}"${isStockEdit ? " disabled" : ""}></div>
         <div class="input-group"><label for="dev-eff-type">Type</label><select id="dev-eff-type">${typeOptions}</select></div>
         <div class="dev-form-row">
@@ -88,6 +100,8 @@ function applyEffectUpdateToAttacks(effet, matchNom) {
 
 function submitEffectCreator(existing) {
     const nom = $("#dev-eff-nom").value.trim();
+    const rawId = $("#dev-eff-id") ? $("#dev-eff-id").value.trim() : nom;
+    const id = rawId.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
 
     if (!nom) {
         showToast("Nom invalide", "Le nom ne peut pas être vide.");
@@ -120,7 +134,9 @@ function submitEffectCreator(existing) {
     const cible = $("#dev-eff-cible").value;
 
     const effet = {
+        Id: id,
         Nom: nom,
+        Description: existing?.Description || "",
         Type: type,
         Valeur: valeur,
         Cible: cible,
