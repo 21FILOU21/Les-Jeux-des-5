@@ -90,6 +90,7 @@ function bindEvents() {
     $("#close-attack-modal").addEventListener("click", closeAttackModal);
 
     $("#close-item-modal").addEventListener("click", closeItemModal);
+    $("#inventory-close-footer").addEventListener("click", closeItemModal);
 
     $("#clear-log-btn").addEventListener("click", clearLog);
 
