@@ -451,12 +451,15 @@ function updatePlayerImage() {
     };
 
     image.onerror = () => {
+        if (!image.dataset.nestedFallback && imagePath === `assets/personnages/${state.hero?.Nom}.png`) {
+            image.dataset.nestedFallback = "1";
+            image.src = `assets/personnages/personnages/${state.hero.Nom}.png`;
+            return;
+        }
+
         image.src = "";
-
         image.style.display = "none";
-
         fallback.style.display = "flex";
-
         console.warn(`Image introuvable pour ${state.hero.Nom}: ${imagePath}`);
     };
 
