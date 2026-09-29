@@ -605,6 +605,8 @@ function startBattle(request = null) {
     state.busy = !1;
 
     state.escapeAttempts = 0;
+    state.megaEvolutionUsed = !1;
+    state.megaEvolutionBaseHeroId = null;
 
     state.log = [];
 
@@ -653,6 +655,9 @@ function beginAdventure() {
     state.itemTotem = 0;
 
     state.itemArmor = 0;
+    state.inventory = {};
+    state.megaEvolutionUsed = !1;
+    state.megaEvolutionBaseHeroId = null;
 
     state.coins = 0;
 
@@ -742,6 +747,10 @@ function triggerWildBattle(request = null) {
 function endGame(victory) {
     if (state.battleOver) {
         return;
+    }
+
+    if (typeof restoreMegaEvolution === "function") {
+        restoreMegaEvolution();
     }
 
     state.battleOver = !0;
