@@ -150,7 +150,8 @@ function mapEditorNormalizeInteractiveInstance(m,o,index){
     source.overrides=source.overrides&&typeof source.overrides==="object"?source.overrides:{};
     source.state=source.state&&typeof source.state==="object"?source.state:{};
     if(source.type==="container"){
-        let definition=mapEditorFindInteractiveDefinition(source.definitionId);
+        let definition=(m.tileDefinitions||[]).find(t=>t&&t.id===String(source.definitionId||"")&&t.interactive);
+        if(!definition)definition=mapEditorFindInteractiveDefinition(source.definitionId);
         if(!definition){
             definition=mapEditorInteractiveDefinitionFromObject(source);
             definition.id=mapEditorNormalizeId(source.definitionId||("legacy-"+source.instanceId),mapEditorUid("interactive"));
@@ -471,7 +472,7 @@ function drawMapEditorRuntimeObjects(ctx,S){
 }
 
 async function mapEditorLoadRuntimeImages(){
-    const objectKeys=(mapEditorCurrent()?.objects||[]).flatMap(o=>[o.closedImageKey,o.openImageKey]).filter(Boolean);
+    const objectKeys=(mapEditorCurrent()?.objects||[]).flatMap(o=>{const p=mapEditorGetInstanceProps(o);return [p.closedImageKey,p.openImageKey];}).filter(Boolean);
     for(const key of objectKeys){
         if(mapEditorRuntimeImages.has(key))continue;
         const data=await mapEditorGetAsset(key);if(!data)continue;
@@ -485,8 +486,9 @@ async function mapEditorLoadRuntimeImages(){
 }
 
 function isMapEditorRuntimeBlocked(tileId,col,row){
-    const obj=mapEditorCurrent()?.objects?.find(o=>o.x===col&&o.y===row&&o.collision!==false);
-    return !!obj;
+    const obj=mapEditorCurrent()?.objects?.find(o=>o.x===col&&o.y===row);
+    if(!obj)return false;
+    return mapEditorGetInstanceProps(obj).collision!==false;
 }
 
 function mapEditorTileHasEncounter(tileId){
@@ -631,7 +633,12 @@ function mapEditorValidate(m,tileDefinitions){
         for(const cell of layer.cells||[])if(cell!==null&&cell!==""&&!ids.has(String(cell)))errors.push("Référence de tuile inconnue : "+cell);
     }
     if(!m.spawn||!Number.isInteger(m.spawn.x)||!Number.isInteger(m.spawn.y)||m.spawn.x<0||m.spawn.x>=m.cols||m.spawn.y<0||m.spawn.y>=m.rows)errors.push("Spawn hors carte.");
-    for(const o of m.objects||[])if(!o.id||!Number.isInteger(o.x)||!Number.isInteger(o.y)||o.x<0||o.x>=m.cols||o.y<0||o.y>=m.rows)errors.push("Objet hors carte ou ID invalide.");
+    const instanceIds=new Set();
+    for(const o of m.objects||[]){
+        if(!o.id||!o.instanceId||instanceIds.has(String(o.instanceId))||!Number.isInteger(o.x)||!Number.isInteger(o.y)||o.x<0||o.x>=m.cols||o.y<0||o.y>=m.rows)errors.push("Objet hors carte ou ID d’instance invalide.");
+        instanceIds.add(String(o.instanceId||o.id||""));
+        if(o.definitionId&&!ids.has(String(o.definitionId)))errors.push("Définition interactive introuvable : "+o.definitionId);
+    }
     for(const e of m.encounters||[]){
         for(const tileId of e.tiles||[])if(!ids.has(String(tileId)))errors.push("Référence de tuile inconnue dans une rencontre : "+tileId);
         for(const x of e.monsters||[])if(!mapEditorResolveMonster(x.monsterId))errors.push("Monstre introuvable : "+x.monsterId);
