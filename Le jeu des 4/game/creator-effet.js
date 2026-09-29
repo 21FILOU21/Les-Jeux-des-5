@@ -103,6 +103,19 @@ function submitEffectCreator(existing) {
     const nom = $("#dev-eff-nom").value.trim();
     const rawId = $("#dev-eff-id") ? $("#dev-eff-id").value.trim() : nom;
     const id = rawId.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
+    
+    if (!id) {
+        showToast("ID invalide", "L'ID de l'effet ne peut pas être vide.");
+        return;
+    }
+
+    const isEditForId = Boolean(existing);
+    const existingId = existing ? String(existing.Id || existing.Nom || "") : "";
+
+    if ((!isEditForId || id !== existingId) && (state.contenu?.Effets || []).some(effect => effect && String(effect.Id || "").trim() === id)) {
+        showToast("ID déjà utilisé", `Un effet avec l'ID « ${id} » existe déjà.`);
+        return;
+    }
 
     if (!nom) {
         showToast("Nom invalide", "Le nom ne peut pas être vide.");
