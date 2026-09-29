@@ -185,9 +185,7 @@ function bindEvents() {
 
         if (isKeybindCaptureActive()) {
             event.preventDefault();
-
-            captureKeybind(event.key);
-
+            event.stopImmediatePropagation();
             return;
         }
 
