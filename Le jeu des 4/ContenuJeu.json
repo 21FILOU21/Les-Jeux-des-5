@@ -12,7 +12,7 @@
       "NombreRoulette": 2,
       "MinEnergie": 0,
       "MaxEnergie": 100,
-      "Image": "assets/personnages/F\u00E9lix.png",
+      "Image": "assets/personnages/personnages/F\u00E9lix.png",
       "Attaques": [
         "Ailes d\u0027acier",
         "Tir du plus haut",
