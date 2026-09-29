@@ -535,11 +535,43 @@ function renderCharacters() {
    DÉBUT DE COMBAT / DÉBUT D'AVENTURE
 ============================================================ */
 
-function startBattle() {
+function startBattle(request = null) {
     if (!state.selectedHero) {
         return;
     }
     
+    let encounterRequest = null;
+
+    if (request) {
+        const requestedId = request.monsterId || request.monsterName;
+        const definition = (state.contenu?.Monstres || []).find(monster =>
+            monster && (String(monster.Nom || "") === String(requestedId) || String(monster.id || "") === String(requestedId))
+        );
+
+        if (!definition) {
+            console.error("Rencontre personnalisée : monstre introuvable, fallback aléatoire :", requestedId);
+            showToast("Rencontre invalide", `Le monstre « ${requestedId || "?"} » n'existe plus. Une rencontre aléatoire sera utilisée.`);
+        } else {
+            encounterRequest = {
+                encounterId: request.encounterId || null,
+                mapId: request.mapId || null,
+                monsterId: definition.Nom || definition.id,
+                monsterName: definition.Nom || definition.name || requestedId,
+                level: Math.max(1, Math.floor(Number(request.level) || 1)),
+                count: Math.max(1, Math.floor(Number(request.count) || 1)),
+                monsterDefinition: definition
+            };
+        }
+    }
+
+    if (encounterRequest) {
+        state.config.monsterCount = encounterRequest.count;
+        state.config.monsterName = encounterRequest.monsterName;
+    } else {
+        state.config.monsterCount = randomInt(1, 3);
+        state.config.monsterName = state.config.monsterName || "Monstre";
+    }
+
     if (typeof vfxSetSurface === "function") vfxSetSurface("battle");
 
     state.hero = state.selectedHero;
@@ -558,7 +590,7 @@ function startBattle() {
 
     state.currentMonsterNumber = globalState.monsterKilled + 1;
 
-    state.monsters = createBattleMonsters(state.config.monsterCount);
+    state.monsters = createBattleMonsters(state.config.monsterCount, encounterRequest);
 
     const monsterList = $("#monster-list");
 
@@ -658,18 +690,17 @@ let encounterTransitionInProgress = !1;
 
 let encounterTransitionResolve = null;
 
-function runEncounterTransition() {
+function runEncounterTransition(request = null) {
     if (encounterTransitionInProgress) return;
 
     encounterTransitionInProgress = !0;
 
     const skip = (typeof isRouletteAnimationSkipped === "function") && isRouletteAnimationSkipped();
-
     const overlay = document.getElementById("encounter-transition");
 
     const startBattleNow = () => {
         try {
-            triggerWildBattle();
+            triggerWildBattle(request);
         } finally {
             encounterTransitionInProgress = !1;
         }
@@ -677,20 +708,15 @@ function runEncounterTransition() {
 
     if (skip || !overlay) {
         setTimeout(() => {
-            if (typeof triggerWildBattle === "function") {
-                triggerWildBattle();
-            }
+            if (typeof triggerWildBattle === "function") triggerWildBattle(request);
         }, 450);
 
         encounterTransitionInProgress = !1;
-
         return;
     }
 
     overlay.classList.remove("hidden");
-
     void overlay.offsetWidth;
-
     overlay.classList.add("transitioning");
 
     setTimeout(() => {
@@ -698,30 +724,13 @@ function runEncounterTransition() {
 
         setTimeout(() => {
             overlay.classList.remove("transitioning");
-
-            setTimeout(() => {
-                overlay.classList.add("hidden");
-            }, 450);
+            setTimeout(() => overlay.classList.add("hidden"), 450);
         }, 150);
     }, 450);
 }
 
-function triggerWildBattle() {
-    const pending = window.__mapEditorPendingEncounter || null;
-    window.__mapEditorPendingEncounter = null;
-
-    if (pending) {
-        state.config.monsterCount = 1;
-        state.config.monsterName = pending.monster?.Nom || pending.monster?.name || "Monstre";
-        window.__mapEditorSelectedMonster = pending.monster;
-        window.__mapEditorLevelOverride = pending.level;
-    } else {
-        state.config.monsterCount = randomInt(1, 3);
-        state.config.monsterName = state.config.monsterName || "Monstre";
-        window.__mapEditorLevelOverride = null;
-    }
-
-    startBattle();
+function triggerWildBattle(request = null) {
+    startBattle(request);
 
     addLog(` Combat engagé ! ${state.config.monsterCount} ennemi(s) apparaît(vent) dans les hautes herbes !`, "system");
 }
