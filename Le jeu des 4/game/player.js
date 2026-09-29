@@ -455,16 +455,6 @@ async function playerRecharge() {
 }
 
 /* ============================================================
-   MODAL OBJETS (STUB — boutique retirée)
-============================================================ */
-
-function closeItemModal() {
-    const modal = $("#item-modal");
-
-    if (modal) modal.classList.add("hidden");
-}
-
-/* ============================================================
    S'ENFUIR (FUIE POKÉMON — GEN I/III/V)
 ============================================================ */
 
