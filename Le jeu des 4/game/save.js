@@ -76,6 +76,7 @@ function createEmptyContenu() {
         Energies: [],
         Statuts: [],
         EffetsVisuels: [],
+        Items: [],
         suppressions: {
             Personnages: [],
             Attaques: [],
@@ -83,6 +84,7 @@ function createEmptyContenu() {
             Energies: [],
             Statuts: [],
             EffetsVisuels: []
+            Items: []
         }
     }
 }
