@@ -435,6 +435,11 @@ function loadSaveMemoryBackup() {
 
 function backupSaveBeforeClosing() {
     try {
+        if (typeof xpAnimationInProgress !== "undefined" && xpAnimationInProgress) {
+            if (saveJsonString) writeLocalBackup(saveJsonString);
+            return;
+        }
+
         const battleIsStable = !state.busy && (state.turn === "player" || state.battleOver);
         const overworldIsStable = document.getElementById("world-screen")?.classList.contains("active") && !state.busy;
         const endIsStable = document.getElementById("end-screen")?.classList.contains("active") && !state.busy;
@@ -466,6 +471,7 @@ async function autoSaveGame() {
     if (!autoSaveEnabled) return;
     if (!globalState.adventureStarted) return;
     if (autoSaveInProgress) return;
+    if (typeof xpAnimationInProgress !== "undefined" && xpAnimationInProgress) return;
 
     const battleIsStable = !state.busy && (state.turn === "player" || state.battleOver);
     const overworldIsStable = document.getElementById("world-screen")?.classList.contains("active") && !state.busy;
