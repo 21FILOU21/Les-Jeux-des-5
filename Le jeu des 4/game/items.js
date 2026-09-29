@@ -290,6 +290,11 @@ function canUseItem(item, context = "battle") {
     return { ok: !0 };
 }
 
+function isInventoryOpen() {
+    const modal = document.getElementById("item-modal");
+    return !!(modal && !modal.classList.contains("hidden"));
+}
+
 function openInventoryModal(context = "battle") {
     const modal = document.getElementById("item-modal");
 
