@@ -23,6 +23,7 @@ let mapEditorSelectedTile = null;
 let mapEditorActiveLayerId = "terrain";
 let mapEditorDragging = false;
 let mapEditorPan = null;
+let mapEditorPointerMode = null;
 let mapEditorTestMode = false;
 let mapEditorTestSnapshot = null;
 let mapEditorOpenedObjectIds = new Set();
@@ -456,32 +457,70 @@ function mapEditorCreateMap(){
     let id=mapEditorNormalizeId(name,mapEditorUid("map"));
     while(mapEditorMaps.some(m=>m.id===id))id+="-2";
     const m=normalizeMapEditorMap({id,name,cols:30,rows:20,tileSize:16,tileset:["grass","tree"],layers:[{id:"terrain",name:"Terrain",visible:true,cells:Array(600).fill("grass")}],encounters:[],spawn:{x:15,y:10},objects:[]});
-    mapEditorMaps.push(m);mapEditorActiveId=id;mapEditorPersist();mapEditorUndo=[];mapEditorRedo=[];mapEditorApplyRuntime();mapEditorRender();
+    mapEditorMaps.push(m);mapEditorActiveId=id;mapEditorPersist();mapEditorUndo=[];mapEditorRedo=[];mapEditorApplyRuntime();mapEditorCenterViewport();mapEditorRender();
 }
 
 function mapEditorDeleteMap(){
     if(mapEditorMaps.length<=1){showToast?.("Impossible","Il faut conserver au moins une map.");return;}
     const m=mapEditorCurrent();if(!m||!confirm("Supprimer « "+m.name+" » ?"))return;
-    mapEditorMaps=mapEditorMaps.filter(x=>x.id!==m.id);mapEditorActiveId=mapEditorMaps[0].id;mapEditorPersist();mapEditorApplyRuntime();mapEditorRender();
+    mapEditorMaps=mapEditorMaps.filter(x=>x.id!==m.id);mapEditorActiveId=mapEditorMaps[0].id;mapEditorPersist();mapEditorApplyRuntime();mapEditorCenterViewport();mapEditorRender();
 }
 
 function mapEditorDuplicateMap(){
     const m=mapEditorCurrent();if(!m)return;
     const copy=mapEditorClone(m);copy.id=mapEditorNormalizeId(m.id+"-copie",mapEditorUid("map"));copy.name=m.name+" (copie)";
-    mapEditorMaps.push(copy);mapEditorActiveId=copy.id;mapEditorPersist();mapEditorApplyRuntime();mapEditorRender();
+    mapEditorMaps.push(copy);mapEditorActiveId=copy.id;mapEditorPersist();mapEditorApplyRuntime();mapEditorCenterViewport();mapEditorRender();
+}
+
+function mapEditorCanvasPointFromEvent(event){
+    const canvas=document.getElementById("map-editor-canvas");
+    if(!canvas)return null;
+    const rect=canvas.getBoundingClientRect();
+    if(!rect.width||!rect.height)return null;
+    const scaleX=canvas.width/rect.width;
+    const scaleY=canvas.height/rect.height;
+    return {
+        x:(event.clientX-rect.left)*scaleX,
+        y:(event.clientY-rect.top)*scaleY
+    };
+}
+
+function mapEditorMapPointFromEvent(event){
+    const point=mapEditorCanvasPointFromEvent(event);
+    const canvas=document.getElementById("map-editor-canvas");
+    if(!point||!canvas)return null;
+    const zoom=Number(canvas.dataset.zoom)||2;
+    const panX=Number(canvas.dataset.panX)||0;
+    const panY=Number(canvas.dataset.panY)||0;
+    return {
+        x:(point.x-canvas.width/2)/zoom+panX,
+        y:(point.y-canvas.height/2)/zoom+panY
+    };
 }
 
 function mapEditorCellFromEvent(event){
-    const canvas=document.getElementById("map-editor-canvas");if(!canvas)return null;
-    const r=canvas.getBoundingClientRect();const zoom=Number(canvas.dataset.zoom)||2;
-    const x=(event.clientX-r.left-canvas.width/2)/zoom+(Number(canvas.dataset.panX)||0);
-    const y=(event.clientY-r.top-canvas.height/2)/zoom+(Number(canvas.dataset.panY)||0);
-    const m=mapEditorCurrent();return {col:Math.floor(x/m.tileSize),row:Math.floor(y/m.tileSize)};
+    const point=mapEditorMapPointFromEvent(event);
+    const m=mapEditorCurrent();
+    if(!point||!m)return null;
+    return {col:Math.floor(point.x/m.tileSize),row:Math.floor(point.y/m.tileSize)};
+}
+
+function mapEditorCellIsInside(cell){
+    const m=mapEditorCurrent();
+    return !!m&&!!cell&&cell.col>=0&&cell.row>=0&&cell.col<m.cols&&cell.row<m.rows;
+}
+
+function mapEditorCenterViewport(){
+    const canvas=document.getElementById("map-editor-canvas");
+    const m=mapEditorCurrent();
+    if(!canvas||!m)return;
+    canvas.dataset.panX=String((m.cols*m.tileSize)/2);
+    canvas.dataset.panY=String((m.rows*m.tileSize)/2);
 }
 
 function mapEditorPaintAt(event){
     const m=mapEditorCurrent();const layer=mapEditorTopLayer();if(!m||!layer)return;
-    const cell=mapEditorCellFromEvent(event);if(!cell||cell.col<0||cell.row<0||cell.col>=m.cols||cell.row>=m.rows)return;
+    const cell=mapEditorCellFromEvent(event);if(!mapEditorCellIsInside(cell))return;
     const index=cell.row*m.cols+cell.col;
     const next=mapEditorTool==="erase"?null:mapEditorSelectedTile;
     if(mapEditorTool==="spawn"){mapEditorPushUndo();m.spawn={x:cell.col,y:cell.row};mapEditorTool="paint";mapEditorSaveCurrent();mapEditorRender();return;}
@@ -562,7 +601,14 @@ function mapEditorRender(){
 function mapEditorRenderList(){
     const list=document.getElementById("map-editor-list");if(!list)return;
     list.innerHTML=mapEditorMaps.map(m=>`<button type="button" class="secondary-button map-editor-map-item ${m.id===mapEditorActiveId?"active":""}" data-map-id="${m.id}">${m.name} <small>${m.cols}×${m.rows}</small></button>`).join("");
-    list.querySelectorAll("[data-map-id]").forEach(b=>b.onclick=()=>{mapEditorActiveId=b.dataset.mapId;mapEditorUndo=[];mapEditorRedo=[];mapEditorApplyRuntime();mapEditorRender();mapEditorRenderList();});
+    list.querySelectorAll("[data-map-id]").forEach(b=>b.onclick=()=>{
+        mapEditorActiveId=b.dataset.mapId;
+        mapEditorUndo=[];mapEditorRedo=[];
+        mapEditorApplyRuntime();
+        mapEditorCenterViewport();
+        mapEditorRender();
+        mapEditorRenderList();
+    });
 }
 
 function mapEditorRenderTiles(){
@@ -660,14 +706,94 @@ function mapEditorBuildUi(){
     document.getElementById("map-editor-import-file").onchange=e=>{const f=e.target.files[0];if(f)mapEditorImport(f).catch(err=>alert(err.message));e.target.value="";};
     const canvas=document.getElementById("map-editor-canvas");
     canvas.oncontextmenu=e=>e.preventDefault();
-    canvas.onmousedown=e=>{if(e.button===2){mapEditorPushUndo();mapEditorTool="erase";mapEditorDragging=true;mapEditorPaintAt(e);return;}if(e.button===1){mapEditorPan={x:e.clientX,y:e.clientY,px:Number(canvas.dataset.panX)||0,py:Number(canvas.dataset.panY)||0};return;}if(e.button===0){mapEditorPushUndo();mapEditorDragging=true;mapEditorPaintAt(e);}};
-    canvas.onmousemove=e=>{if(mapEditorPan){const z=Number(canvas.dataset.zoom)||2;canvas.dataset.panX=mapEditorPan.px-(e.clientX-mapEditorPan.x)/z;canvas.dataset.panY=mapEditorPan.py-(e.clientY-mapEditorPan.y)/z;mapEditorRender();return;}if(mapEditorDragging)mapEditorPaintAt(e);};
-    window.addEventListener("mouseup",e=>{if(e.button===0||e.button===2)mapEditorDragging=false;if(e.button===1)mapEditorPan=null;});
-    canvas.onwheel=e=>{e.preventDefault();const z=Math.max(.5,Math.min(6,(Number(canvas.dataset.zoom)||2)*(e.deltaY<0?1.1:.9)));canvas.dataset.zoom=z;mapEditorRender();};
+
+    canvas.onpointerdown=e=>{
+        if(e.button!==0&&e.button!==1&&e.button!==2)return;
+        e.preventDefault();
+        try{canvas.setPointerCapture(e.pointerId);}catch(_){}
+
+        const cell=mapEditorCellFromEvent(e);
+        const inside=mapEditorCellIsInside(cell);
+
+        mapEditorDragging=false;
+        mapEditorPan=null;
+        mapEditorPointerMode=null;
+
+        if(e.button===1){
+            mapEditorPointerMode="pan";
+        }else if(e.button===2){
+            mapEditorPointerMode="erase";
+            if(inside)mapEditorPushUndo();
+            mapEditorTool="erase";
+            mapEditorDragging=inside;
+            if(inside)mapEditorPaintAt(e);
+        }else if(e.button===0){
+            if(inside){
+                mapEditorPointerMode="paint";
+                mapEditorPushUndo();
+                mapEditorDragging=true;
+                mapEditorPaintAt(e);
+            }else{
+                mapEditorPointerMode="pan";
+            }
+        }
+
+        if(mapEditorPointerMode==="pan"){
+            const point=mapEditorCanvasPointFromEvent(e);
+            const zoom=Number(canvas.dataset.zoom)||2;
+            if(point){
+                mapEditorPan={
+                    x:point.x,
+                    y:point.y,
+                    px:Number(canvas.dataset.panX)||0,
+                    py:Number(canvas.dataset.panY)||0,
+                    zoom
+                };
+            }
+        }
+    };
+
+    canvas.onpointermove=e=>{
+        if(mapEditorPointerMode==="pan"&&mapEditorPan){
+            const point=mapEditorCanvasPointFromEvent(e);
+            if(!point)return;
+            const z=mapEditorPan.zoom||Number(canvas.dataset.zoom)||2;
+            canvas.dataset.panX=String(mapEditorPan.px-(point.x-mapEditorPan.x)/z);
+            canvas.dataset.panY=String(mapEditorPan.py-(point.y-mapEditorPan.y)/z);
+            mapEditorRender();
+            return;
+        }
+        if((mapEditorPointerMode==="paint"||mapEditorPointerMode==="erase")&&mapEditorDragging){
+            mapEditorPaintAt(e);
+        }
+    };
+
+    const endMapEditorPointer=e=>{
+        if(e.pointerId!==undefined){
+            try{if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);}catch(_){}
+        }
+        mapEditorDragging=false;
+        mapEditorPan=null;
+        mapEditorPointerMode=null;
+    };
+    canvas.onpointerup=endMapEditorPointer;
+    canvas.onpointercancel=endMapEditorPointer;
+    canvas.onlostpointercapture=()=>{
+        mapEditorDragging=false;
+        mapEditorPan=null;
+        mapEditorPointerMode=null;
+    };
+
+    canvas.onwheel=e=>{
+        e.preventDefault();
+        const z=Math.max(.5,Math.min(6,(Number(canvas.dataset.zoom)||2)*(e.deltaY<0?1.1:.9)));
+        canvas.dataset.zoom=z;
+        mapEditorRender();
+    };
 }
 
 function openMapEditor(){
-    mapEditorBuildUi();if(typeof closeDevMenu==="function")closeDevMenu();document.getElementById("map-editor-root").classList.remove("hidden");mapEditorRender();mapEditorLoadRuntimeImages();
+    mapEditorBuildUi();if(typeof closeDevMenu==="function")closeDevMenu();document.getElementById("map-editor-root").classList.remove("hidden");mapEditorCenterViewport();mapEditorRender();mapEditorLoadRuntimeImages();
 }
 function mapEditorClose(){
     if(mapEditorTestMode){
