@@ -538,6 +538,8 @@ function renderCharacters() {
 ============================================================ */
 
 function startBattle(request = null) {
+    if (typeof closeItemModal === "function") closeItemModal();
+
     if (!state.selectedHero) {
         return;
     }
