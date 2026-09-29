@@ -226,7 +226,8 @@ function updateActionNumberBadges() {
         ["#attack-btn", "action1", "1"],
         ["#heal-btn", "action2", "2"],
         ["#ignore-btn", "action3", "3"],
-        ["#recharge-btn", "action4", "4"]
+        ["#recharge-btn", "action4", "4"],
+        ["#inventory-btn", "action5", "5"]
     ];
 
     slots.forEach(([selector, bind, fallback]) => {
