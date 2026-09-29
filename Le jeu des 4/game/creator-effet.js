@@ -42,6 +42,7 @@ function startEffectCreator(existing) {
         <p class="dev-info-note">Les types correspondent aux effets compris par le moteur de combat existant (dégâts, soin, brûlure, buffs, armure, énergie). « Effet personnalisé » délègue vers un autre type d'effet. La « Recharger l'énergie » ne s'applique qu'au joueur (comportement existant).</p>
         <div class="input-group"><label for="dev-eff-id">ID unique</label><input type="text" id="dev-eff-id" maxlength="60" value="${escapeHtml(existing ? (existing.Id || existing.Nom || "") : "")}"${isStockEdit ? " disabled" : ""}></div>
         <div class="input-group"><label for="dev-eff-nom">Nom de l'effet</label><input type="text" id="dev-eff-nom" maxlength="40" autocomplete="off" value="${escapeHtml(existing ? existing.Nom : "")}"${isStockEdit ? " disabled" : ""}></div>
+        <div class="input-group"><label for="dev-eff-description">Description</label><textarea id="dev-eff-description" rows="2">${escapeHtml(existing ? (existing.Description || "") : "")}</textarea></div>
         <div class="input-group"><label for="dev-eff-type">Type</label><select id="dev-eff-type">${typeOptions}</select></div>
         <div class="dev-form-row">
             <div class="input-group"><label for="dev-eff-valeur">Valeur</label><input type="number" id="dev-eff-valeur" value="${existing ? existing.Valeur : 1}" step="any"></div>
@@ -136,7 +137,7 @@ function submitEffectCreator(existing) {
     const effet = {
         Id: id,
         Nom: nom,
-        Description: existing?.Description || "",
+        Description: $("#dev-eff-description") ? $("#dev-eff-description").value.trim() : (existing?.Description || ""),
         Type: type,
         Valeur: valeur,
         Cible: cible,
