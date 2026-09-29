@@ -63,6 +63,9 @@ const state = {
     battleOver: !1,
     busy: !1,
     escapeAttempts: 0,
+    inventory: {},
+    megaEvolutionUsed: !1,
+    megaEvolutionBaseHeroId: null,
 };
 
 function normalizeContenu(contenu) {
