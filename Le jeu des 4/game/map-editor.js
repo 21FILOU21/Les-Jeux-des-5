@@ -34,12 +34,13 @@ const MAP_EDITOR_DEFAULT_TILES = [
     { id:"tall-grass", name:"Hautes herbes", collision:false, terrainType:"grass", encounters:true, description:"Zone de rencontres.", imageKey:null, fallback:"#4c8d43" }
 ];
 
-const MAP_EDITOR_ITEM_CATALOG = [
-    { id:"bandage", label:"Bandage" },
-    { id:"force", label:"Potion de Force" },
-    { id:"armor", label:"Armure" },
-    { id:"totem", label:"Totem" }
-];
+function getMapEditorItemCatalog() {
+    if (typeof getInventoryItemDefinitions === "function") {
+        return getInventoryItemDefinitions().map(item => ({ id: item.Id, label: item.Nom }));
+    }
+
+    return [];
+}
 
 function mapEditorUid(prefix="id") {
     return prefix+"-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,9);
@@ -370,10 +371,7 @@ function applyMapEditorOverworldSaveData(data){
 
 function mapEditorGrantItem(id,qty){
     qty=Math.max(0,Math.floor(Number(qty)||0));if(!qty)return;
-    if(id==="bandage")state.itemBandage+=qty;
-    else if(id==="force")state.itemPotionForce+=qty;
-    else if(id==="armor")state.itemArmor+=qty;
-    else if(id==="totem")state.itemTotem+=qty;
+    if(typeof addItemToInventory === "function") addItemToInventory(id,qty);
 }
 
 function mapEditorOpenObjectAt(col,row){
@@ -390,7 +388,7 @@ function mapEditorOpenObjectAt(col,row){
         if(Math.random()*100>=Math.max(0,Math.min(100,Number(entry.chance)||0)))continue;
         const min=Math.max(0,Math.floor(Number(entry.min)||0)),max=Math.max(min,Math.floor(Number(entry.max)||min));
         const qty=min+Math.floor(Math.random()*(max-min+1));
-        if(qty){mapEditorGrantItem(entry.itemId,qty);rewards.push((MAP_EDITOR_ITEM_CATALOG.find(x=>x.id===entry.itemId)?.label||entry.itemId)+(qty>1?" ×"+qty:""));}
+        if(qty){mapEditorGrantItem(entry.itemId,qty);rewards.push((getMapEditorItemCatalog().find(x=>x.id===entry.itemId)?.label||entry.itemId)+(qty>1?" ×"+qty:""));}
     }
     showWorldDialogue(rewards.length?"Butin : "+rewards.join(", "):"Le coffre est vide.",2200);
     return true;
@@ -649,11 +647,11 @@ function mapEditorOpenTileForm(existing=null){
 
 function mapEditorOpenChestForm(existing=null){
     const o=existing||{id:mapEditorUid("chest"),type:"container",name:"Coffre",x:0,y:0,collision:true,opened:false,closedImageKey:null,openImageKey:null,lootTable:[]};
-    const rows=(o.lootTable||[]).map((e,i)=>'<div class="me-loot-row"><select data-loot-item="'+i+'">'+MAP_EDITOR_ITEM_CATALOG.map(x=>'<option value="'+x.id+'" '+(x.id===e.itemId?"selected":"")+'>'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-loot-chance="'+i+'" value="'+(e.chance??100)+'"><input type="number" min="1" data-loot-min="'+i+'" value="'+(e.min??1)+'"><input type="number" min="1" data-loot-max="'+i+'" value="'+(e.max??1)+'"><button type="button" data-loot-del="'+i+'">×</button></div>').join("");
+    const rows=(o.lootTable||[]).map((e,i)=>'<div class="me-loot-row"><select data-loot-item="'+i+'">'+getMapEditorItemCatalog().map(x=>'<option value="'+x.id+'" '+(x.id===e.itemId?"selected":"")+'>'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-loot-chance="'+i+'" value="'+(e.chance??100)+'"><input type="number" min="1" data-loot-min="'+i+'" value="'+(e.min??1)+'"><input type="number" min="1" data-loot-max="'+i+'" value="'+(e.max??1)+'"><button type="button" data-loot-del="'+i+'">×</button></div>').join("");
     const html='<div class="map-editor-dialog"><h3>Coffre / conteneur</h3><label>ID<input id="me-c-id" value="'+o.id+'"></label><label>Nom<input id="me-c-name" value="'+o.name+'"></label><label>X<input id="me-c-x" type="number" value="'+o.x+'"></label><label>Y<input id="me-c-y" type="number" value="'+o.y+'"></label><label><input id="me-c-collision" type="checkbox" '+(o.collision!==false?"checked":"")+'> Collision</label><label>Image fermée PNG/JPG<input id="me-c-closed" type="file" accept="image/png,image/jpeg"></label><label>Image ouverte PNG/JPG<input id="me-c-open" type="file" accept="image/png,image/jpeg"></label><h4>Table de butin</h4><div id="me-loot">'+rows+'</div><button type="button" id="me-loot-add" class="secondary-button">+ Récompense</button><div class="dev-form-actions"><button id="me-c-save" class="primary-button">Enregistrer</button><button id="me-c-cancel" class="secondary-button">Annuler</button></div></div>';
     mapEditorDialog(html);
     const loot=document.getElementById("me-loot");
-    document.getElementById("me-loot-add").onclick=()=>{const div=document.createElement("div");div.className="me-loot-row";div.innerHTML='<select data-loot-item="'+loot.children.length+'">'+MAP_EDITOR_ITEM_CATALOG.map(x=>'<option value="'+x.id+'">'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-loot-chance="'+loot.children.length+'" value="100"><input type="number" min="1" data-loot-min="'+loot.children.length+'" value="1"><input type="number" min="1" data-loot-max="'+loot.children.length+'" value="1"><button type="button">×</button>';div.querySelector("button").onclick=()=>div.remove();loot.appendChild(div);};
+    document.getElementById("me-loot-add").onclick=()=>{const div=document.createElement("div");div.className="me-loot-row";div.innerHTML='<select data-loot-item="'+loot.children.length+'">'+getMapEditorItemCatalog().map(x=>'<option value="'+x.id+'">'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-loot-chance="'+loot.children.length+'" value="100"><input type="number" min="1" data-loot-min="'+loot.children.length+'" value="1"><input type="number" min="1" data-loot-max="'+loot.children.length+'" value="1"><button type="button">×</button>';div.querySelector("button").onclick=()=>div.remove();loot.appendChild(div);};
     loot.querySelectorAll("button[data-loot-del]").forEach(b=>b.onclick=()=>b.parentElement.remove());
     document.getElementById("me-c-cancel").onclick=mapEditorCloseDialog;
     document.getElementById("me-c-save").onclick=async()=>{
