@@ -364,7 +364,8 @@ function getMapEditorOverworldSaveData(){
 function applyMapEditorOverworldSaveData(data){
     if(data?.mapId)loadActiveMapIntoWorld(data.mapId);
     const m=mapEditorCurrent();if(!m)return;
-    const opened=new Set(Array.isArray(data?.openedObjectIds)?data.openedObjectIds:[]);
+    const validIds=new Set((m.objects||[]).map(o=>o.id));
+    const opened=new Set((Array.isArray(data?.openedObjectIds)?data.openedObjectIds:[]).filter(id=>validIds.has(id)));
     mapEditorOpenedObjectIds=opened;
 }
 
