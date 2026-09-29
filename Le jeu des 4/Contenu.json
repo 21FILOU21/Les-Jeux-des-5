@@ -44,11 +44,9 @@
             "Vitesse": 0,
             "Image": "assets/personnages/Shaun.png",
             "Attaques": [
-                "0.42sec buzzer",
-                "La baguette d'or",
-                "La baguette dunk",
+                "Tir du croissant",
                 "Explosion de la baguette",
-                "Tir du croissant"
+                "0.42sec buzzer"
             ],
             "Evolution": {
                 "Cible": "Shaunsank",
@@ -138,11 +136,8 @@
             "Vitesse": 0,
             "Image": "assets/personnages/Félix.png",
             "Attaques": [
-                "Ailes d'acier",
-                "Tir du plus haut",
                 "Plaquage par le dos d'acier",
-                "Chute du plus dur",
-                "ChatGPT a mon back"
+                "Chute du plus dur"
             ],
             "Evolution": {
                 "Cible": "Felixtricité",
@@ -170,8 +165,7 @@
                 "Broyage du bicep",
                 "Charge sans limite",
                 "Tuerie des petits",
-                "Coup de paf",
-                "Back in my days"
+                "Coup de paf"
             ],
             "Evolution": {
                 "Cible": "Willoalthères",
@@ -246,13 +240,7 @@
             "MaxEnergie": 80,
             "Vitesse": 100,
             "Image": "assets/personnages/Léandre.png",
-            "Attaques": [
-                "Singe volant",
-                "Ragebaiting",
-                "Vitesse du macaque",
-                "Explosion de la banane",
-                "EZZZZZZZZZZ"
-            ],
+            "Attaques": [],
             "Evolution": {
                 "Cible": "DarkoleL",
                 "NiveauRequis": 5
