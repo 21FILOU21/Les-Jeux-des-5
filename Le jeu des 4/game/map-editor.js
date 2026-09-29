@@ -24,6 +24,7 @@ let mapEditorActiveLayerId = "terrain";
 let mapEditorDragging = false;
 let mapEditorPan = null;
 let mapEditorPointerMode = null;
+let mapEditorPointerTool = null;
 let mapEditorTestMode = false;
 let mapEditorTestSnapshot = null;
 let mapEditorOpenedObjectIds = new Set();
@@ -83,8 +84,9 @@ function normalizeMapEditorMap(map) {
     m.name=String(m.name||m.id);
     m.cols=Math.max(1,Math.min(MAP_EDITOR_MAX_COLS,Math.floor(Number(m.cols)||30)));
     m.rows=Math.max(1,Math.min(MAP_EDITOR_MAX_ROWS,Math.floor(Number(m.rows)||20)));
-    m.tileSize=Math.max(8,Math.min(128,Math.floor(Number(m.tileSize)||16)));
+    m.tileSize=16;
     m.tileset=Array.isArray(m.tileset)?m.tileset.map(String):["grass"];
+    m.tileDefinitions=Array.isArray(m.tileDefinitions)?m.tileDefinitions:[];
     m.layers=Array.isArray(m.layers)?m.layers:[];
     if(!m.layers.length)m.layers=[{id:"terrain",name:"Terrain",visible:true,cells:[]}];
     m.layers=m.layers.map((layer,i)=>({
@@ -400,19 +402,43 @@ function mapEditorInteract(){
     return false;
 }
 
-function mapEditorValidate(m){
+function mapEditorValidate(m,tileDefinitions){
     const errors=[];
     if(!m||typeof m!=="object")return ["Map invalide."];
     if(!Number.isInteger(m.cols)||!Number.isInteger(m.rows)||m.cols<1||m.rows<1||m.cols>MAP_EDITOR_MAX_COLS||m.rows>MAP_EDITOR_MAX_ROWS)errors.push("Dimensions invalides.");
+    if(m.tileSize!==undefined&&Number(m.tileSize)!==16)errors.push("Taille de tuile incompatible : le runtime utilise 16.");
+    if(Object.prototype.hasOwnProperty.call(m,"tileDefinitions")&&!Array.isArray(m.tileDefinitions))errors.push("Catalogue de tuiles invalide.");
     if(!Array.isArray(m.layers)||m.layers.length===0)errors.push("Aucun calque valide.");
-    const ids=new Set(mapEditorAllTiles().map(t=>t.id));
+
+    const catalog=Array.isArray(tileDefinitions)
+        ?tileDefinitions
+        :(Array.isArray(m.tileDefinitions)?m.tileDefinitions:[]);
+    const ids=new Set(MAP_EDITOR_DEFAULT_TILES.map(t=>t.id));
+    const customIds=new Set();
+
+    for(const tile of catalog){
+        if(!tile||typeof tile!=="object"||!tile.id||typeof tile.id!=="string"||!/^[a-z0-9_-]+$/.test(tile.id)){
+            errors.push("Définition de tuile invalide.");
+            continue;
+        }
+        if(customIds.has(tile.id))errors.push("ID de tuile personnalisé dupliqué : "+tile.id);
+        customIds.add(tile.id);
+        ids.add(tile.id);
+    }
+
+    if(!Array.isArray(m.tileset))errors.push("Tileset invalide.");
+    for(const tileId of m.tileset||[])if(!ids.has(String(tileId)))errors.push("Référence de tuile inconnue dans le tileset : "+tileId);
+
     for(const layer of m.layers||[]){
         if(!Array.isArray(layer.cells)||layer.cells.length!==m.cols*m.rows)errors.push("Nombre de cellules invalide pour le calque "+(layer.name||layer.id||"?")+".");
         for(const cell of layer.cells||[])if(cell!==null&&cell!==""&&!ids.has(String(cell)))errors.push("Référence de tuile inconnue : "+cell);
     }
     if(!m.spawn||!Number.isInteger(m.spawn.x)||!Number.isInteger(m.spawn.y)||m.spawn.x<0||m.spawn.x>=m.cols||m.spawn.y<0||m.spawn.y>=m.rows)errors.push("Spawn hors carte.");
     for(const o of m.objects||[])if(!o.id||!Number.isInteger(o.x)||!Number.isInteger(o.y)||o.x<0||o.x>=m.cols||o.y<0||o.y>=m.rows)errors.push("Objet hors carte ou ID invalide.");
-    for(const e of m.encounters||[])for(const x of e.monsters||[])if(!mapEditorResolveMonster(x.monsterId))errors.push("Monstre introuvable : "+x.monsterId);
+    for(const e of m.encounters||[]){
+        for(const tileId of e.tiles||[])if(!ids.has(String(tileId)))errors.push("Référence de tuile inconnue dans une rencontre : "+tileId);
+        for(const x of e.monsters||[])if(!mapEditorResolveMonster(x.monsterId))errors.push("Monstre introuvable : "+x.monsterId);
+    }
     return [...new Set(errors)];
 }
 
@@ -430,7 +456,8 @@ async function mapEditorExport(){
 function mapEditorImport(file){
     return file.text().then(async text=>{
         const raw=JSON.parse(text);
-        const rawErrors=mapEditorValidate(raw);
+        const importedTileDefinitions=Object.prototype.hasOwnProperty.call(raw,"tileDefinitions")?raw.tileDefinitions:[];
+        const rawErrors=mapEditorValidate(raw,importedTileDefinitions);
         if(rawErrors.length)throw new Error(rawErrors.join("\n"));
 
         const assets=raw.assets||{};
@@ -443,7 +470,7 @@ function mapEditorImport(file){
         }
 
         const data=normalizeMapEditorMap(raw);
-        const errors=mapEditorValidate(data);
+        const errors=mapEditorValidate(data,data.tileDefinitions);
         if(errors.length)throw new Error(errors.join("\n"));
         if(mapEditorMaps.some(m=>m.id===data.id))data.id=mapEditorNormalizeId(data.id+"-import","map-import");
         mapEditorMaps.push(data);mapEditorActiveId=data.id;mapEditorPersist();mapEditorApplyRuntime();mapEditorRender();mapEditorLoadRuntimeImages();
@@ -516,14 +543,15 @@ function mapEditorCenterViewport(){
     canvas.dataset.panY=String((m.rows*m.tileSize)/2);
 }
 
-function mapEditorPaintAt(event){
+function mapEditorPaintAt(event, pointerTool=null){
     const m=mapEditorCurrent();const layer=mapEditorTopLayer();if(!m||!layer)return;
     const cell=mapEditorCellFromEvent(event);if(!mapEditorCellIsInside(cell))return;
     const index=cell.row*m.cols+cell.col;
-    const next=mapEditorTool==="erase"?null:mapEditorSelectedTile;
-    if(mapEditorTool==="spawn"){mapEditorPushUndo();m.spawn={x:cell.col,y:cell.row};mapEditorTool="paint";mapEditorSaveCurrent();mapEditorRender();return;}
-    if(mapEditorTool==="eyedropper"){mapEditorSelectedTile=layer.cells[index];mapEditorTool="paint";mapEditorRender();return;}
-    if(mapEditorTool==="fill"){
+    const activeTool=pointerTool||mapEditorTool;
+    const next=activeTool==="erase"?null:mapEditorSelectedTile;
+    if(activeTool==="spawn"){mapEditorPushUndo();m.spawn={x:cell.col,y:cell.row};mapEditorTool="paint";mapEditorSaveCurrent();mapEditorRender();return;}
+    if(activeTool==="eyedropper"){mapEditorSelectedTile=layer.cells[index];mapEditorTool="paint";mapEditorRender();return;}
+    if(activeTool==="fill"){
         mapEditorPushUndo();const target=layer.cells[index];const replacement=mapEditorSelectedTile;if(target!==replacement){for(let i=0;i<layer.cells.length;i++)if(layer.cells[i]===target)layer.cells[i]=replacement;}mapEditorTool="paint";mapEditorSaveCurrent();mapEditorRender();return;
     }
     if(next===null){
@@ -569,31 +597,6 @@ function mapEditorOpenEncounterForm(){
         target.monsters=[...box.children].map(row=>({monsterId:row.querySelector("[data-enc-monster]")?.value,weight:Number(row.querySelector("[data-enc-weight]")?.value)||0,minLevel:Number(row.querySelector("[data-enc-min]")?.value)||target.minLevel,maxLevel:Number(row.querySelector("[data-enc-max]")?.value)||target.maxLevel})).filter(x=>x.monsterId&&x.weight>0);
         mapEditorSaveCurrent();mapEditorCloseDialog();
     };
-}
-
-function mapEditorRender(){
-    const layerSelect=document.getElementById("me-layer-select"),cm=mapEditorCurrent();if(layerSelect&&cm){layerSelect.innerHTML=(cm.layers||[]).map(l=>'<option value="'+l.id+'" '+(l.id===mapEditorActiveLayerId?"selected":"")+'>'+l.name+'</option>').join("");layerSelect.onchange=()=>{mapEditorActiveLayerId=layerSelect.value;mapEditorRender();};}
-    const root=document.getElementById("map-editor-root");if(!root)return;
-    const m=mapEditorCurrent();if(!m)return;
-    const canvas=document.getElementById("map-editor-canvas");const ctx=canvas.getContext("2d");
-    const zoom=Number(canvas.dataset.zoom)||2,panX=Number(canvas.dataset.panX)||0,panY=Number(canvas.dataset.panY)||0;
-    ctx.clearRect(0,0,canvas.width,canvas.height);ctx.save();ctx.translate(canvas.width/2-panX*zoom,canvas.height/2-panY*zoom);ctx.scale(zoom,zoom);
-    const tileMap=new Map(mapEditorAllTiles().map(t=>[t.id,t]));
-    const layer=mapEditorTopLayer();
-    for(let y=0;y<m.rows;y++)for(let x=0;x<m.cols;x++){
-        const id=layer.cells[y*m.cols+x];const tile=tileMap.get(id)||MAP_EDITOR_DEFAULT_TILES[0];
-        ctx.fillStyle=tile.fallback||"#777";ctx.fillRect(x*m.tileSize,y*m.tileSize,m.tileSize,m.tileSize);
-        const img=tile.imageKey?mapEditorRuntimeImages.get(tile.imageKey):null;
-        if(img)ctx.drawImage(img,x*m.tileSize,y*m.tileSize,m.tileSize,m.tileSize);
-        if(mapEditorSelectedTile===id) {ctx.strokeStyle="#fff";ctx.lineWidth=1/zoom;ctx.strokeRect(x*m.tileSize+.5,y*m.tileSize+.5,m.tileSize-1,m.tileSize-1);}
-    }
-    ctx.strokeStyle="rgba(255,255,255,.18)";ctx.lineWidth=1/zoom;
-    for(let x=0;x<=m.cols;x++){ctx.beginPath();ctx.moveTo(x*m.tileSize,0);ctx.lineTo(x*m.tileSize,m.rows*m.tileSize);ctx.stroke();}
-    for(let y=0;y<=m.rows;y++){ctx.beginPath();ctx.moveTo(0,y*m.tileSize);ctx.lineTo(m.cols*m.tileSize,y*m.tileSize);ctx.stroke();}
-    ctx.fillStyle="#ffd54a";ctx.fillRect(m.spawn.x*m.tileSize+m.tileSize*.25,m.spawn.y*m.tileSize+m.tileSize*.25,m.tileSize*.5,m.tileSize*.5);
-    for(const o of m.objects){ctx.fillStyle=mapEditorOpenedObjectIds.has(o.id)?"#6b5530":"#b9823d";ctx.fillRect(o.x*m.tileSize+2,o.y*m.tileSize+2,m.tileSize-4,m.tileSize-4);}
-    ctx.restore();
-    root.querySelector("#map-editor-current-name").textContent=m.name+" · "+m.cols+"×"+m.rows;
 }
 
 function mapEditorRenderList(){
@@ -672,6 +675,11 @@ function mapEditorDialog(inner){
 function mapEditorCloseDialog(){const d=document.getElementById("map-editor-dialog");if(d)d.remove();}
 
 function mapEditorRender(){
+    const layerSelect=document.getElementById("me-layer-select"),cm=mapEditorCurrent();
+    if(layerSelect&&cm){
+        layerSelect.innerHTML=(cm.layers||[]).map(l=>'<option value="'+l.id+'" '+(l.id===mapEditorActiveLayerId?"selected":"")+'>'+l.name+'</option>').join("");
+        layerSelect.onchange=()=>{mapEditorActiveLayerId=layerSelect.value;mapEditorRender();};
+    }
     const root=document.getElementById("map-editor-root");if(!root)return;
     mapEditorRenderList();mapEditorRenderTiles();
     const m=mapEditorCurrent(),canvas=document.getElementById("map-editor-canvas");if(!m||!canvas)return;
@@ -680,7 +688,7 @@ function mapEditorRender(){
     const tileMap=new Map(mapEditorAllTiles().map(t=>[t.id,t])),layer=mapEditorTopLayer();
     for(let y=0;y<m.rows;y++)for(let x=0;x<m.cols;x++){const id=layer.cells[y*m.cols+x],t=tileMap.get(id)||MAP_EDITOR_DEFAULT_TILES[0];ctx.fillStyle=t.fallback||"#777";ctx.fillRect(x*m.tileSize,y*m.tileSize,m.tileSize,m.tileSize);const img=t.imageKey?mapEditorRuntimeImages.get(t.imageKey):null;if(img)ctx.drawImage(img,x*m.tileSize,y*m.tileSize,m.tileSize,m.tileSize);if(mapEditorSelectedTile===id){ctx.strokeStyle="#fff";ctx.lineWidth=1/zoom;ctx.strokeRect(x*m.tileSize+.5,y*m.tileSize+.5,m.tileSize-1,m.tileSize-1);}}
     ctx.strokeStyle="rgba(255,255,255,.18)";ctx.lineWidth=1/zoom;for(let x=0;x<=m.cols;x++){ctx.beginPath();ctx.moveTo(x*m.tileSize,0);ctx.lineTo(x*m.tileSize,m.rows*m.tileSize);ctx.stroke();}for(let y=0;y<=m.rows;y++){ctx.beginPath();ctx.moveTo(0,y*m.tileSize);ctx.lineTo(m.cols*m.tileSize,y*m.tileSize);ctx.stroke();}
-    ctx.fillStyle="#ffd54a";ctx.fillRect(m.spawn.x*m.tileSize+m.tileSize*.25,m.spawn.y*m.tileSize+m.tileSize*.25,m.tileSize*.5,m.tileSize*.5);for(const o of m.objects){ctx.fillStyle=o.opened?"#6b5530":"#b9823d";ctx.fillRect(o.x*m.tileSize+2,o.y*m.tileSize+2,m.tileSize-4,m.tileSize-4);}
+    ctx.fillStyle="#ffd54a";ctx.fillRect(m.spawn.x*m.tileSize+m.tileSize*.25,m.spawn.y*m.tileSize+m.tileSize*.25,m.tileSize*.5,m.tileSize*.5);for(const o of m.objects){ctx.fillStyle=mapEditorOpenedObjectIds.has(o.id)?"#6b5530":"#b9823d";ctx.fillRect(o.x*m.tileSize+2,o.y*m.tileSize+2,m.tileSize-4,m.tileSize-4);}
     ctx.restore();root.querySelector("#map-editor-current-name").textContent=m.name+" · "+m.cols+"×"+m.rows;
 }
 
@@ -716,21 +724,23 @@ function mapEditorBuildUi(){
         mapEditorDragging=false;
         mapEditorPan=null;
         mapEditorPointerMode=null;
+        mapEditorPointerTool=null;
 
         if(e.button===1){
             mapEditorPointerMode="pan";
         }else if(e.button===2){
             mapEditorPointerMode="erase";
+            mapEditorPointerTool="erase";
             if(inside)mapEditorPushUndo();
-            mapEditorTool="erase";
             mapEditorDragging=inside;
-            if(inside)mapEditorPaintAt(e);
+            if(inside)mapEditorPaintAt(e,mapEditorPointerTool);
         }else if(e.button===0){
             if(inside){
                 mapEditorPointerMode="paint";
+                mapEditorPointerTool=mapEditorTool;
                 mapEditorPushUndo();
                 mapEditorDragging=true;
-                mapEditorPaintAt(e);
+                mapEditorPaintAt(e,mapEditorPointerTool);
             }else{
                 mapEditorPointerMode="pan";
             }
@@ -762,7 +772,7 @@ function mapEditorBuildUi(){
             return;
         }
         if((mapEditorPointerMode==="paint"||mapEditorPointerMode==="erase")&&mapEditorDragging){
-            mapEditorPaintAt(e);
+            mapEditorPaintAt(e,mapEditorPointerTool);
         }
     };
 
@@ -773,6 +783,7 @@ function mapEditorBuildUi(){
         mapEditorDragging=false;
         mapEditorPan=null;
         mapEditorPointerMode=null;
+        mapEditorPointerTool=null;
     };
     canvas.onpointerup=endMapEditorPointer;
     canvas.onpointercancel=endMapEditorPointer;
@@ -780,6 +791,7 @@ function mapEditorBuildUi(){
         mapEditorDragging=false;
         mapEditorPan=null;
         mapEditorPointerMode=null;
+        mapEditorPointerTool=null;
     };
 
     canvas.onwheel=e=>{
