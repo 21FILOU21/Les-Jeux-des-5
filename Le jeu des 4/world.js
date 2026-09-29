@@ -283,7 +283,7 @@ function findNearestWalkablePosition(x, y) {
                 const c = col + dc;
                 const r = row + dr;
                 if (c < 1 || c >= MAP_COLS - 1 || r < 1 || r >= MAP_ROWS - 1) continue;
-                if (!resolveWorldTile(c, r).isBlocking) {
+                if (isWorldWalkablePixel(c * TILE_SIZE, r * TILE_SIZE)) {
                     return { x: c * TILE_SIZE, y: r * TILE_SIZE };
                 }
             }
