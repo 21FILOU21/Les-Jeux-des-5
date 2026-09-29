@@ -226,6 +226,10 @@ function mapEditorApplyRuntime(requestedId){
     while(worldMap.length<m.rows)worldMap.push(Array(m.cols).fill(m.tileset[0]||"grass"));
     if(typeof buildWorldMapCanvas==="function")worldMapCanvas=buildWorldMapCanvas();
     if(worldCanvas){worldCanvas.width=VIEWPORT_WIDTH;worldCanvas.height=VIEWPORT_HEIGHT;}
+    if(typeof findNearestWalkablePosition==="function"&&!isWorldWalkablePixel(WORLD_START_X,WORLD_START_Y)){
+        const safe=findNearestWalkablePosition(WORLD_START_X,WORLD_START_Y);
+        WORLD_START_X=safe.x;WORLD_START_Y=safe.y;
+    }
     if(typeof resetOverworldState==="function")resetOverworldState();
 }
 
