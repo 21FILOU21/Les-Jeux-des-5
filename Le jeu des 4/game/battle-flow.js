@@ -85,6 +85,7 @@ function bindEvents() {
     $("#ignore-btn").addEventListener("click", playerFlee);
 
     $("#recharge-btn").addEventListener("click", playerRecharge);
+    $("#inventory-btn").addEventListener("click", () => openInventoryModal("battle"));
 
     $("#close-attack-modal").addEventListener("click", closeAttackModal);
 
@@ -227,7 +228,7 @@ function bindEvents() {
                     }
                 }
             } else {
-                for (let slot = 1; slot <= 4; slot++) {
+                for (let slot = 1; slot <= 5; slot++) {
                     const keys = gameSettings && gameSettings.keybinds && gameSettings.keybinds["action" + slot];
 
                     if (Array.isArray(keys) && keys.includes(keyName)) {
@@ -237,6 +238,7 @@ function bindEvents() {
                         else if (slot === 2) playerHeal();
                         else if (slot === 3) playerFlee();
                         else if (slot === 4) playerRecharge();
+                        else if (slot === 5) openInventoryModal("battle");
 
                         return;
                     }
