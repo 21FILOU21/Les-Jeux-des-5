@@ -308,19 +308,37 @@ function mapEditorResolveMonster(id){
 
 function mapEditorPickEncounter(col,row){
     const m=mapEditorCurrent();if(!m)return null;
-    const tile=worldMap[row]?.[col];
-    const tables=m.encounters.filter(e=>Array.isArray(e.tiles)&&e.tiles.includes(String(tile)));
+    const tileId=worldMap[row]?.[col];
+    const tileDefinition=mapEditorFindTile(tileId);
+    if(tileDefinition && tileDefinition.encounters!==true)return null;
+
+    const tables=m.encounters.filter(e=>Array.isArray(e.tiles)&&e.tiles.includes(String(tileId)));
     for(const table of tables){
         const chance=Math.max(0,Math.min(100,Number(table.chance)||0));
         if(Math.random()*100>=chance)continue;
+
         const entry=mapEditorWeighted(table.monsters||[]);
         if(!entry)continue;
+
         const monster=mapEditorResolveMonster(entry.monsterId);
-        if(!monster)continue;
+        if(!monster){
+            console.error("Rencontre de map : monstre introuvable :",entry.monsterId);
+            continue;
+        }
+
         const min=Math.max(1,Number(table.minLevel)||1,Number(entry.minLevel)||1);
         const max=Math.max(min,Number(table.maxLevel)||min,Number(entry.maxLevel)||min);
-        return {table,monster,level:Math.floor(min+Math.random()*(max-min+1))};
+
+        return {
+            encounterId:table.id||null,
+            mapId:m.id,
+            monsterId:monster.Nom||monster.id||entry.monsterId,
+            monsterName:monster.Nom||monster.name||entry.monsterId,
+            level:Math.floor(min+Math.random()*(max-min+1)),
+            count:Math.max(1,Math.floor(Number(entry.count||table.count)||1))
+        };
     }
+
     return null;
 }
 
@@ -329,10 +347,9 @@ function tryMapEditorEncounter(col,row){
     if(!result)return false;
     stopOverworldMode();
     overworldState.graceDistance=WORLD_GRACE_TILES*TILE_SIZE;
-    window.__mapEditorPendingEncounter=result;
     showWorldDialogue("Un monstre sauvage apparaît !",1400);
-    if(typeof runEncounterTransition==="function")runEncounterTransition();
-    else setTimeout(()=>{if(typeof triggerWildBattle==="function")triggerWildBattle();},450);
+    if(typeof runEncounterTransition==="function")runEncounterTransition(result);
+    else setTimeout(()=>{if(typeof triggerWildBattle==="function")triggerWildBattle(result);},450);
     return true;
 }
 
@@ -355,10 +372,10 @@ function mapEditorMonsterLevelOverride(monster,level){
 
 function mapEditorGrantItem(id,qty){
     qty=Math.max(0,Math.floor(Number(qty)||0));if(!qty)return;
-    if(id==="bandage")globalState.itemBandage+=qty;
-    else if(id==="force")globalState.itemPotionForce+=qty;
-    else if(id==="armor")globalState.itemArmor+=qty;
-    else if(id==="totem")globalState.itemTotem+=qty;
+    if(id==="bandage")state.itemBandage+=qty;
+    else if(id==="force")state.itemPotionForce+=qty;
+    else if(id==="armor")state.itemArmor+=qty;
+    else if(id==="totem")state.itemTotem+=qty;
 }
 
 function mapEditorOpenObjectAt(col,row){
@@ -389,10 +406,15 @@ function mapEditorInteract(){
 
 function mapEditorValidate(m){
     const errors=[];
-    if(!m||!Number.isInteger(m.cols)||!Number.isInteger(m.rows)||m.cols<1||m.rows<1)errors.push("Dimensions invalides.");
+    if(!m||typeof m!=="object")return ["Map invalide."];
+    if(!Number.isInteger(m.cols)||!Number.isInteger(m.rows)||m.cols<1||m.rows<1||m.cols>MAP_EDITOR_MAX_COLS||m.rows>MAP_EDITOR_MAX_ROWS)errors.push("Dimensions invalides.");
+    if(!Array.isArray(m.layers)||m.layers.length===0)errors.push("Aucun calque valide.");
     const ids=new Set(mapEditorAllTiles().map(t=>t.id));
-    for(const layer of m.layers||[])for(const cell of layer.cells||[])if(!ids.has(cell))errors.push("Référence de tuile inconnue : "+cell);
-    if(!m.spawn||m.spawn.x<0||m.spawn.x>=m.cols||m.spawn.y<0||m.spawn.y>=m.rows)errors.push("Spawn hors carte.");
+    for(const layer of m.layers||[]){
+        if(!Array.isArray(layer.cells)||layer.cells.length!==m.cols*m.rows)errors.push("Nombre de cellules invalide pour le calque "+(layer.name||layer.id||"?")+".");
+        for(const cell of layer.cells||[])if(cell!==null&&cell!==""&&!ids.has(String(cell)))errors.push("Référence de tuile inconnue : "+cell);
+    }
+    if(!m.spawn||!Number.isInteger(m.spawn.x)||!Number.isInteger(m.spawn.y)||m.spawn.x<0||m.spawn.x>=m.cols||m.spawn.y<0||m.spawn.y>=m.rows)errors.push("Spawn hors carte.");
     for(const o of m.objects||[])if(!o.id||!Number.isInteger(o.x)||!Number.isInteger(o.y)||o.x<0||o.x>=m.cols||o.y<0||o.y>=m.rows)errors.push("Objet hors carte ou ID invalide.");
     for(const e of m.encounters||[])for(const x of e.monsters||[])if(!mapEditorResolveMonster(x.monsterId))errors.push("Monstre introuvable : "+x.monsterId);
     return [...new Set(errors)];
@@ -411,9 +433,21 @@ async function mapEditorExport(){
 
 function mapEditorImport(file){
     return file.text().then(async text=>{
-        const raw=JSON.parse(text),assets=raw.assets||{};delete raw.assets;
-        for(const [key,dataUrl] of Object.entries(assets)){await mapEditorPutAsset(key,dataUrl);}
-        const data=normalizeMapEditorMap(raw);const errors=mapEditorValidate(data);
+        const raw=JSON.parse(text);
+        const rawErrors=mapEditorValidate(raw);
+        if(rawErrors.length)throw new Error(rawErrors.join("\n"));
+
+        const assets=raw.assets||{};
+        delete raw.assets;
+
+        for(const [key,dataUrl] of Object.entries(assets)){
+            if(typeof dataUrl!=="string"||!dataUrl.startsWith("data:image/"))throw new Error("Image de map invalide : "+key);
+            if(dataUrl.length>12*1024*1024)throw new Error("Image de map trop volumineuse : "+key);
+            await mapEditorPutAsset(key,dataUrl);
+        }
+
+        const data=normalizeMapEditorMap(raw);
+        const errors=mapEditorValidate(data);
         if(errors.length)throw new Error(errors.join("\n"));
         if(mapEditorMaps.some(m=>m.id===data.id))data.id=mapEditorNormalizeId(data.id+"-import","map-import");
         mapEditorMaps.push(data);mapEditorActiveId=data.id;mapEditorPersist();mapEditorApplyRuntime();mapEditorRender();mapEditorLoadRuntimeImages();
@@ -657,31 +691,10 @@ function mapEditorAddDevButton(){
 document.addEventListener("DOMContentLoaded",()=>{
     mapEditorLoadMaps();mapEditorApplyRuntime();mapEditorBuildUi();mapEditorAddDevButton();mapEditorLoadRuntimeImages();
     document.addEventListener("keydown",e=>{
+        if(typeof isKeybindCaptureActive==="function"&&isKeybindCaptureActive()){e.preventDefault();e.stopPropagation();return;}
         if(e.key==="e"&&!document.getElementById("map-editor-root")?.classList.contains("hidden")&&document.activeElement?.tagName!=="INPUT"&&document.activeElement?.tagName!=="TEXTAREA")mapEditorInteract();
         if(e.key==="Escape"&&(mapEditorTestMode||!document.getElementById("map-editor-root")?.classList.contains("hidden"))){e.preventDefault();mapEditorClose();}
         if(typeof isWorldScreenActive==="function"&&isWorldScreenActive()&&!mapEditorTestMode&&typeof getKeyAction==="function"&&getKeyAction(e.key)==="confirm"){mapEditorInteract();}
     });
 });
 
-/* Le combat existant reste l'unique moteur de combat.
-   Pour une table de map, on prépare seulement la sélection; le moteur
-   existant continue de construire l'adversaire depuis state.contenu.Monstres. */
-const mapEditorOriginalTrigger = window.triggerWildBattle;
-window.triggerWildBattle = function(){
-    const pending=window.__mapEditorPendingEncounter;window.__mapEditorPendingEncounter=null;
-    if(pending){
-        state.config.monsterName=pending.monster.Nom||pending.monster.name||state.config.monsterName;
-        state.config.monsterCount=1;
-        window.__mapEditorSelectedMonster=pending.monster;
-        const before=typeof rollEnemyLevel==="function"?rollEnemyLevel:null;
-        if(before){
-            const desired=pending.level;
-            window.__mapEditorLevelOverride=desired;
-        }
-    }
-    return typeof mapEditorOriginalTrigger==="function"?mapEditorOriginalTrigger():undefined;
-};
-if(typeof window.rollEnemyLevel==="function"){
-    const baseRollEnemyLevel=window.rollEnemyLevel;
-    window.rollEnemyLevel=function(){return Number.isFinite(window.__mapEditorLevelOverride)?Math.max(1,Math.floor(window.__mapEditorLevelOverride)):baseRollEnemyLevel();};
-}
