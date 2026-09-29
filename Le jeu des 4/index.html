@@ -184,6 +184,7 @@
                 <div class="world-hud">
                     <span class="eyebrow">Exploration</span>
                     <p>Utilise les flèches ou WASD pour vous déplacer dans les hautes herbes.</p>
+                    <button id="inventory-world-btn" class="secondary-button" type="button">🎒 Inventaire</button>
                 </div>
 
                 <div class="canvas-wrapper">
@@ -534,6 +535,15 @@
                         </span>
                     </button>
 
+
+                    <button id="inventory-btn" class="action-button">
+                        <span class="action-number">5</span>
+                        <span>
+                            <strong>Inventaire</strong>
+                            <small>Voir et utiliser les objets</small>
+                        </span>
+                    </button>
+
                 </div>
 
             </section>
@@ -544,81 +554,6 @@
             ================================================== -->
 
             <section class="bottom-grid">
-
-
-                <!-- INVENTAIRE -->
-
-                <div class="inventory-card">
-
-                    <div class="section-title">
-
-                        <span>
-                            Inventaire
-                        </span>
-
-                    </div>
-
-
-                    <div class="inventory-grid">
-
-                        <div class="inventory-item">
-
-                            <span class="item-icon">
-                                ⚔
-                            </span>
-
-                            <div>
-                                <small>Force</small>
-                                <strong id="item-force">0</strong>
-                            </div>
-
-                        </div>
-
-
-                        <div class="inventory-item">
-
-                            <span class="item-icon">
-                                ♥
-                            </span>
-
-                            <div>
-                                <small>Bandage</small>
-                                <strong id="item-bandage">0</strong>
-                            </div>
-
-                        </div>
-
-
-                        <div class="inventory-item">
-
-                            <span class="item-icon">
-                                🛡
-                            </span>
-
-                            <div>
-                                <small>Armure</small>
-                                <strong id="item-armor">0</strong>
-                            </div>
-
-                        </div>
-
-
-                        <div class="inventory-item">
-
-                            <span class="item-icon">
-                                ✦
-                            </span>
-
-                            <div>
-                                <small>Totem</small>
-                                <strong id="item-totem">0</strong>
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
 
 
                 <!-- JOURNAL -->
@@ -682,49 +617,29 @@
 
 
         <!-- =====================================================
-             MODAL OBJETS
+             MODAL INVENTAIRE
         ====================================================== -->
 
-        <div id="item-modal" class="modal hidden">
-
-            <div class="modal-content item-modal-content">
-
+        <div id="item-modal" class="modal hidden" aria-modal="true" role="dialog">
+            <div class="modal-content inventory-modal-content">
                 <div class="modal-header">
-
                     <div>
-
-                        <span class="eyebrow">
-                            BOUTIQUE
-                        </span>
-
-                        <h2>Objets</h2>
-
+                        <span class="eyebrow">INVENTAIRE</span>
+                        <h2 id="inventory-context-title">Inventaire de combat</h2>
                     </div>
-
-                    <button id="close-item-modal" class="close-button">
-                        ×
-                    </button>
-
+                    <button id="close-item-modal" class="close-button" type="button" aria-label="Fermer">×</button>
                 </div>
-
-
-                <div class="shop-money">
-
-                    Pièces disponibles :
-
-                    <strong id="shop-coins">
-                        0
-                    </strong>
-
+                <div class="inventory-modal-layout">
+                    <div id="inventory-list" class="inventory-list"></div>
+                    <aside id="inventory-details" class="inventory-details">
+                        <p class="inventory-empty">Aucun item sélectionné.</p>
+                    </aside>
                 </div>
-
-
-                <div id="shop-list" class="shop-list"></div>
-
+                <div class="save-menu-footer">
+                    <button id="inventory-close-footer" class="secondary-button" type="button">Fermer</button>
+                </div>
             </div>
-
         </div>
-
 
         <!-- =====================================================
              ÉCRAN DE FIN
@@ -1156,6 +1071,7 @@
     <script src="game/battle-flow.js"></script>
     <script src="game/evolution.js"></script>
     <script src="game/creator-core.js"></script>
+    <script src="game/creator-item.js"></script>
     <script src="game/map-editor.js"></script>
     <script src="game/creator-images.js"></script>
     <script src="game/creator-personnage.js"></script>
