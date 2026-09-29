@@ -637,7 +637,7 @@ const WORLD_KEY_DIRECTIONS = {
 
 function bindWorldEvents() {
     document.addEventListener("keydown", (event) => {
-        const tag = (event.target && event.target.tagName) || ""; if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return; if (typeof isKeybindCaptureActive === "function" && isKeybindCaptureActive()) { if (event.key.startsWith("Arrow")) { event.preventDefault() } return }
+        const tag = (event.target && event.target.tagName) || ""; if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return; if (typeof isInventoryOpen === "function" && isInventoryOpen()) return; if (typeof isKeybindCaptureActive === "function" && isKeybindCaptureActive()) { if (event.key.startsWith("Arrow")) { event.preventDefault() } return }
         const keyName = String(event.key || "").toLowerCase(); let action = null; if (typeof getKeyAction === "function") { action = getKeyAction(keyName) } else { action = WORLD_KEY_DIRECTIONS[keyName] || null }
         if (action === "fastWalk") { overworldState.fastWalkHeld = !0; return }
         if (action !== "up" && action !== "down" && action !== "left" && action !== "right") return; overworldState.keys.add(keyName); if (event.key.startsWith("Arrow")) { event.preventDefault() }
