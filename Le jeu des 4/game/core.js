@@ -81,6 +81,19 @@ function normalizeContenu(contenu) {
 
     if (!Array.isArray(contenu.Statuts)) contenu.Statuts = [];
 
+    if (!Array.isArray(contenu.EffetsVisuels)) contenu.EffetsVisuels = [];
+
+    if (!Array.isArray(contenu.Items)) contenu.Items = [];
+
+    contenu.Effets.forEach((effect, index) => {
+        if (!effect || typeof effect !== "object") return;
+        if (!String(effect.Id || "").trim()) {
+            effect.Id = String(effect.Nom || "effet-" + (index + 1))
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase();
+        }
+    });
+
     contenu.Energies.forEach(energy => {
         if (!("Faiblesse" in energy)) energy.Faiblesse = null;
 
