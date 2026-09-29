@@ -255,7 +255,10 @@ function resolveWorldTile(col, row) {
 }
 
 function isWorldTileTree(col, row) {
-    return resolveWorldTile(col, row).isBlocking;
+    const resolved = resolveWorldTile(col, row);
+    if (resolved.isBlocking) return true;
+    if (typeof isMapEditorRuntimeBlocked === "function" && isMapEditorRuntimeBlocked(resolved.tileId, col, row)) return true;
+    return false;
 }
 
 /* Le sprite fait TILE_SIZE × TILE_SIZE : on vérifie ses 4 coins. */
