@@ -8,6 +8,7 @@
 
 const MAP_EDITOR_STORAGE_KEY = "lesJeuxDes5.maps.v1";
 const MAP_EDITOR_ACTIVE_KEY = "lesJeuxDes5.activeMapId";
+const MAP_EDITOR_INTERACTIVE_STORAGE_KEY = "lesJeuxDes5.interactiveTiles.v1";
 const MAP_EDITOR_ASSET_STORE = "mapAssets";
 const MAP_EDITOR_MAX_COLS = 120;
 const MAP_EDITOR_MAX_ROWS = 120;
@@ -21,6 +22,10 @@ let mapEditorRedo = [];
 let mapEditorTool = "paint";
 let mapEditorSelectedTile = null;
 let mapEditorActiveLayerId = "terrain";
+let mapEditorMode = "placement";
+let mapEditorSelectedInstanceId = null;
+let mapEditorHoveredInstanceId = null;
+let mapEditorInteractiveDefinitions = [];
 let mapEditorDragging = false;
 let mapEditorPan = null;
 let mapEditorPointerMode = null;
@@ -41,6 +46,186 @@ function getMapEditorItemCatalog() {
     }
 
     return [];
+}
+
+function mapEditorNormalizeInteractiveDefinition(definition) {
+    const d=mapEditorClone(definition||{});
+    d.id=mapEditorNormalizeId(d.id,mapEditorUid("interactive"));
+    d.name=String(d.name||d.id);
+    d.kind=String(d.kind||"container");
+    d.collision=d.collision!==false;
+    d.terrainType="interactive";
+    d.encounters=false;
+    d.description=String(d.description||"Objet interactif.");
+    d.fallback=String(d.fallback||"#b9823d");
+    d.imageKey=d.imageKey||d.interactive?.closedImageKey||null;
+    d.interactive=Object.assign({
+        type:d.kind,
+        collision:d.collision,
+        closedImageKey:null,
+        openImageKey:null,
+        lootTable:[],
+        initialOpen:false
+    },d.interactive||{});
+    d.interactive.lootTable=Array.isArray(d.interactive.lootTable)?d.interactive.lootTable.map(e=>({
+        itemId:String(e?.itemId||""),
+        chance:Math.max(0,Math.min(100,Number(e?.chance)||0)),
+        min:Math.max(1,Math.floor(Number(e?.min)||1)),
+        max:Math.max(1,Math.floor(Number(e?.max)||1))
+    })).filter(e=>e.itemId):[];
+    d.imageKey=d.interactive.closedImageKey||d.imageKey||null;
+    return d;
+}
+
+function mapEditorLoadInteractiveDefinitions(){
+    try {
+        const raw=localStorage.getItem(MAP_EDITOR_INTERACTIVE_STORAGE_KEY);
+        mapEditorInteractiveDefinitions=raw?JSON.parse(raw).map(mapEditorNormalizeInteractiveDefinition):[];
+    } catch(e) {
+        console.error("Tuiles interactives invalides :",e);
+        mapEditorInteractiveDefinitions=[];
+    }
+}
+
+function mapEditorPersistInteractiveDefinitions(){
+    localStorage.setItem(MAP_EDITOR_INTERACTIVE_STORAGE_KEY,JSON.stringify(mapEditorInteractiveDefinitions));
+}
+
+function mapEditorRegisterInteractiveDefinition(definition){
+    const normalized=mapEditorNormalizeInteractiveDefinition(definition);
+    const index=mapEditorInteractiveDefinitions.findIndex(d=>d.id===normalized.id);
+    if(index>=0)mapEditorInteractiveDefinitions[index]=normalized;
+    else mapEditorInteractiveDefinitions.push(normalized);
+    mapEditorPersistInteractiveDefinitions();
+    return normalized;
+}
+
+function mapEditorFindInteractiveDefinition(id){
+    const tileId=String(id||"");
+    const m=mapEditorCurrent();
+    const local=m?.tileDefinitions?.find(t=>t.id===tileId&&t.interactive);
+    if(local)return mapEditorNormalizeInteractiveDefinition(local);
+    return mapEditorInteractiveDefinitions.find(d=>d.id===tileId)||null;
+}
+
+function mapEditorInteractiveDefinitionFromObject(o){
+    if(!o)return null;
+    const definition=mapEditorFindInteractiveDefinition(o.definitionId);
+    if(definition)return definition;
+    if(o.type!=="container")return null;
+    return mapEditorNormalizeInteractiveDefinition({
+        id:mapEditorNormalizeId("legacy-"+(o.id||mapEditorUid("chest")),mapEditorUid("interactive")),
+        name:o.name||"Coffre",
+        kind:"container",
+        collision:o.collision!==false,
+        interactive:{
+            type:"container",
+            collision:o.collision!==false,
+            closedImageKey:o.closedImageKey||null,
+            openImageKey:o.openImageKey||null,
+            lootTable:Array.isArray(o.lootTable)?o.lootTable:[],
+            initialOpen:!!o.opened
+        }
+    });
+}
+
+function mapEditorEnsureInteractiveDefinitionInMap(m,definition){
+    if(!m||!definition)return null;
+    const normalized=mapEditorNormalizeInteractiveDefinition(definition);
+    if(!Array.isArray(m.tileDefinitions))m.tileDefinitions=[];
+    const index=m.tileDefinitions.findIndex(t=>t.id===normalized.id);
+    if(index>=0)m.tileDefinitions[index]=normalized;
+    else m.tileDefinitions.push(normalized);
+    mapEditorRegisterInteractiveDefinition(normalized);
+    return normalized;
+}
+
+function mapEditorNormalizeInteractiveInstance(m,o,index){
+    const source=mapEditorClone(o||{});
+    source.type=source.type||"container";
+    source.instanceId=String(source.instanceId||source.id||mapEditorUid("instance"));
+    source.id=source.instanceId;
+    source.x=Math.max(0,Math.min(m.cols-1,Math.floor(Number(source.x)||0)));
+    source.y=Math.max(0,Math.min(m.rows-1,Math.floor(Number(source.y)||0)));
+    source.overrides=source.overrides&&typeof source.overrides==="object"?source.overrides:{};
+    source.state=source.state&&typeof source.state==="object"?source.state:{};
+    if(source.type==="container"){
+        let definition=mapEditorFindInteractiveDefinition(source.definitionId);
+        if(!definition){
+            definition=mapEditorInteractiveDefinitionFromObject(source);
+            definition.id=mapEditorNormalizeId(source.definitionId||("legacy-"+source.instanceId),mapEditorUid("interactive"));
+            if(!m.tileDefinitions?.some(t=>t.id===definition.id))mapEditorEnsureInteractiveDefinitionInMap(m,definition);
+            source.definitionId=definition.id;
+            source.overrides={};
+        } else {
+            source.definitionId=definition.id;
+        }
+        source.state.opened=mapEditorOpenedObjectIds.has(source.instanceId)||source.state.opened===true||source.opened===true;
+        delete source.opened;
+    }
+    return source;
+}
+
+function mapEditorNormalizeAllInteractiveInstances(m){
+    const seen=new Set();
+    const objects=Array.isArray(m.objects)?m.objects:[];
+    m.objects=objects.map((o,i)=>{
+        const instance=mapEditorNormalizeInteractiveInstance(m,o,i);
+        if(seen.has(instance.instanceId))instance.instanceId=mapEditorUid("instance");
+        instance.id=instance.instanceId;seen.add(instance.instanceId);
+        return instance;
+    });
+    return m;
+}
+
+function mapEditorGetInstanceDefinition(instance){
+    return mapEditorFindInteractiveDefinition(instance?.definitionId);
+}
+
+function mapEditorGetInstanceProps(instance){
+    const definition=mapEditorGetInstanceDefinition(instance);
+    const base=definition?.interactive||{};
+    const overrides=instance?.overrides||{};
+    return Object.assign({},base,overrides,{
+        lootTable:Array.isArray(overrides.lootTable)?overrides.lootTable:(Array.isArray(base.lootTable)?base.lootTable:[]),
+        collision:overrides.collision!==undefined?overrides.collision:base.collision!==false
+    });
+}
+
+function mapEditorIsInteractiveTile(tileId){
+    return !!mapEditorFindInteractiveDefinition(tileId);
+}
+
+function mapEditorGetInstanceAtCell(col,row){
+    const m=mapEditorCurrent();
+    return m?.objects?.find(o=>Number(o.x)===Number(col)&&Number(o.y)===Number(row))||null;
+}
+
+function mapEditorCreateInteractiveInstance(definition,col,row){
+    const m=mapEditorCurrent();if(!m)return null;
+    const d=mapEditorEnsureInteractiveDefinitionInMap(m,definition);
+    const existing=mapEditorGetInstanceAtCell(col,row);
+    if(existing)return existing;
+    const instance={
+        id:mapEditorUid("instance"),
+        instanceId:"",
+        definitionId:d.id,
+        type:d.kind||"container",
+        x:Math.max(0,Math.min(m.cols-1,col)),
+        y:Math.max(0,Math.min(m.rows-1,row)),
+        overrides:{},
+        state:{opened:!!d.interactive.initialOpen}
+    };
+    instance.instanceId=instance.id;
+    m.objects=Array.isArray(m.objects)?m.objects:[];
+    m.objects.push(instance);
+    if(instance.state.opened)mapEditorOpenedObjectIds.add(instance.instanceId);
+    return instance;
+}
+
+function mapEditorGetEffectiveInstanceImage(instance,opened=false){
+    const props=mapEditorGetInstanceProps(instance);
+    return opened?props.openImageKey:props.closedImageKey;
 }
 
 function mapEditorUid(prefix="id") {
@@ -97,6 +282,7 @@ function normalizeMapEditorMap(map) {
     for(const layer of m.layers){while(layer.cells.length<m.cols*m.rows)layer.cells.push(m.tileset[0]||"grass");}
     m.encounters=Array.isArray(m.encounters)?m.encounters:[];
     m.objects=Array.isArray(m.objects)?m.objects:[];
+    mapEditorNormalizeAllInteractiveInstances(m);
     m.spawn=m.spawn&&Number.isInteger(m.spawn.x)&&Number.isInteger(m.spawn.y)?m.spawn:{x:Math.floor(m.cols/2),y:Math.floor(m.rows/2)};
     m.spawn.x=Math.max(0,Math.min(m.cols-1,m.spawn.x));m.spawn.y=Math.max(0,Math.min(m.rows-1,m.spawn.y));
     m.metadata=m.metadata||{};
@@ -104,6 +290,7 @@ function normalizeMapEditorMap(map) {
 }
 
 function mapEditorLoadMaps(){
+    mapEditorLoadInteractiveDefinitions();
     try {
         const raw=localStorage.getItem(MAP_EDITOR_STORAGE_KEY);
         mapEditorMaps=raw?JSON.parse(raw).map(normalizeMapEditorMap):[];
@@ -122,8 +309,10 @@ function mapEditorCurrent(){return mapEditorMaps.find(m=>m.id===mapEditorActiveI
 
 function mapEditorSaveCurrent(){
     const m=mapEditorCurrent(); if(!m)return;
+    mapEditorNormalizeAllInteractiveInstances(m);
     m.metadata.updatedAt=new Date().toISOString();
     mapEditorPersist();
+    mapEditorPersistInteractiveDefinitions();
 }
 
 function mapEditorFindTile(id){
@@ -132,14 +321,18 @@ function mapEditorFindTile(id){
     if(m&&Array.isArray(m.tileDefinitions)){
         const t=m.tileDefinitions.find(x=>x.id===tileId); if(t)return t;
     }
+    const interactive=mapEditorInteractiveDefinitions.find(x=>x.id===tileId);
+    if(interactive)return interactive;
     return MAP_EDITOR_DEFAULT_TILES.find(x=>x.id===tileId)||null;
 }
 
 function mapEditorAllTiles(){
     const m=mapEditorCurrent();
     const custom=Array.isArray(m?.tileDefinitions)?m.tileDefinitions:[];
-    const ids=new Set(custom.map(t=>t.id));
-    return [...custom,...MAP_EDITOR_DEFAULT_TILES.filter(t=>!ids.has(t.id))];
+    const globalInteractive=mapEditorInteractiveDefinitions;
+    const byId=new Map();
+    [...globalInteractive,...custom,...MAP_EDITOR_DEFAULT_TILES].forEach(t=>{if(!byId.has(t.id))byId.set(t.id,t);});
+    return [...byId.values()];
 }
 
 async function mapEditorOpenAssetDb(){
@@ -267,12 +460,13 @@ const mapEditorRuntimeImages=new Map();
 function drawMapEditorRuntimeObjects(ctx,S){
     const m=mapEditorCurrent(); if(!m)return;
     for(const o of m.objects||[]){
-        if(o.type!=="container")continue;
-        const key=mapEditorOpenedObjectIds.has(o.id)?o.openImageKey:o.closedImageKey;
+        const props=mapEditorGetInstanceProps(o);
+        const opened=mapEditorOpenedObjectIds.has(o.instanceId)||o.state?.opened===true;
+        const key=mapEditorGetEffectiveInstanceImage(o,opened);
         const img=key?mapEditorRuntimeImages.get(key):null;
         const x=o.x*S,y=o.y*S;
-        if(img&&img.complete){ctx.drawImage(img,x,y,S,S);}
-        else {ctx.fillStyle=o.opened?"#654b2d":"#b87b37";ctx.fillRect(x+S*.12,y+S*.28,S*.76,S*.55);ctx.fillStyle="#e0b34f";ctx.fillRect(x+S*.42,y+S*.44,S*.16,S*.18);}
+        if(img&&img.complete)ctx.drawImage(img,x,y,S,S);
+        else if(o.type==="container"){ctx.fillStyle=opened?"#654b2d":"#b87b37";ctx.fillRect(x+S*.12,y+S*.28,S*.76,S*.55);ctx.fillStyle="#e0b34f";ctx.fillRect(x+S*.42,y+S*.44,S*.16,S*.18);}
     }
 }
 
@@ -382,16 +576,19 @@ function mapEditorOpenObjectAt(col,row){
     const playerRow=Math.floor((overworldState.playerY+TILE_SIZE/2)/TILE_SIZE);
     if(Math.abs(playerCol-col)+Math.abs(playerRow-row)!==1)return false;
     const obj=m.objects.find(o=>o.x===col&&o.y===row);if(!obj)return false;
+    const props=mapEditorGetInstanceProps(obj);
     if(obj.type!=="container")return true;
-    if(mapEditorOpenedObjectIds.has(obj.id)){showWorldDialogue("Le coffre est déjà ouvert.",1200);return true;}
-    mapEditorOpenedObjectIds.add(obj.id);
+    if(mapEditorOpenedObjectIds.has(obj.instanceId)||obj.state?.opened===true){showWorldDialogue("Le coffre est déjà ouvert.",1200);return true;}
+    mapEditorOpenedObjectIds.add(obj.instanceId);
+    obj.state=obj.state||{};obj.state.opened=true;
     const rewards=[];
-    for(const entry of obj.lootTable||[]){
+    for(const entry of props.lootTable||[]){
         if(Math.random()*100>=Math.max(0,Math.min(100,Number(entry.chance)||0)))continue;
         const min=Math.max(0,Math.floor(Number(entry.min)||0)),max=Math.max(min,Math.floor(Number(entry.max)||min));
         const qty=min+Math.floor(Math.random()*(max-min+1));
         if(qty){mapEditorGrantItem(entry.itemId,qty);rewards.push((getMapEditorItemCatalog().find(x=>x.id===entry.itemId)?.label||entry.itemId)+(qty>1?" ×"+qty:""));}
     }
+    mapEditorSaveCurrent();
     showWorldDialogue(rewards.length?"Butin : "+rewards.join(", "):"Le coffre est vide.",2200);
     return true;
 }
@@ -445,9 +642,15 @@ function mapEditorValidate(m,tileDefinitions){
 async function mapEditorExport(){
     const m=mapEditorCurrent();if(!m)return;
     const data=mapEditorClone(m);data.assets={};
+    data.tileDefinitions=(data.tileDefinitions||[]).map(t=>mapEditorFindInteractiveDefinition(t.id)||t);
+    const usedInteractiveIds=new Set((m.objects||[]).map(o=>o.definitionId).filter(Boolean));
+    for(const id of usedInteractiveIds){
+        const definition=mapEditorFindInteractiveDefinition(id);
+        if(definition&&!data.tileDefinitions.some(t=>t.id===definition.id))data.tileDefinitions.push(mapEditorClone(definition));
+    }
     const keys=new Set();
     for(const t of mapEditorAllTiles())if(t.imageKey)keys.add(t.imageKey);
-    for(const o of m.objects||[]){if(o.closedImageKey)keys.add(o.closedImageKey);if(o.openImageKey)keys.add(o.openImageKey);}
+    for(const o of m.objects||[]){const props=mapEditorGetInstanceProps(o);if(props.closedImageKey)keys.add(props.closedImageKey);if(props.openImageKey)keys.add(props.openImageKey);}
     for(const key of keys){const asset=await mapEditorGetAsset(key);if(asset)data.assets[key]=asset;}
     const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
     const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=(m.id||"map")+".json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);
@@ -470,6 +673,7 @@ function mapEditorImport(file){
         }
 
         const data=normalizeMapEditorMap(raw);
+        for(const definition of data.tileDefinitions||[])if(definition.interactive)mapEditorRegisterInteractiveDefinition(definition);
         const errors=mapEditorValidate(data,data.tileDefinitions);
         if(errors.length)throw new Error(errors.join("\n"));
         if(mapEditorMaps.some(m=>m.id===data.id))data.id=mapEditorNormalizeId(data.id+"-import","map-import");
@@ -549,19 +753,26 @@ function mapEditorPaintAt(event, pointerTool=null){
     const index=cell.row*m.cols+cell.col;
     const activeTool=pointerTool||mapEditorTool;
     const next=activeTool==="erase"?null:mapEditorSelectedTile;
+    if(mapEditorMode==="configuration")return;
     if(activeTool==="spawn"){mapEditorPushUndo();m.spawn={x:cell.col,y:cell.row};mapEditorTool="paint";mapEditorSaveCurrent();mapEditorRender();return;}
     if(activeTool==="eyedropper"){mapEditorSelectedTile=layer.cells[index];mapEditorTool="paint";mapEditorRender();return;}
     if(activeTool==="fill"){
         mapEditorPushUndo();const target=layer.cells[index];const replacement=mapEditorSelectedTile;if(target!==replacement){for(let i=0;i<layer.cells.length;i++)if(layer.cells[i]===target)layer.cells[i]=replacement;}mapEditorTool="paint";mapEditorSaveCurrent();mapEditorRender();return;
     }
     if(next===null){
+        const object=mapEditorGetInstanceAtCell(cell.col,cell.row);
+        if(object){m.objects=m.objects.filter(o=>o.instanceId!==object.instanceId);mapEditorOpenedObjectIds.delete(object.instanceId);mapEditorSaveCurrent();mapEditorRender();return;}
         if(layer.cells[index]===undefined)return;
         layer.cells[index]=layer.id==="terrain"?(m.tileset[0]||"grass"):null;
+    } else if(mapEditorIsInteractiveTile(next)){
+        const definition=mapEditorFindInteractiveDefinition(next);
+        if(definition)mapEditorCreateInteractiveInstance(definition,cell.col,cell.row);
+        mapEditorSaveCurrent();mapEditorRender();mapEditorLoadRuntimeImages();return;
+    } else {
+        if(!m.tileset.includes(next))m.tileset.push(next);layer.cells[index]=next;
     }
-    else {if(!m.tileset.includes(next))m.tileset.push(next);layer.cells[index]=next;}
     mapEditorSaveCurrent();mapEditorRender();
 }
-
 
 function mapEditorResize(){
     const m=mapEditorCurrent();if(!m)return;
@@ -648,23 +859,88 @@ function mapEditorOpenTileForm(existing=null){
     };
 }
 
-function mapEditorOpenChestForm(existing=null){
-    const o=existing||{id:mapEditorUid("chest"),type:"container",name:"Coffre",x:0,y:0,collision:true,opened:false,closedImageKey:null,openImageKey:null,lootTable:[]};
-    const rows=(o.lootTable||[]).map((e,i)=>'<div class="me-loot-row"><select data-loot-item="'+i+'">'+getMapEditorItemCatalog().map(x=>'<option value="'+x.id+'" '+(x.id===e.itemId?"selected":"")+'>'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-loot-chance="'+i+'" value="'+(e.chance??100)+'"><input type="number" min="1" data-loot-min="'+i+'" value="'+(e.min??1)+'"><input type="number" min="1" data-loot-max="'+i+'" value="'+(e.max??1)+'"><button type="button" data-loot-del="'+i+'">×</button></div>').join("");
-    const html='<div class="map-editor-dialog"><h3>Coffre / conteneur</h3><label>ID<input id="me-c-id" value="'+o.id+'"></label><label>Nom<input id="me-c-name" value="'+o.name+'"></label><label>X<input id="me-c-x" type="number" value="'+o.x+'"></label><label>Y<input id="me-c-y" type="number" value="'+o.y+'"></label><label><input id="me-c-collision" type="checkbox" '+(o.collision!==false?"checked":"")+'> Collision</label><label>Image fermée PNG/JPG<input id="me-c-closed" type="file" accept="image/png,image/jpeg"></label><label>Image ouverte PNG/JPG<input id="me-c-open" type="file" accept="image/png,image/jpeg"></label><h4>Table de butin</h4><div id="me-loot">'+rows+'</div><button type="button" id="me-loot-add" class="secondary-button">+ Récompense</button><div class="dev-form-actions"><button id="me-c-save" class="primary-button">Enregistrer</button><button id="me-c-cancel" class="secondary-button">Annuler</button></div></div>';
+function mapEditorOpenInteractiveTileForm(existing=null){
+    const d=mapEditorNormalizeInteractiveDefinition(existing||{
+        id:mapEditorUid("interactive"),
+        name:"Coffre en bois",
+        kind:"container",
+        collision:true,
+        fallback:"#b9823d",
+        interactive:{type:"container",collision:true,closedImageKey:null,openImageKey:null,lootTable:[],initialOpen:false}
+    });
+    const rows=(d.interactive.lootTable||[]).map((e,i)=>'<div class="me-loot-row"><select data-loot-item="'+i+'">'+getMapEditorItemCatalog().map(x=>'<option value="'+x.id+'" '+(x.id===e.itemId?"selected":"")+'>'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-loot-chance="'+i+'" value="'+(e.chance??100)+'"><input type="number" min="1" data-loot-min="'+i+'" value="'+(e.min??1)+'"><input type="number" min="1" data-loot-max="'+i+'" value="'+(e.max??1)+'"><button type="button" data-loot-del="'+i+'">×</button></div>').join("");
+    const html='<div class="map-editor-dialog"><h3>'+(existing?"Modifier":"Créer")+' une tuile interactive</h3><p class="map-editor-config-note">La définition est réutilisable. Chaque placement aura ensuite sa propre instance.</p><label>ID<input id="me-i-id" value="'+d.id+'"></label><label>Nom<input id="me-i-name" value="'+d.name+'"></label><label>Type<select id="me-i-kind"><option value="container" '+(d.kind==="container"?"selected":"")+'>Coffre / conteneur</option></select></label><label><input id="me-i-collision" type="checkbox" '+(d.collision!==false?"checked":"")+'> Collision par défaut</label><label>Image fermée PNG/JPG<input id="me-i-closed" type="file" accept="image/png,image/jpeg"></label><label>Image ouverte PNG/JPG<input id="me-i-open" type="file" accept="image/png,image/jpeg"></label><label><input id="me-i-opened" type="checkbox" '+(d.interactive.initialOpen?"checked":"")+'> État initial ouvert</label><h4>Table de butin par défaut</h4><div id="me-i-loot">'+rows+'</div><button type="button" id="me-i-loot-add" class="secondary-button">+ Récompense</button><div class="dev-form-actions"><button id="me-i-save" class="primary-button">Enregistrer</button><button id="me-i-cancel" class="secondary-button">Annuler</button></div></div>';
     mapEditorDialog(html);
-    const loot=document.getElementById("me-loot");
-    document.getElementById("me-loot-add").onclick=()=>{const div=document.createElement("div");div.className="me-loot-row";div.innerHTML='<select data-loot-item="'+loot.children.length+'">'+getMapEditorItemCatalog().map(x=>'<option value="'+x.id+'">'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-loot-chance="'+loot.children.length+'" value="100"><input type="number" min="1" data-loot-min="'+loot.children.length+'" value="1"><input type="number" min="1" data-loot-max="'+loot.children.length+'" value="1"><button type="button">×</button>';div.querySelector("button").onclick=()=>div.remove();loot.appendChild(div);};
+    const loot=document.getElementById("me-i-loot");
+    document.getElementById("me-i-loot-add").onclick=()=>{const index=loot.children.length;const div=document.createElement("div");div.className="me-loot-row";div.innerHTML='<select data-loot-item="'+index+'">'+getMapEditorItemCatalog().map(x=>'<option value="'+x.id+'">'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-loot-chance="'+index+'" value="100"><input type="number" min="1" data-loot-min="'+index+'" value="1"><input type="number" min="1" data-loot-max="'+index+'" value="1"><button type="button">×</button>';div.querySelector("button").onclick=()=>div.remove();loot.appendChild(div);};
     loot.querySelectorAll("button[data-loot-del]").forEach(b=>b.onclick=()=>b.parentElement.remove());
-    document.getElementById("me-c-cancel").onclick=mapEditorCloseDialog;
-    document.getElementById("me-c-save").onclick=async()=>{
-        const m=mapEditorCurrent();m.objects=Array.isArray(m.objects)?m.objects:[];let target=m.objects.find(x=>x.id===o.id);if(!target){target=mapEditorClone(o);m.objects.push(target);}
-        target.id=mapEditorNormalizeId(document.getElementById("me-c-id").value,o.id);target.name=document.getElementById("me-c-name").value;target.x=Math.max(0,Math.min(m.cols-1,Number(document.getElementById("me-c-x").value)||0));target.y=Math.max(0,Math.min(m.rows-1,Number(document.getElementById("me-c-y").value)||0));target.collision=document.getElementById("me-c-collision").checked;target.type="container";target.opened=!!target.opened;
-        const closedFile=document.getElementById("me-c-closed").files[0],openFile=document.getElementById("me-c-open").files[0];
-        if(closedFile)target.closedImageKey=(await mapEditorImportImage(closedFile)).key;
-        if(openFile)target.openImageKey=(await mapEditorImportImage(openFile)).key;
-        target.lootTable=[...loot.children].map(row=>({itemId:row.querySelector("[data-loot-item]")?.value,chance:Number(row.querySelector("[data-loot-chance]")?.value)||0,min:Number(row.querySelector("[data-loot-min]")?.value)||1,max:Number(row.querySelector("[data-loot-max]")?.value)||1})).filter(x=>x.itemId);
-        mapEditorSaveCurrent();mapEditorCloseDialog();mapEditorRender();
+    document.getElementById("me-i-cancel").onclick=mapEditorCloseDialog;
+    document.getElementById("me-i-save").onclick=async()=>{
+        try{
+            const definition=mapEditorNormalizeInteractiveDefinition({
+                id:mapEditorNormalizeId(document.getElementById("me-i-id").value,d.id),
+                name:document.getElementById("me-i-name").value,
+                kind:document.getElementById("me-i-kind").value,
+                collision:document.getElementById("me-i-collision").checked,
+                interactive:{
+                    type:document.getElementById("me-i-kind").value,
+                    collision:document.getElementById("me-i-collision").checked,
+                    closedImageKey:d.interactive.closedImageKey,
+                    openImageKey:d.interactive.openImageKey,
+                    initialOpen:document.getElementById("me-i-opened").checked,
+                    lootTable:[...loot.children].map(row=>({itemId:row.querySelector("[data-loot-item]")?.value,chance:Number(row.querySelector("[data-loot-chance]")?.value)||0,min:Number(row.querySelector("[data-loot-min]")?.value)||1,max:Number(row.querySelector("[data-loot-max]")?.value)||1})).filter(x=>x.itemId)
+                }
+            });
+            const closedFile=document.getElementById("me-i-closed").files[0],openFile=document.getElementById("me-i-open").files[0];
+            if(closedFile)definition.interactive.closedImageKey=(await mapEditorImportImage(closedFile)).key;
+            if(openFile)definition.interactive.openImageKey=(await mapEditorImportImage(openFile)).key;
+            definition.imageKey=definition.interactive.closedImageKey||definition.imageKey||null;
+            mapEditorRegisterInteractiveDefinition(definition);
+            const m=mapEditorCurrent();
+            mapEditorEnsureInteractiveDefinitionInMap(m,definition);
+            mapEditorSaveCurrent();mapEditorCloseDialog();mapEditorRenderTiles();mapEditorRender();mapEditorLoadRuntimeImages();
+        }catch(e){alert(e.message);}
+    };
+}
+
+function mapEditorSelectInstanceAt(col,row){
+    const instance=mapEditorGetInstanceAtCell(col,row);
+    mapEditorSelectedInstanceId=instance?.instanceId||null;
+    mapEditorHoveredInstanceId=instance?.instanceId||null;
+    mapEditorRender();
+    if(instance)mapEditorOpenInstanceConfig(instance);
+}
+
+function mapEditorOpenInstanceConfig(instance){
+    const m=mapEditorCurrent();if(!m||!instance)return;
+    const props=mapEditorGetInstanceProps(instance);
+    const rows=(props.lootTable||[]).map((e,i)=>'<div class="me-loot-row"><select data-override-loot-item="'+i+'">'+getMapEditorItemCatalog().map(x=>'<option value="'+x.id+'" '+(x.id===e.itemId?"selected":"")+'>'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-override-loot-chance="'+i+'" value="'+(e.chance??100)+'"><input type="number" min="1" data-override-loot-min="'+i+'" value="'+(e.min??1)+'"><input type="number" min="1" data-override-loot-max="'+i+'" value="'+(e.max??1)+'"><button type="button" data-override-loot-del="'+i+'">×</button></div>').join("");
+    const html='<div class="map-editor-dialog"><h3>Configuration de l’instance</h3><p class="map-editor-config-note">Seule cette instance est modifiée. La définition globale reste inchangée.</p><label>ID instance<input id="me-o-id" value="'+instance.instanceId+'" readonly></label><label>Type<input value="'+(mapEditorGetInstanceDefinition(instance)?.name||instance.type)+'" readonly></label><label>X<input id="me-o-x" type="number" min="0" max="'+(m.cols-1)+'" value="'+instance.x+'"></label><label>Y<input id="me-o-y" type="number" min="0" max="'+(m.rows-1)+'" value="'+instance.y+'"></label><label><input id="me-o-collision" type="checkbox" '+(props.collision!==false?"checked":"")+'> Collision override</label><label><input id="me-o-use-custom-images" type="checkbox" '+((instance.overrides.closedImageKey||instance.overrides.openImageKey)?"checked":"")+'> Images propres à cette instance</label><label>Image fermée PNG/JPG<input id="me-o-closed" type="file" accept="image/png,image/jpeg"></label><label>Image ouverte PNG/JPG<input id="me-o-open" type="file" accept="image/png,image/jpeg"></label><h4>Loot de cette instance</h4><div id="me-o-loot">'+rows+'</div><button type="button" id="me-o-loot-add" class="secondary-button">+ Récompense</button><div class="dev-form-actions"><button id="me-o-save" class="primary-button">Appliquer</button><button id="me-o-reset" class="secondary-button">Réinitialiser les overrides</button><button id="me-o-cancel" class="secondary-button">Annuler</button></div></div>';
+    mapEditorDialog(html);
+    const loot=document.getElementById("me-o-loot");
+    document.getElementById("me-o-loot-add").onclick=()=>{const index=loot.children.length;const div=document.createElement("div");div.className="me-loot-row";div.innerHTML='<select data-override-loot-item="'+index+'">'+getMapEditorItemCatalog().map(x=>'<option value="'+x.id+'">'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-override-loot-chance="'+index+'" value="100"><input type="number" min="1" data-override-loot-min="'+index+'" value="1"><input type="number" min="1" data-override-loot-max="'+index+'" value="1"><button type="button">×</button>';div.querySelector("button").onclick=()=>div.remove();loot.appendChild(div);};
+    loot.querySelectorAll("button[data-override-loot-del]").forEach(b=>b.onclick=()=>b.parentElement.remove());
+    document.getElementById("me-o-cancel").onclick=mapEditorCloseDialog;
+    document.getElementById("me-o-reset").onclick=()=>{instance.overrides={};mapEditorSaveCurrent();mapEditorCloseDialog();mapEditorRender();};
+    document.getElementById("me-o-save").onclick=async()=>{
+        try{
+            const useCustom=document.getElementById("me-o-use-custom-images").checked;
+            const overrides={
+                collision:document.getElementById("me-o-collision").checked,
+                lootTable:[...loot.children].map(row=>({itemId:row.querySelector("[data-override-loot-item]")?.value,chance:Number(row.querySelector("[data-override-loot-chance]")?.value)||0,min:Number(row.querySelector("[data-override-loot-min]")?.value)||1,max:Number(row.querySelector("[data-override-loot-max]")?.value)||1})).filter(x=>x.itemId)
+            };
+            if(useCustom){
+                const closed=document.getElementById("me-o-closed").files[0],open=document.getElementById("me-o-open").files[0];
+                if(closed)overrides.closedImageKey=(await mapEditorImportImage(closed)).key;
+                if(open)overrides.openImageKey=(await mapEditorImportImage(open)).key;
+            }else{
+                delete overrides.closedImageKey;delete overrides.openImageKey;
+            }
+            instance.x=Math.max(0,Math.min(m.cols-1,Math.floor(Number(document.getElementById("me-o-x").value)||0)));
+            instance.y=Math.max(0,Math.min(m.rows-1,Math.floor(Number(document.getElementById("me-o-y").value)||0)));
+            instance.overrides=overrides;
+            mapEditorSaveCurrent();mapEditorCloseDialog();mapEditorRender();mapEditorLoadRuntimeImages();
+        }catch(e){alert(e.message);}
     };
 }
 
@@ -682,20 +958,45 @@ function mapEditorRender(){
     }
     const root=document.getElementById("map-editor-root");if(!root)return;
     mapEditorRenderList();mapEditorRenderTiles();
+    const modePlacement=document.getElementById("me-mode-placement"),modeConfig=document.getElementById("me-mode-config");
+    if(modePlacement)modePlacement.classList.toggle("active",mapEditorMode==="placement");
+    if(modeConfig)modeConfig.classList.toggle("active",mapEditorMode==="configuration");
     const m=mapEditorCurrent(),canvas=document.getElementById("map-editor-canvas");if(!m||!canvas)return;
     const ctx=canvas.getContext("2d"),zoom=Number(canvas.dataset.zoom)||2,panX=Number(canvas.dataset.panX)||0,panY=Number(canvas.dataset.panY)||0;
     ctx.clearRect(0,0,canvas.width,canvas.height);ctx.save();ctx.translate(canvas.width/2-panX*zoom,canvas.height/2-panY*zoom);ctx.scale(zoom,zoom);
     const tileMap=new Map(mapEditorAllTiles().map(t=>[t.id,t])),layer=mapEditorTopLayer();
-    for(let y=0;y<m.rows;y++)for(let x=0;x<m.cols;x++){const id=layer.cells[y*m.cols+x],t=tileMap.get(id)||MAP_EDITOR_DEFAULT_TILES[0];ctx.fillStyle=t.fallback||"#777";ctx.fillRect(x*m.tileSize,y*m.tileSize,m.tileSize,m.tileSize);const img=t.imageKey?mapEditorRuntimeImages.get(t.imageKey):null;if(img)ctx.drawImage(img,x*m.tileSize,y*m.tileSize,m.tileSize,m.tileSize);if(mapEditorSelectedTile===id){ctx.strokeStyle="#fff";ctx.lineWidth=1/zoom;ctx.strokeRect(x*m.tileSize+.5,y*m.tileSize+.5,m.tileSize-1,m.tileSize-1);}}
-    ctx.strokeStyle="rgba(255,255,255,.18)";ctx.lineWidth=1/zoom;for(let x=0;x<=m.cols;x++){ctx.beginPath();ctx.moveTo(x*m.tileSize,0);ctx.lineTo(x*m.tileSize,m.rows*m.tileSize);ctx.stroke();}for(let y=0;y<=m.rows;y++){ctx.beginPath();ctx.moveTo(0,y*m.tileSize);ctx.lineTo(m.cols*m.tileSize,y*m.tileSize);ctx.stroke();}
-    ctx.fillStyle="#ffd54a";ctx.fillRect(m.spawn.x*m.tileSize+m.tileSize*.25,m.spawn.y*m.tileSize+m.tileSize*.25,m.tileSize*.5,m.tileSize*.5);for(const o of m.objects){ctx.fillStyle=mapEditorOpenedObjectIds.has(o.id)?"#6b5530":"#b9823d";ctx.fillRect(o.x*m.tileSize+2,o.y*m.tileSize+2,m.tileSize-4,m.tileSize-4);}
-    ctx.restore();root.querySelector("#map-editor-current-name").textContent=m.name+" · "+m.cols+"×"+m.rows;
+    for(let y=0;y<m.rows;y++)for(let x=0;x<m.cols;x++){
+        const id=layer.cells[y*m.cols+x],t=tileMap.get(id)||MAP_EDITOR_DEFAULT_TILES[0];
+        ctx.fillStyle=t.fallback||"#777";ctx.fillRect(x*m.tileSize,y*m.tileSize,m.tileSize,m.tileSize);
+        const img=t.imageKey?mapEditorRuntimeImages.get(t.imageKey):null;if(img)ctx.drawImage(img,x*m.tileSize,y*m.tileSize,m.tileSize,m.tileSize);
+        if(mapEditorSelectedTile===id&&mapEditorMode==="placement"){ctx.strokeStyle="#fff";ctx.lineWidth=1/zoom;ctx.strokeRect(x*m.tileSize+.5,y*m.tileSize+.5,m.tileSize-1,m.tileSize-1);}
+    }
+    ctx.strokeStyle="rgba(255,255,255,.18)";ctx.lineWidth=1/zoom;
+    for(let x=0;x<=m.cols;x++){ctx.beginPath();ctx.moveTo(x*m.tileSize,0);ctx.lineTo(x*m.tileSize,m.rows*m.tileSize);ctx.stroke();}
+    for(let y=0;y<=m.rows;y++){ctx.beginPath();ctx.moveTo(0,y*m.tileSize);ctx.lineTo(m.cols*m.tileSize,y*m.tileSize);ctx.stroke();}
+    ctx.fillStyle="#ffd54a";ctx.fillRect(m.spawn.x*m.tileSize+m.tileSize*.25,m.spawn.y*m.tileSize+m.tileSize*.25,m.tileSize*.5,m.tileSize*.5);
+    for(const o of m.objects||[]){
+        const props=mapEditorGetInstanceProps(o);
+        const opened=mapEditorOpenedObjectIds.has(o.instanceId)||o.state?.opened===true;
+        const key=mapEditorGetEffectiveInstanceImage(o,opened);
+        const img=key?mapEditorRuntimeImages.get(key):null;
+        const x=o.x*m.tileSize,y=o.y*m.tileSize;
+        if(img&&img.complete)ctx.drawImage(img,x,y,m.tileSize,m.tileSize);
+        else {ctx.fillStyle=opened?"#654b2d":"#b87b3d";ctx.fillRect(x+2,y+2,m.tileSize-4,m.tileSize-4);ctx.fillStyle="#e0b34f";ctx.fillRect(x+m.tileSize*.42,y+m.tileSize*.44,m.tileSize*.16,m.tileSize*.18);}
+        if(mapEditorMode==="configuration"&&(o.instanceId===mapEditorSelectedInstanceId||o.instanceId===mapEditorHoveredInstanceId)){
+            ctx.strokeStyle=o.instanceId===mapEditorSelectedInstanceId?"#ffd54a":"#fff";ctx.lineWidth=2/zoom;ctx.strokeRect(x+.5,y+.5,m.tileSize-1,m.tileSize-1);
+        }
+    }
+    ctx.restore();
+    const name=root.querySelector("#map-editor-current-name");if(name)name.textContent=m.name+" · "+m.cols+"×"+m.rows;
+    const hint=root.querySelector(".map-editor-hint");
+    if(hint)hint.textContent=mapEditorMode==="configuration"?"Configuration : survolez puis cliquez une instance · coordonnées dans le panneau · clic molette : déplacer":"Clic gauche : placer · clic droit : effacer · glisser : peindre · molette : zoom · clic molette : déplacer";
 }
 
 function mapEditorBuildUi(){
     if(document.getElementById("map-editor-root"))return;
     const wrap=document.createElement("div");wrap.id="map-editor-root";wrap.className="save-menu map-editor-shell hidden";
-    wrap.innerHTML='<div class="save-menu-content map-editor-content"><div class="save-menu-header"><div><span class="eyebrow">OUTIL DÉVELOPPEUR</span><h2>Créateur de Map</h2><p id="map-editor-current-name"></p></div><button id="map-editor-close" class="close-button">×</button></div><div class="map-editor-toolbar"><button id="me-new" class="primary-button">Nouvelle</button><button id="me-dup" class="secondary-button">Dupliquer</button><button id="me-del" class="secondary-button">Supprimer</button><button id="me-import" class="secondary-button">Importer JSON</button><button id="me-export" class="secondary-button">Exporter JSON</button><button id="me-undo" class="secondary-button">↶</button><button id="me-redo" class="secondary-button">↷</button><button id="me-test" class="secondary-button">Tester</button><button id="me-resize" class="secondary-button">Dimensions</button><select id="me-layer-select" title="Calque actif"></select><button id="me-layer" class="secondary-button">+ Calque</button><button id="me-encounter" class="secondary-button">Rencontres</button></div><div class="map-editor-layout"><aside><h3>Maps</h3><div id="map-editor-list"></div><h3>Tuiles</h3><div id="map-editor-tiles"></div><button id="me-new-tile" class="secondary-button">+ Tuile</button><button id="me-chest" class="secondary-button">+ Coffre</button><h3>Outils</h3><div class="map-editor-tools"><button data-tool="paint">Pinceau</button><button data-tool="erase">Gomme</button><button data-tool="eyedropper">Pipette</button><button data-tool="fill">Remplir</button><button data-tool="spawn">Spawn</button></div></aside><main><canvas id="map-editor-canvas" width="1100" height="650" data-zoom="2" data-pan-x="0" data-pan-y="0"></canvas><div class="map-editor-hint">Clic gauche : placer · clic droit : effacer · glisser : peindre · molette : zoom · clic molette : déplacer</div></main></div><input id="map-editor-import-file" type="file" accept=".json,application/json" hidden></div>';
+    wrap.innerHTML='<div class="save-menu-content map-editor-content"><div class="save-menu-header"><div><span class="eyebrow">OUTIL DÉVELOPPEUR</span><h2>Créateur de Map</h2><p id="map-editor-current-name"></p></div><button id="map-editor-close" class="close-button">×</button></div><div class="map-editor-toolbar"><button id="me-new" class="primary-button">Nouvelle</button><button id="me-dup" class="secondary-button">Dupliquer</button><button id="me-del" class="secondary-button">Supprimer</button><button id="me-import" class="secondary-button">Importer JSON</button><button id="me-export" class="secondary-button">Exporter JSON</button><button id="me-undo" class="secondary-button">↶</button><button id="me-redo" class="secondary-button">↷</button><button id="me-test" class="secondary-button">Tester</button><button id="me-resize" class="secondary-button">Dimensions</button><select id="me-layer-select" title="Calque actif"></select><button id="me-layer" class="secondary-button">+ Calque</button><button id="me-encounter" class="secondary-button">Rencontres</button><button id="me-mode-placement" class="secondary-button">Placement</button><button id="me-mode-config" class="secondary-button">Configuration</button></div><div class="map-editor-layout"><aside><h3>Maps</h3><div id="map-editor-list"></div><h3>Tuiles</h3><div id="map-editor-tiles"></div><button id="me-new-tile" class="secondary-button">+ Tuile</button><button id="me-chest" class="secondary-button">+ Tuile interactive</button><h3>Outils</h3><div class="map-editor-tools"><button data-tool="paint">Pinceau</button><button data-tool="erase">Gomme</button><button data-tool="eyedropper">Pipette</button><button data-tool="fill">Remplir</button><button data-tool="spawn">Spawn</button></div></aside><main><canvas id="map-editor-canvas" width="1100" height="650" data-zoom="2" data-pan-x="0" data-pan-y="0"></canvas><div class="map-editor-hint">Clic gauche : placer · clic droit : effacer · glisser : peindre · molette : zoom · clic molette : déplacer</div></main></div><input id="map-editor-import-file" type="file" accept=".json,application/json" hidden></div>';
     document.body.appendChild(wrap);
     document.getElementById("map-editor-close").onclick=mapEditorClose;
     document.getElementById("me-new").onclick=mapEditorCreateMap;document.getElementById("me-dup").onclick=mapEditorDuplicateMap;document.getElementById("me-del").onclick=mapEditorDeleteMap;document.getElementById("me-import").onclick=()=>document.getElementById("map-editor-import-file").click();document.getElementById("me-export").onclick=mapEditorExport;document.getElementById("me-undo").onclick=mapEditorUndoAction;document.getElementById("me-redo").onclick=mapEditorRedoAction;
@@ -707,8 +1008,10 @@ function mapEditorBuildUi(){
         if(typeof startOverworldMode==="function")startOverworldMode();
     };
     document.getElementById("me-new-tile").onclick=()=>mapEditorOpenTileForm();
-    document.getElementById("me-chest").onclick=()=>mapEditorOpenChestForm();
-    document.querySelectorAll(".map-editor-tools [data-tool]").forEach(b=>b.onclick=()=>{mapEditorTool=b.dataset.tool;});
+    document.getElementById("me-chest").onclick=()=>mapEditorOpenInteractiveTileForm();
+    document.getElementById("me-mode-placement").onclick=()=>{mapEditorMode="placement";mapEditorSelectedInstanceId=null;mapEditorRender();};
+    document.getElementById("me-mode-config").onclick=()=>{mapEditorMode="configuration";mapEditorSelectedTile=null;mapEditorRender();};
+    document.querySelectorAll(".map-editor-tools [data-tool]").forEach(b=>b.onclick=()=>{mapEditorTool=b.dataset.tool;mapEditorMode="placement";mapEditorRender();});
     document.getElementById("map-editor-import-file").onchange=e=>{const f=e.target.files[0];if(f)mapEditorImport(f).catch(err=>alert(err.message));e.target.value="";};
     const canvas=document.getElementById("map-editor-canvas");
     canvas.oncontextmenu=e=>e.preventDefault();
@@ -717,81 +1020,67 @@ function mapEditorBuildUi(){
         if(e.button!==0&&e.button!==1&&e.button!==2)return;
         e.preventDefault();
         try{canvas.setPointerCapture(e.pointerId);}catch(_){}
-
         const cell=mapEditorCellFromEvent(e);
         const inside=mapEditorCellIsInside(cell);
-
-        mapEditorDragging=false;
-        mapEditorPan=null;
-        mapEditorPointerMode=null;
-        mapEditorPointerTool=null;
+        mapEditorDragging=false;mapEditorPan=null;mapEditorPointerMode=null;mapEditorPointerTool=null;
 
         if(e.button===1){
             mapEditorPointerMode="pan";
         }else if(e.button===2){
-            mapEditorPointerMode="erase";
-            mapEditorPointerTool="erase";
-            if(inside)mapEditorPushUndo();
-            mapEditorDragging=inside;
-            if(inside)mapEditorPaintAt(e,mapEditorPointerTool);
-        }else if(e.button===0){
-            if(inside){
-                mapEditorPointerMode="paint";
-                mapEditorPointerTool=mapEditorTool;
-                mapEditorPushUndo();
-                mapEditorDragging=true;
-                mapEditorPaintAt(e,mapEditorPointerTool);
+            if(mapEditorMode==="placement"){
+                mapEditorPointerMode="erase";mapEditorPointerTool="erase";
+                if(inside)mapEditorPushUndo();mapEditorDragging=inside;
+                if(inside)mapEditorPaintAt(e,mapEditorPointerTool);
             }else{
                 mapEditorPointerMode="pan";
             }
+        }else if(e.button===0){
+            if(mapEditorMode==="configuration"){
+                if(inside)mapEditorSelectInstanceAt(cell.col,cell.row);
+                else mapEditorPointerMode="pan";
+            }else if(inside){
+                mapEditorPointerMode="paint";mapEditorPointerTool=mapEditorTool;mapEditorPushUndo();mapEditorDragging=true;mapEditorPaintAt(e,mapEditorPointerTool);
+            }else mapEditorPointerMode="pan";
         }
 
         if(mapEditorPointerMode==="pan"){
-            const point=mapEditorCanvasPointFromEvent(e);
-            const zoom=Number(canvas.dataset.zoom)||2;
-            if(point){
-                mapEditorPan={
-                    x:point.x,
-                    y:point.y,
-                    px:Number(canvas.dataset.panX)||0,
-                    py:Number(canvas.dataset.panY)||0,
-                    zoom
-                };
-            }
+            const point=mapEditorCanvasPointFromEvent(e),zoom=Number(canvas.dataset.zoom)||2;
+            if(point)mapEditorPan={x:point.x,y:point.y,px:Number(canvas.dataset.panX)||0,py:Number(canvas.dataset.panY)||0,zoom};
         }
     };
 
     canvas.onpointermove=e=>{
-        if(mapEditorPointerMode==="pan"&&mapEditorPan){
-            const point=mapEditorCanvasPointFromEvent(e);
-            if(!point)return;
-            const z=mapEditorPan.zoom||Number(canvas.dataset.zoom)||2;
-            canvas.dataset.panX=String(mapEditorPan.px-(point.x-mapEditorPan.x)/z);
-            canvas.dataset.panY=String(mapEditorPan.py-(point.y-mapEditorPan.y)/z);
-            mapEditorRender();
-            return;
+        const cell=mapEditorCellFromEvent(e),inside=mapEditorCellIsInside(cell);
+        if(mapEditorMode==="configuration"&&mapEditorPointerMode!=="pan"){
+            const next=inside?mapEditorGetInstanceAtCell(cell.col,cell.row):null;
+            const nextId=next?.instanceId||null;
+            if(nextId!==mapEditorHoveredInstanceId){mapEditorHoveredInstanceId=nextId;mapEditorRender();}
         }
-        if((mapEditorPointerMode==="paint"||mapEditorPointerMode==="erase")&&mapEditorDragging){
+        if(mapEditorPointerMode==="pan"&&mapEditorPan){
+            const point=mapEditorCanvasPointFromEvent(e);if(!point)return;
+            const z=mapEditorPan.zoom||Number(canvas.dataset.zoom)||2;
+            canvas.dataset.panX=String(mapEditorPan.px+(point.x-mapEditorPan.x)/z);
+            canvas.dataset.panY=String(mapEditorPan.py+(point.y-mapEditorPan.y)/z);
+            mapEditorRender();return;
+        }
+        if(mapEditorPointerMode==="paint"&&mapEditorDragging&&inside){
             mapEditorPaintAt(e,mapEditorPointerTool);
+        }
+        if(mapEditorPointerMode==="erase"&&mapEditorDragging&&inside){
+            mapEditorPaintAt(e,"erase");
         }
     };
 
-    const endMapEditorPointer=e=>{
-        if(e.pointerId!==undefined){
-            try{if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);}catch(_){}
-        }
-        mapEditorDragging=false;
-        mapEditorPan=null;
-        mapEditorPointerMode=null;
-        mapEditorPointerTool=null;
+    canvas.onpointerup=e=>{
+        mapEditorDragging=false;mapEditorPointerMode=null;mapEditorPointerTool=null;mapEditorPan=null;
+        try{canvas.releasePointerCapture(e.pointerId);}catch(_){}
     };
-    canvas.onpointerup=endMapEditorPointer;
-    canvas.onpointercancel=endMapEditorPointer;
+    canvas.onpointercancel=e=>{
+        mapEditorDragging=false;mapEditorPointerMode=null;mapEditorPointerTool=null;mapEditorPan=null;
+        try{canvas.releasePointerCapture(e.pointerId);}catch(_){}
+    };
     canvas.onlostpointercapture=()=>{
-        mapEditorDragging=false;
-        mapEditorPan=null;
-        mapEditorPointerMode=null;
-        mapEditorPointerTool=null;
+        mapEditorDragging=false;mapEditorPointerMode=null;mapEditorPointerTool=null;mapEditorPan=null;
     };
 
     canvas.onwheel=e=>{
@@ -822,7 +1111,7 @@ function mapEditorAddDevButton(){
 }
 
 document.addEventListener("DOMContentLoaded",()=>{
-    mapEditorLoadMaps();mapEditorApplyRuntime();mapEditorBuildUi();mapEditorAddDevButton();mapEditorLoadRuntimeImages();
+    mapEditorLoadInteractiveDefinitions();mapEditorLoadMaps();mapEditorApplyRuntime();mapEditorBuildUi();mapEditorAddDevButton();mapEditorLoadRuntimeImages();
     document.addEventListener("keydown",e=>{
         if(typeof isKeybindCaptureActive==="function"&&isKeybindCaptureActive()){e.preventDefault();e.stopPropagation();return;}
         if(e.key==="e"&&!document.getElementById("map-editor-root")?.classList.contains("hidden")&&document.activeElement?.tagName!=="INPUT"&&document.activeElement?.tagName!=="TEXTAREA")mapEditorInteract();
