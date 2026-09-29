@@ -943,6 +943,8 @@ function mapEditorOpenInstanceConfig(instance){
             };
             if(useCustom){
                 const closed=document.getElementById("me-o-closed").files[0],open=document.getElementById("me-o-open").files[0];
+                if(instance.overrides.closedImageKey)overrides.closedImageKey=instance.overrides.closedImageKey;
+                if(instance.overrides.openImageKey)overrides.openImageKey=instance.overrides.openImageKey;
                 if(closed)overrides.closedImageKey=(await mapEditorImportImage(closed)).key;
                 if(open)overrides.openImageKey=(await mapEditorImportImage(open)).key;
             }else{
