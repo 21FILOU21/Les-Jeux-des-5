@@ -526,7 +526,7 @@ function getOverworldSpritePath(hero) {
     /* 3. Convention du projet. Léandre a un champ Image VIDE dans
        ContenuJeu.json : sans ce fallback, son sprite ne chargeait
        jamais. Fonctionne pour tous les héros, sans hard-code. */
-    return `assets/personnages/${hero.Nom}.png`;
+    return `assets/personnages/personnages/${hero.Nom}.png`;
 }
 
 function setOverworldPlayerSprite(hero) {
