@@ -703,11 +703,13 @@ async function monsterAttack(monster) {
         if (damageEffects.length > 0) {
             applyAttackEffects(damageEffects, monster, puissance, 1, !1, attackEnergyType, !0, attackData);
         } else {
-            let baseDamage = puissance * getMonsterPower(monster) * (effectivenessMultiplier || 1);
+            const baseDamage = puissance * getMonsterPower(monster) * (effectivenessMultiplier || 1);
+            const rawDamage = roundAwayFromZero(baseDamage);
+            let incoming = rawDamage;
 
-            baseDamage -= baseDamage * 0.1 * state.itemArmor;
+            incoming -= incoming * 0.1 * state.itemArmor;
 
-            const finalDamage = roundAwayFromZero(Math.max(0, baseDamage - getPlayerArmor()));
+            const finalDamage = roundAwayFromZero(Math.max(0, incoming));
 
             damagePlayer(finalDamage);
         }
