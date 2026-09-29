@@ -1035,6 +1035,163 @@ button:disabled {
 
 
 /* ============================================================
+   INVENTAIRE UNIFIÉ
+============================================================ */
+
+.inventory-modal-content { width: min(980px, 100%); }
+
+.inventory-modal-layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(300px, 1.15fr);
+    gap: 16px;
+    min-height: 360px;
+}
+
+.inventory-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 55vh;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.inventory-entry {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    border-radius: 10px;
+    color: var(--text);
+    text-align: left;
+}
+
+.inventory-entry:hover,
+.inventory-entry:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+.inventory-entry-icon {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 9px;
+    background: var(--panel);
+    overflow: hidden;
+    font-size: 1.25rem;
+}
+
+.inventory-entry-icon img,
+.inventory-detail-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.inventory-entry-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.inventory-entry-text small {
+    color: var(--muted);
+    font-weight: 800;
+}
+
+.inventory-details {
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-secondary);
+}
+
+.inventory-detail-image {
+    width: 110px;
+    height: 110px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 14px;
+    border-radius: 12px;
+    background: var(--panel);
+    overflow: hidden;
+    font-size: 2rem;
+}
+
+.inventory-details h3 { margin-bottom: 8px; }
+
+.inventory-details p {
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.inventory-detail-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.inventory-detail-meta span {
+    padding: 5px 8px;
+    border-radius: 7px;
+    background: var(--panel);
+    color: var(--muted);
+    font-size: .72rem;
+}
+
+.inventory-detail-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.inventory-use-note {
+    color: var(--muted);
+    font-size: .72rem;
+}
+
+.inventory-empty {
+    color: var(--muted);
+    padding: 18px;
+    text-align: center;
+}
+
+.dev-item-effect-row {
+    display: grid;
+    grid-template-columns: 1.5fr .8fr .8fr 1fr auto;
+    gap: 7px;
+    margin-bottom: 8px;
+}
+
+.dev-item-effect-row input,
+.dev-item-effect-row select { min-width: 0; }
+
+.mega-evolving {
+    animation: megaEvolutionPulse .9s ease-in-out;
+    filter: brightness(1.25) saturate(1.35);
+}
+
+@keyframes megaEvolutionPulse {
+    0%, 100% { transform: scale(1); filter: brightness(1) saturate(1); }
+    30% { transform: scale(1.035); filter: brightness(1.45) saturate(1.5); }
+    60% { transform: scale(.985); filter: brightness(1.8) saturate(1.8); }
+}
+
+@media (max-width: 760px) {
+    .inventory-modal-layout { grid-template-columns: 1fr; }
+    .dev-item-effect-row { grid-template-columns: 1fr 1fr; }
+}
+
+/* ============================================================
    ATTACKS
 ============================================================ */
 
