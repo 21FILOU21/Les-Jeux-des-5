@@ -497,6 +497,7 @@ function computeEscapeSuccess(speedPlayer, speedWild, attempts, generation) {
 }
 
 async function endBattleByEscape() {
+    if (typeof restoreMegaEvolution === "function") restoreMegaEvolution();
     vfxStopAll();
     state.battleOver = !0;
 
