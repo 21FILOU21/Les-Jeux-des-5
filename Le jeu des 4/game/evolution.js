@@ -119,3 +119,173 @@ function applyEvolution(target) {
         updateWorldUI();
     }
 }
+
+/* ============================================================
+   MÉGA-ÉVOLUTION — action d'item en combat
+============================================================ */
+
+function getMegaEvolutionConfig(hero = state.hero) {
+    if (!hero || !hero.MegaEvolution || typeof hero.MegaEvolution !== "object") return null;
+
+    const cible = String(hero.MegaEvolution.Cible || "").trim();
+    const stoneId = String(hero.MegaEvolution.StoneId || "").trim();
+
+    if (!cible || !stoneId) return null;
+
+    return { Cible: cible, StoneId: stoneId };
+}
+
+function canMegaEvolve(stone) {
+    if (!stone) return { ok: !1, reason: "Cette Méga Stone est introuvable." };
+
+    if (state.megaEvolutionUsed) {
+        return { ok: !1, reason: "Ce personnage a déjà méga-évolué dans ce combat." };
+    }
+
+    if (!state.hero) {
+        return { ok: !1, reason: "Aucun personnage actif." };
+    }
+
+    const config = getMegaEvolutionConfig(state.hero);
+
+    if (!config) {
+        return { ok: !1, reason: "Cette Méga Stone ne peut pas être utilisée avec ce personnage." };
+    }
+
+    if (String(config.StoneId) !== String(stone.Id)) {
+        return { ok: !1, reason: "Cette Méga Stone n'est pas compatible avec ce personnage." };
+    }
+
+    const target = (state.contenu?.Personnages || []).find(personnage => personnage && personnage.Nom === config.Cible);
+
+    if (!target) {
+        return { ok: !1, reason: "La forme Méga configurée est introuvable." };
+    }
+
+    if (target.Nom === state.hero.Nom) {
+        return { ok: !1, reason: "La forme Méga doit être différente du personnage actuel." };
+    }
+
+    return { ok: !0, target, config };
+}
+
+async function activateMegaEvolution(stone) {
+    const validation = canMegaEvolve(stone);
+
+    if (!validation.ok) {
+        showToast("Méga-Évolution impossible", validation.reason);
+
+        return validation;
+    }
+
+    const ancienNom = state.hero.Nom;
+    const target = validation.target;
+
+    state.busy = !0;
+    state.megaEvolutionUsed = !0;
+    state.megaEvolutionBaseHeroId = ancienNom;
+
+    try {
+        if (typeof showBattlePopup === "function") {
+            await showBattlePopup(`${ancienNom} commence à méga-évoluer !`);
+        }
+
+        const panel = document.getElementById("player-panel");
+
+        if (panel && typeof playCombatAnimation === "function") {
+            playCombatAnimation(panel, "mega-evolving", 900);
+        }
+
+        await sleep(500);
+
+        const oldHp = Math.max(0, Number(state.playerHp) || 0);
+        const oldEnergy = Math.max(0, Number(state.playerEnergy) || 0);
+
+        state.hero = target;
+        state.selectedHero = target;
+        state.heroEnergyData = (state.contenu?.Energies || []).find(energie => energie.Nom === target.TypeEnergie) || null;
+        state.heroAttacks = (state.contenu?.Attaques || []).filter(attaque => attaque.Personnage === target.Nom);
+
+        state.playerMaxHp = Math.max(1, Math.floor(Number(target.Vie) || 100));
+        state.playerPowerBase = Number(target.PuissanceBase) || 1;
+        state.playerArmorBase = Math.max(0, Math.floor(Number(target.Armure) || 0));
+        state.playerMaxEnergy = Math.max(1, Math.floor(Number(target.MaxEnergie) || 100));
+        state.playerMinRoulette = Math.max(0, Math.floor(Number(target.MinRoulette) || 0));
+
+        let maxRoulette = Math.floor(Number(target.MaxRoulette) || 0);
+        if (maxRoulette < state.playerMinRoulette) maxRoulette = state.playerMinRoulette;
+        state.playerMaxRoulette = maxRoulette;
+        state.playerNombreRoulette = Math.max(1, Math.floor(Number(target.NombreRoulette) || 1));
+
+        state.playerHp = Math.min(state.playerMaxHp, oldHp);
+        state.playerEnergy = Math.min(state.playerMaxEnergy, oldEnergy);
+
+        if (typeof setOverworldPlayerSprite === "function") setOverworldPlayerSprite(state.hero);
+
+        if (typeof updatePlayerImage === "function") updatePlayerImage();
+        if (typeof updateBattleUI === "function") updateBattleUI();
+
+        addLog(`✨ ${ancienNom} devient ${target.Nom} !`, "reward");
+        showToast("Méga-Évolution !", `${ancienNom} devient ${target.Nom}.`);
+
+        if (typeof showBattlePopup === "function") {
+            await showBattlePopup(`${target.Nom} a méga-évolué !`);
+        }
+
+        return { ok: !0, target };
+    } catch (error) {
+        state.megaEvolutionUsed = !1;
+        state.megaEvolutionBaseHeroId = null;
+
+        console.error("Méga-Évolution impossible :", error);
+
+        showToast("Méga-Évolution impossible", "La transformation n'a pas pu être terminée.");
+
+        return { ok: !1, reason: "La transformation n'a pas pu être terminée." };
+    }
+}
+
+function restoreMegaEvolution() {
+    const baseName = String(state.megaEvolutionBaseHeroId || "").trim();
+
+    if (!baseName) {
+        state.megaEvolutionUsed = !1;
+        return;
+    }
+
+    const base = (state.contenu?.Personnages || []).find(personnage => personnage && personnage.Nom === baseName);
+
+    if (!base) {
+        console.warn(`Forme normale introuvable après Méga-Évolution : ${baseName}`);
+        state.megaEvolutionUsed = !1;
+        state.megaEvolutionBaseHeroId = null;
+        return;
+    }
+
+    const oldHp = Math.max(0, Number(state.playerHp) || 0);
+    const oldEnergy = Math.max(0, Number(state.playerEnergy) || 0);
+
+    state.hero = base;
+    state.selectedHero = base;
+    state.heroEnergyData = (state.contenu?.Energies || []).find(energie => energie.Nom === base.TypeEnergie) || null;
+    state.heroAttacks = (state.contenu?.Attaques || []).filter(attaque => attaque.Personnage === base.Nom);
+
+    state.playerMaxHp = Math.max(1, Math.floor(Number(base.Vie) || 100));
+    state.playerPowerBase = Number(base.PuissanceBase) || 1;
+    state.playerArmorBase = Math.max(0, Math.floor(Number(base.Armure) || 0));
+    state.playerMaxEnergy = Math.max(1, Math.floor(Number(base.MaxEnergie) || 100));
+    state.playerMinRoulette = Math.max(0, Math.floor(Number(base.MinRoulette) || 0));
+
+    let maxRoulette = Math.floor(Number(base.MaxRoulette) || 0);
+    if (maxRoulette < state.playerMinRoulette) maxRoulette = state.playerMinRoulette;
+    state.playerMaxRoulette = maxRoulette;
+    state.playerNombreRoulette = Math.max(1, Math.floor(Number(base.NombreRoulette) || 1));
+
+    state.playerHp = Math.min(state.playerMaxHp, oldHp);
+    state.playerEnergy = Math.min(state.playerMaxEnergy, oldEnergy);
+
+    state.megaEvolutionUsed = !1;
+    state.megaEvolutionBaseHeroId = null;
+
+    if (typeof setOverworldPlayerSprite === "function") setOverworldPlayerSprite(base);
+}
