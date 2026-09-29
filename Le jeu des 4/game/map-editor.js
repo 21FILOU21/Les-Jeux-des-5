@@ -332,7 +332,7 @@ function mapEditorAllTiles(){
     const custom=Array.isArray(m?.tileDefinitions)?m.tileDefinitions:[];
     const globalInteractive=mapEditorInteractiveDefinitions;
     const byId=new Map();
-    [...globalInteractive,...custom,...MAP_EDITOR_DEFAULT_TILES].forEach(t=>{if(!byId.has(t.id))byId.set(t.id,t);});
+    [...MAP_EDITOR_DEFAULT_TILES,...globalInteractive,...custom].forEach(t=>{if(byId.has(t.id))byId.set(t.id,t);else byId.set(t.id,t);});
     return [...byId.values()];
 }
 
@@ -680,9 +680,9 @@ function mapEditorImport(file){
         }
 
         const data=normalizeMapEditorMap(raw);
-        for(const definition of data.tileDefinitions||[])if(definition.interactive)mapEditorRegisterInteractiveDefinition(definition);
         const errors=mapEditorValidate(data,data.tileDefinitions);
         if(errors.length)throw new Error(errors.join("\n"));
+        for(const definition of data.tileDefinitions||[])if(definition.interactive)mapEditorRegisterInteractiveDefinition(definition);
         if(mapEditorMaps.some(m=>m.id===data.id))data.id=mapEditorNormalizeId(data.id+"-import","map-import");
         mapEditorMaps.push(data);mapEditorActiveId=data.id;mapEditorPersist();mapEditorApplyRuntime();mapEditorRender();mapEditorLoadRuntimeImages();
     });
