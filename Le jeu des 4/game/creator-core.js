@@ -63,7 +63,8 @@ const creatorStockNames = {
     Attaques: [],
     Effets: [],
     Energies: [],
-    Statuts: []
+    Statuts: [],
+    Items: []
 };
 
 function captureStockContentNames() {
