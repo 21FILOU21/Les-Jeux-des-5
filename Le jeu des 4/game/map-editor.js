@@ -287,8 +287,6 @@ async function mapEditorLoadRuntimeImages(){
 }
 
 function isMapEditorRuntimeBlocked(tileId,col,row){
-    const tile=mapEditorFindTile(tileId);
-    if(tile?.collision)return true;
     const obj=mapEditorCurrent()?.objects?.find(o=>o.x===col&&o.y===row&&o.collision!==false);
     return !!obj;
 }
