@@ -92,7 +92,7 @@ function getInventoryItemDefinitions() {
     const definitions = [];
     const seen = new Set();
 
-    [...LEGACY_ITEM_DEFINITIONS, ...((state.contenu && Array.isArray(state.contenu.Items)) ? state.contenu.Items : [])].forEach(item => {
+    [...((state.contenu && Array.isArray(state.contenu.Items)) ? state.contenu.Items : []), ...LEGACY_ITEM_DEFINITIONS].forEach(item => {
         const normalized = normalizeItemDefinition(item);
 
         if (!normalized || seen.has(normalized.Id)) return;
