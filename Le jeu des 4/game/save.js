@@ -494,7 +494,6 @@ async function autoSaveGame() {
 function createSaveData(saveName) {
     const savedState = structuredClone(state);
 
-    savedState.busy = !1;
 
     savedState.contenu = null;
 
