@@ -184,6 +184,7 @@ function submitItemCreator(existing) {
 
     if (mega) {
         item.Categorie = "Méga Stone";
+        item.Utilisable = true;
         item.MegaStone = { Consommable: item.Consommable };
     }
 
