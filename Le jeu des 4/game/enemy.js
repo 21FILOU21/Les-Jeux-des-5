@@ -427,8 +427,8 @@ function createNextMonster() {
     state.monsterNombreRoulette = MONSTER_BASE_NOMBRE_ROULETTE;
 }
 
-function createBattleMonsters(count) {
-    return Array.from({ length: count }, (_, index) => createMonster(globalState.monsterKilled + index + 1, index));
+function createBattleMonsters(count, encounterRequest = null) {
+    return Array.from({ length: count }, (_, index) => createMonster(globalState.monsterKilled + index + 1, index, encounterRequest));
 }
 
 function getRandomEnemyEnergyType() {
