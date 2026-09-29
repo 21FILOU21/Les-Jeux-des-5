@@ -25,7 +25,8 @@ const CREATOR_TYPES = [
     "Effets",
     "Energies",
     "Statuts",
-    "EffetsVisuels"
+    "EffetsVisuels",
+    "Items"
 ];
 
 const CREATOR_TYPE_LABELS = {
@@ -35,7 +36,8 @@ const CREATOR_TYPE_LABELS = {
     Effets: "effets",
     Energies: "énergies",
     Statuts: "statuts",
-    EffetsVisuels: "effets visuels"
+    EffetsVisuels: "effets visuels",
+    Items: "items"
 };
 
 const CREATOR_EFFECT_TYPES = [
@@ -259,6 +261,10 @@ function startCreatorForm(type, existing) {
             startVfxCreator(existing);
 
             break;
+        case "Items":
+            startItemCreator(existing);
+
+            break;
     }
 }
 
@@ -284,6 +290,8 @@ function getDevObjectSummary(type, obj) {
             return `${obj.TypeStatut || "?"} · ${obj.ChanceApplication ?? 100}% · ${obj.DureeTours ?? 1} tour(s)`;
         case "EffetsVisuels":
             return getVfxSummary(obj);
+        case "Items":
+            return `${obj.Categorie || "Autre"} · ${(obj.Effets || []).length} effet(s) · Qté max ${obj.QuantiteMax || 999}${obj.MegaStone ? " · Méga Stone" : ""}`;
         default:
             return "";
     }
