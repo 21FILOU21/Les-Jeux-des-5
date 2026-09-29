@@ -190,9 +190,12 @@ function startAttackCreator(existing) {
 
     $("#dev-a-cancel").addEventListener("click", () => showDevCategoryMenu("Attaques"));
 
-    $("#dev-a-save").addEventListener("click", () => submitAttackCreator(existing, () => selectedEffets, () => selectedStatuts));
-
-    $("#dev-a-save").addEventListener("click", () => submitAttackCreator(existing, () => selectedEffets, () => selectedStatuts, () => selectedVfx));
+    $("#dev-a-save").addEventListener("click", () => submitAttackCreator(
+        existing,
+        () => selectedEffets,
+        () => selectedStatuts,
+        () => selectedVfx
+    ));
 }
 
 /* ============================================================
