@@ -63,7 +63,7 @@ function startItemCreator(existing) {
 
         <label class="dev-check-item"><input type="checkbox" id="dev-item-usable" ${item.Utilisable !== !1 ? "checked" : ""}> Utilisable en combat</label>
         <label class="dev-check-item"><input type="checkbox" id="dev-item-outside" ${item.UtilisableHorsCombat === !0 ? "checked" : ""}> Utilisable hors combat</label>
-        <label class="dev-check-item"><input type="checkbox" id="dev-item-consumable" ${item.Consommable !== !1 ? "checked" : ""}> Consommer une unité à l'utilisation</label>
+        <label class="dev-check-item"><input type="checkbox" id="dev-item-consumable" ${item.MegaStone ? (item.Consommable !== !1 ? "checked" : "") : (item.Categorie === "Méga Stone" ? "" : "checked")}> Consommer une unité à l'utilisation</label>
 
         <div class="dev-section-title">Effets</div>
         <div id="dev-item-effects">${effectRows || '<p class="dev-info-note">Aucun effet configuré.</p>'}</div>
@@ -112,7 +112,12 @@ function startItemCreator(existing) {
     });
 
     $("#dev-item-category").addEventListener("change", () => {
-        $("#dev-item-mega").checked = $("#dev-item-category").value === "Méga Stone" || $("#dev-item-mega").checked;
+        const mega = $("#dev-item-category").value === "Méga Stone";
+        $("#dev-item-mega").checked = mega || $("#dev-item-mega").checked;
+        if (mega) {
+            $("#dev-item-usable").checked = true;
+            $("#dev-item-consumable").checked = false;
+        }
         $("#dev-item-mega-config").classList.toggle("hidden", !$("#dev-item-mega").checked);
     });
 
