@@ -83,7 +83,7 @@ function createEmptyContenu() {
             Effets: [],
             Energies: [],
             Statuts: [],
-            EffetsVisuels: []
+            EffetsVisuels: [],
             Items: []
         }
     }
