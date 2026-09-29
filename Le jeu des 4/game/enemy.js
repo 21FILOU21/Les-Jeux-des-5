@@ -707,19 +707,9 @@ async function monsterAttack(monster) {
 
             baseDamage -= baseDamage * 0.1 * state.itemArmor;
 
-            const finalDamage = Math.max(0, roundAwayFromZero(baseDamage));
+            const finalDamage = roundAwayFromZero(Math.max(0, baseDamage - getPlayerArmor()));
 
-            state.playerHp = Math.max(0, state.playerHp - finalDamage);
-
-            if (finalDamage > 0) {
-                showPlayerDamage(finalDamage);
-
-                addLog(`${state.hero.Nom} reçoit ${finalDamage} dégâts.`, "damage");
-            } else {
-                addLog(`${state.hero.Nom} ne reçoit aucun dégât.`, "system");
-            }
-
-            fireVfxFor(vfxAttachedTo(attackData), "onDamageDealt", { side: "enemy" });
+            damagePlayer(finalDamage);
         }
 
         animateHit($("#player-panel"));
