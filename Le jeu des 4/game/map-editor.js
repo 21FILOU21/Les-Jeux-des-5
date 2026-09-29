@@ -369,12 +369,6 @@ function applyMapEditorOverworldSaveData(data){
     mapEditorOpenedObjectIds=opened;
 }
 
-function mapEditorMonsterLevelOverride(monster,level){
-    if(!monster)return;
-    if(!window.__mapEditorPendingEncounter)return;
-    const p=window.__mapEditorPendingEncounter;p.level=level;
-}
-
 function mapEditorGrantItem(id,qty){
     qty=Math.max(0,Math.floor(Number(qty)||0));if(!qty)return;
     if(id==="bandage")state.itemBandage+=qty;
