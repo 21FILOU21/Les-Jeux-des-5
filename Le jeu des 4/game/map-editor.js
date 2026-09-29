@@ -332,7 +332,7 @@ function mapEditorAllTiles(){
     const custom=Array.isArray(m?.tileDefinitions)?m.tileDefinitions:[];
     const globalInteractive=mapEditorInteractiveDefinitions;
     const byId=new Map();
-    [...MAP_EDITOR_DEFAULT_TILES,...globalInteractive,...custom].forEach(t=>{if(byId.has(t.id))byId.set(t.id,t);else byId.set(t.id,t);});
+    [...MAP_EDITOR_DEFAULT_TILES,...globalInteractive,...custom].forEach(t=>byId.set(t.id,t));
     return [...byId.values()];
 }
 
@@ -405,6 +405,7 @@ function mapEditorApplyRuntime(requestedId){
     if(!m)return;
     mapEditorActiveId=m.id;mapEditorActiveLayerId=m.layers.find(l=>l.visible)?.id||m.layers[0]?.id||"terrain";mapEditorPersist();
     mapEditorRuntime=m;
+    mapEditorOpenedObjectIds=new Set((m.objects||[]).filter(o=>o.state?.opened===true).map(o=>o.instanceId||o.id));
     MAP_COLS=m.cols;MAP_ROWS=m.rows;MAP_WIDTH=MAP_COLS*TILE_SIZE;MAP_HEIGHT=MAP_ROWS*TILE_SIZE;
     WORLD_START_X=m.spawn.x*TILE_SIZE;WORLD_START_Y=m.spawn.y*TILE_SIZE;
     const visibleLayers=m.layers.filter(l=>l.visible!==false);
@@ -556,7 +557,10 @@ function tryMapEditorEncounter(col,row){
 }
 
 function getMapEditorOverworldSaveData(){
-    return {mapId:mapEditorActiveId,openedObjectIds:[...mapEditorOpenedObjectIds]};
+    const m=mapEditorCurrent();
+    const opened=new Set(mapEditorOpenedObjectIds);
+    for(const o of m?.objects||[])if(o.state?.opened===true)opened.add(o.instanceId||o.id);
+    return {mapId:mapEditorActiveId,openedObjectIds:[...opened]};
 }
 
 function applyMapEditorOverworldSaveData(data){
@@ -565,6 +569,7 @@ function applyMapEditorOverworldSaveData(data){
     const validIds=new Set((m.objects||[]).map(o=>o.id));
     const opened=new Set((Array.isArray(data?.openedObjectIds)?data.openedObjectIds:[]).filter(id=>validIds.has(id)));
     mapEditorOpenedObjectIds=opened;
+    for(const o of m.objects||[])if(o.instanceId) { o.state=o.state||{}; o.state.opened=opened.has(o.instanceId); }
 }
 
 function mapEditorGrantItem(id,qty){
