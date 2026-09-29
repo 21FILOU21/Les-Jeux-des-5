@@ -549,6 +549,8 @@ function startBattle(request = null) {
         if (!definition) {
             console.error("Rencontre personnalisée : monstre introuvable, fallback aléatoire :", requestedId);
             showToast("Rencontre invalide", `Le monstre « ${requestedId || "?"} » n'existe plus. Une rencontre aléatoire sera utilisée.`);
+            state.config.monsterCount = randomInt(1, 3);
+            state.config.monsterName = "Monstre";
         } else {
             encounterRequest = {
                 encounterId: request.encounterId || null,
