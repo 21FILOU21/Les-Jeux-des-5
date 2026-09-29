@@ -49,6 +49,7 @@ const WORLD_PLAYER_SPEED = 90;
 const WORLD_MOVEMENT = { stepDurationMs: 140, fastStepDurationMs: 90, stepRepeatDelayMs: 90, fastStepRepeatDelayMs: 30 };
 const WORLD_ENCOUNTER_CHANCE = 0.12;          // par tuile d'herbe traversée
 const WORLD_GRACE_TILES = 3;                  // grâce après combat / chargement
+const worldUnknownTileWarnings = new Set();
 
 let WORLD_START_X = Math.floor(MAP_COLS / 2) * TILE_SIZE - TILE_SIZE / 2;
 let WORLD_START_Y = Math.floor(MAP_ROWS / 2) * TILE_SIZE - TILE_SIZE / 2;
@@ -147,28 +148,59 @@ function buildWorldMapCanvas() {
     canvas.width = MAP_COLS * DISPLAY_TILE_SIZE;
     canvas.height = MAP_ROWS * DISPLAY_TILE_SIZE;
     const ctx = canvas.getContext("2d");
-
     const tileCanvases = {};
-    Object.values(TILE_TYPES).forEach(type => {
+    const tileIds = new Set();
+
+    for (let row = 0; row < MAP_ROWS; row++) {
+        for (let col = 0; col < MAP_COLS; col++) tileIds.add(worldMap[row]?.[col]);
+    }
+
+    tileIds.forEach(type => {
         const tile = document.createElement("canvas");
         tile.width = DISPLAY_TILE_SIZE;
         tile.height = DISPLAY_TILE_SIZE;
-        drawTileArt(tile.getContext("2d"), type, DISPLAY_TILE_SIZE);
+        const tileContext = tile.getContext("2d");
+
+        if (type === undefined || type === null) {
+            tileContext.fillStyle = "#8fbf6a";
+            tileContext.fillRect(0, 0, DISPLAY_TILE_SIZE, DISPLAY_TILE_SIZE);
+            tileCanvases[type] = tile;
+            return;
+        }
+
+        if (typeof mapEditorFindTile === "function" && typeof type !== "number" && !mapEditorFindTile(type)) {
+            const warningKey = String(type);
+            if (!worldUnknownTileWarnings.has(warningKey)) {
+                worldUnknownTileWarnings.add(warningKey);
+                console.error("Tuile runtime inconnue :", type);
+            }
+        }
+
+        drawTileArt(tileContext, type, DISPLAY_TILE_SIZE);
         tileCanvases[type] = tile;
     });
 
     const u = DISPLAY_TILE_SIZE / 16;
-
     for (let row = 0; row < MAP_ROWS; row++) {
         for (let col = 0; col < MAP_COLS; col++) {
-            const type = worldMap[row][col];
+            const type = worldMap[row]?.[col];
             const x = col * DISPLAY_TILE_SIZE;
             const y = row * DISPLAY_TILE_SIZE;
+            const tileCanvas = tileCanvases[type];
 
-            ctx.drawImage(tileCanvases[type], x, y);
+            if (tileCanvas) {
+                ctx.drawImage(tileCanvas, x, y);
+            } else {
+                ctx.fillStyle = "#8fbf6a";
+                ctx.fillRect(x, y, DISPLAY_TILE_SIZE, DISPLAY_TILE_SIZE);
+                const warningKey = String(type);
+                if (!worldUnknownTileWarnings.has(warningKey)) {
+                    worldUnknownTileWarnings.add(warningKey);
+                    console.error("Tuile runtime sans rendu :", type);
+                }
+            }
 
-            if (type === TILE_TYPES.GRASS) {
-                /* Damier + décorations déterministes */
+            if (type === TILE_TYPES.GRASS || type === "grass") {
                 if ((col + row) % 2 === 1) {
                     ctx.fillStyle = "rgba(0, 0, 0, 0.035)";
                     ctx.fillRect(x, y, DISPLAY_TILE_SIZE, DISPLAY_TILE_SIZE);
@@ -193,9 +225,37 @@ function buildWorldMapCanvas() {
    COLLISIONS
 ============================================================ */
 
+function resolveWorldTile(col, row) {
+    if (col < 0 || col >= MAP_COLS || row < 0 || row >= MAP_ROWS) {
+        return { tileId: null, isBlocking: true, allowsEncounter: false };
+    }
+
+    const tileId = worldMap[row]?.[col];
+
+    if (typeof mapEditorFindTile === "function") {
+        const definition = mapEditorFindTile(tileId);
+        if (definition) {
+            return {
+                tileId,
+                isBlocking: definition.collision === true,
+                allowsEncounter: definition.encounters === true
+            };
+        }
+    }
+
+    if (tileId === TILE_TYPES.TREE || tileId === "tree") {
+        return { tileId, isBlocking: true, allowsEncounter: false };
+    }
+
+    if (tileId === TILE_TYPES.TALL_GRASS || tileId === "tall-grass") {
+        return { tileId, isBlocking: false, allowsEncounter: true };
+    }
+
+    return { tileId, isBlocking: false, allowsEncounter: false };
+}
+
 function isWorldTileTree(col, row) {
-    if (col < 0 || col >= MAP_COLS || row < 0 || row >= MAP_ROWS) return true;
-    return worldMap[row][col] === TILE_TYPES.TREE;
+    return resolveWorldTile(col, row).isBlocking;
 }
 
 /* Le sprite fait TILE_SIZE × TILE_SIZE : on vérifie ses 4 coins. */
@@ -220,7 +280,7 @@ function findNearestWalkablePosition(x, y) {
                 const c = col + dc;
                 const r = row + dr;
                 if (c < 1 || c >= MAP_COLS - 1 || r < 1 || r >= MAP_ROWS - 1) continue;
-                if (worldMap[r][c] !== TILE_TYPES.TREE) {
+                if (!resolveWorldTile(c, r).isBlocking) {
                     return { x: c * TILE_SIZE, y: r * TILE_SIZE };
                 }
             }
@@ -385,8 +445,10 @@ function tryWorldEncounter() {
     const col = Math.floor(centerX / TILE_SIZE);
     const row = Math.floor(centerY / TILE_SIZE);
     if (row < 0 || row >= MAP_ROWS || col < 0 || col >= MAP_COLS) return;
+    const resolvedTile = resolveWorldTile(col, row);
+    if (!resolvedTile.allowsEncounter) return;
     if (typeof tryMapEditorEncounter === "function" && tryMapEditorEncounter(col, row)) return;
-    if (worldMap[row][col] !== TILE_TYPES.TALL_GRASS && worldMap[row][col] !== "tall-grass") return;
+    if (resolvedTile.tileId !== TILE_TYPES.TALL_GRASS && resolvedTile.tileId !== "tall-grass") return;
     if (Math.random() >= WORLD_ENCOUNTER_CHANCE) return;
     overworldState.graceDistance = WORLD_GRACE_TILES * TILE_SIZE;
     stopOverworldMode();
@@ -507,18 +569,50 @@ function stopOverworldMode() {
 }
 
 function getOverworldSaveData() {
-    return {
+    const data = {
         playerX: Math.round(overworldState.playerX),
         playerY: Math.round(overworldState.playerY),
         facing: overworldState.facing === "left" ? "left" : "right"
     };
+
+    if (typeof getMapEditorOverworldSaveData === "function") {
+        Object.assign(data, getMapEditorOverworldSaveData());
+    }
+
+    return data;
 }
 
 function applyOverworldSaveData(data) {
-    if (!data) return; let x = overworldState.playerX; let y = overworldState.playerY; if (Number.isFinite(data.playerX)) { x = Math.min(Math.max(data.playerX, TILE_SIZE), MAP_WIDTH - TILE_SIZE * 2) }
-    if (Number.isFinite(data.playerY)) { y = Math.min(Math.max(data.playerY, TILE_SIZE), MAP_HEIGHT - TILE_SIZE * 2) }
-    const col = Math.min(Math.max(Math.round(x / TILE_SIZE), 0), MAP_COLS - 1); const row = Math.min(Math.max(Math.round(y / TILE_SIZE), 0), MAP_ROWS - 1); const safe = findNearestWalkablePosition(col * TILE_SIZE, row * TILE_SIZE); overworldState.playerX = safe.x; overworldState.playerY = safe.y; if (data.facing === "left" || data.facing === "right") { overworldState.facing = data.facing }
-    overworldState.graceDistance = WORLD_GRACE_TILES * TILE_SIZE; overworldState.distanceSinceCheck = 0; overworldState.keys.clear(); overworldState.walking = !1; overworldState.moveFrom = null; overworldState.moveTarget = null; overworldState.moveProgress = 0; overworldState.stepCooldown = 0; hideWorldDialogue()
+    if (!data) return;
+
+    if (typeof applyMapEditorOverworldSaveData === "function" && data.mapId) {
+        applyMapEditorOverworldSaveData(data);
+    }
+
+    let x = overworldState.playerX;
+    let y = overworldState.playerY;
+
+    if (Number.isFinite(data.playerX)) x = Math.min(Math.max(data.playerX, TILE_SIZE), MAP_WIDTH - TILE_SIZE * 2);
+    if (Number.isFinite(data.playerY)) y = Math.min(Math.max(data.playerY, TILE_SIZE), MAP_HEIGHT - TILE_SIZE * 2);
+
+    const col = Math.min(Math.max(Math.round(x / TILE_SIZE), 0), MAP_COLS - 1);
+    const row = Math.min(Math.max(Math.round(y / TILE_SIZE), 0), MAP_ROWS - 1);
+    const safe = findNearestWalkablePosition(col * TILE_SIZE, row * TILE_SIZE);
+
+    overworldState.playerX = safe.x;
+    overworldState.playerY = safe.y;
+
+    if (data.facing === "left" || data.facing === "right") overworldState.facing = data.facing;
+
+    overworldState.graceDistance = WORLD_GRACE_TILES * TILE_SIZE;
+    overworldState.distanceSinceCheck = 0;
+    overworldState.keys.clear();
+    overworldState.walking = !1;
+    overworldState.moveFrom = null;
+    overworldState.moveTarget = null;
+    overworldState.moveProgress = 0;
+    overworldState.stepCooldown = 0;
+    hideWorldDialogue();
 }
 
 function resetOverworldState() { overworldState.playerX = WORLD_START_X; overworldState.playerY = WORLD_START_Y; overworldState.facing = "right"; overworldState.keys.clear(); overworldState.walking = !1; overworldState.walkPhase = 0; overworldState.distanceSinceCheck = 0; overworldState.graceDistance = WORLD_GRACE_TILES * TILE_SIZE; overworldState.moveFrom = null; overworldState.moveTarget = null; overworldState.moveProgress = 0; overworldState.stepCooldown = 0; overworldState.fastWalkHeld = !1; hideWorldDialogue() }
