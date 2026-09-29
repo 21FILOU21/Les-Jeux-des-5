@@ -467,7 +467,7 @@ function renderCharacters() {
                 <img src="${chemin}" 
                 alt="${escapeHtml(personnage)}"
                 class="avatar-img"
-                onerror="this.onerror=null; this.parentElement.innerHTML='${escapeHtml(initial)}';">
+                onerror="if(!this.dataset.nestedFallback){this.dataset.nestedFallback='1';this.src='assets/personnages/personnages/${escapeHtml(initial)}.png';}else{this.onerror=null; this.parentElement.innerHTML='${escapeHtml(initial)}';}">
             </div>
 
             <h2>
