@@ -964,11 +964,20 @@ async function readSaveFileFromDisk() {
 
 async function synchronizeSaveFileWithDisk() {
     try {
-        /* Contenu : le disque est la référence — uniquement en mode dossier. */
+        /* Contenu : le disque est la référence lorsqu'une source disque est disponible. */
+        let contentHandle = currentContentFileHandle || null;
+
         if (saveDirectoryHandle) {
             try {
-                const contentHandle = await getContentFileHandle(!0);
+                contentHandle = await getContentFileHandle(!0);
+            } catch (error) {
+                console.warn("Lecture de Contenu.json impossible :", error);
+                contentHandle = null;
+            }
+        }
 
+        if (contentHandle) {
+            try {
                 const file = await contentHandle.getFile();
 
                 if (file.size > 0) {
@@ -984,23 +993,6 @@ async function synchronizeSaveFileWithDisk() {
         }
 
         await migrateLegacySaveIfNeeded();
-
-        /* Contenu : le disque est la référence (mémoire ↔ disque). */
-        try {
-            const contentHandle = await getContentFileHandle(!0);
-
-            const file = await contentHandle.getFile();
-
-            if (file.size > 0) {
-                const text = await file.text();
-
-                if (text.trim()) {
-                    contenuMemory = normalizeContenuData(JSON.parse(text));
-                }
-            }
-        } catch (error) {
-            console.warn("Lecture de Contenu.json impossible :", error);
-        }
 
         const readable = await canReadSaveHandlesSilently();
 
@@ -1028,7 +1020,6 @@ async function synchronizeSaveFileWithDisk() {
         console.error("Synchronisation de Saves.json impossible :", error);
     }
 }
-
 async function saveCurrentGameBeforeSwitching() {
     if (!globalState.adventureStarted) {
         return;
