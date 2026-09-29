@@ -59,7 +59,7 @@ const KEYBIND_ACTIONS = [
     { action: "action2", label: "Action 2 — Soigner" },
     { action: "action3", label: "Action 3 — S'enfuir" },
     { action: "action4", label: "Action 4 — Recharger" },
-    { action: "action5", label: "Action 5 — Inventaire" }
+    { action: "action5", label: "Action 5 — Inventaire" },
     { action: "attack1", label: "Attaque 1 (sélection)" },
     { action: "attack2", label: "Attaque 2 (sélection)" },
     { action: "attack3", label: "Attaque 3 (sélection)" },
