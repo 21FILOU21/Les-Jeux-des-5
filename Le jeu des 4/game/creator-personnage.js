@@ -270,6 +270,36 @@ function submitPersonnageCreator(parentEvolution, existing) {
         }
     }
 
+    const megaActive = $("#dev-p-mega-enabled")?.value === "1";
+    let megaEvolution = null;
+
+    if (megaActive) {
+        const megaTarget = $("#dev-p-mega-target")?.value || "";
+        const megaStoneId = $("#dev-p-mega-stone")?.value || "";
+
+        if (!megaTarget || megaTarget === nom) {
+            showToast("Cible Méga invalide", "Choisis un personnage existant différent du personnage actuel.");
+            return;
+        }
+
+        const targetExists = (state.contenu?.Personnages || []).some(personnage => personnage && personnage.Nom === megaTarget);
+        if (!targetExists) {
+            showToast("Cible Méga introuvable", "Le personnage Méga cible n'existe plus.");
+            return;
+        }
+
+        const stone = typeof getItemDefinition === "function" ? getItemDefinition(megaStoneId) : null;
+        if (!stone || !isMegaStoneItem(stone)) {
+            showToast("Méga Stone invalide", "Choisis une Méga Stone existante.");
+            return;
+        }
+
+        megaEvolution = {
+            Cible: megaTarget,
+            StoneId: stone.Id
+        };
+    }
+
     const personnage = {
         Nom: nom,
         TypeEnergie: typeEnergie,
@@ -287,7 +317,8 @@ function submitPersonnageCreator(parentEvolution, existing) {
         Vitesse: vitesse,
         Image: image,
         Attaques: isEdit ? (Array.isArray(existing.Attaques) ? existing.Attaques.slice() : []) : [],
-        Evolution: evolution
+        Evolution: evolution,
+        MegaEvolution: megaEvolution
     };
 
     if (isEdit) {
