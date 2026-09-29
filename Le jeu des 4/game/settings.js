@@ -226,7 +226,7 @@ document.addEventListener("keydown", (event) => {
 
     event.preventDefault();
 
-    event.stopPropagation();
+    event.stopImmediatePropagation();
 
     captureKeybind(event.key);
 }, !0);
