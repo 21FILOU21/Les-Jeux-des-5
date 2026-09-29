@@ -404,6 +404,8 @@ async function useInventoryItem(itemId, context = "battle") {
 
     if (isMegaStoneItem(item)) {
         closeItemModal();
+        state.busy = !0;
+        updateActionButtons();
 
         const result = await activateMegaEvolution(item);
 
@@ -417,6 +419,9 @@ async function useInventoryItem(itemId, context = "battle") {
             await sleep(400);
 
             if (!state.battleOver) await monsterTurn();
+        } else {
+            state.busy = !1;
+            updateActionButtons();
         }
 
         return;
