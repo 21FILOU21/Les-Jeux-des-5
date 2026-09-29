@@ -197,8 +197,8 @@ function getCharacterImagePath(hero) {
     if (typeof hero === "object") {
         if (typeof hero.Image === "string" && hero.Image.trim() !== "") return hero.Image;
 
-        return `assets/personnages/${hero.Nom}.png`;
+        return `assets/personnages/personnages/${hero.Nom}.png`;
     }
 
-    return `assets/personnages/${hero}.png`;
+    return `assets/personnages/personnages/${hero}.png`;
 }
