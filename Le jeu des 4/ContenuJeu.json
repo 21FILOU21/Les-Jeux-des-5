@@ -54,7 +54,7 @@
       "NombreRoulette": 1,
       "MinEnergie": 0,
       "MaxEnergie": 60,
-      "Image": "assets/personnages/William.png",
+      "Image": "assets/personnages/personnages/William.png",
       "Attaques": [
         "Broyage du bicep",
         "Charge sans limite",
@@ -75,7 +75,7 @@
       "NombreRoulette": 3,
       "MinEnergie": 0,
       "MaxEnergie": 80,
-      "Image": "assets/personnages/Shaun.png",
+      "Image": "assets/personnages/personnages/Shaun.png",
       "Attaques": [
         "Explosion de la baguette",
         "Tir du croissant",
