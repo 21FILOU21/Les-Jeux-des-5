@@ -114,14 +114,6 @@ function updateBattleUI() {
 
     $("#monster-number").textContent = selectedMonster ? `#${selectedMonster.number}` : "—";
 
-    $("#item-force").textContent = state.itemPotionForce;
-
-    $("#item-bandage").textContent = state.itemBandage;
-
-    $("#item-armor").textContent = state.itemArmor;
-
-    $("#item-totem").textContent = state.itemTotem;
-
     if (state.turn === "player") {
         $("#turn-text").textContent = "Tour du joueur";
     } else {
@@ -212,7 +204,7 @@ function updateActionButtons() {
 
     $("#heal-btn").disabled = !enabled;
 
-    $("#item-btn").disabled = !enabled;
+    $("#inventory-btn").disabled = !enabled;
 
     $("#ignore-btn").disabled = !enabled;
 
