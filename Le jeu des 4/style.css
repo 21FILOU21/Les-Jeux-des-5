@@ -3841,3 +3841,10 @@ button:disabled {
 .me-loot-row{display:grid;grid-template-columns:1.5fr .8fr .7fr .7fr 34px;gap:5px;margin:5px 0}
 .me-loot-row input,.me-loot-row select{min-width:0}
 @media(max-width:900px){.map-editor-layout{grid-template-columns:1fr}.map-editor-layout aside{max-height:280px}.map-editor-content{overflow:auto}}
+
+
+/* ============================================================
+   MODE CONFIGURATION — INSTANCES DU MAP CREATOR
+============================================================ */
+.map-editor-tools button.active,.map-editor-toolbar button.active{outline:2px solid currentColor;box-shadow:0 0 0 1px rgba(255,255,255,.18) inset}
+.map-editor-config-note{font-size:.82rem;opacity:.78;padding:8px 10px;background:rgba(255,255,255,.05);border-radius:8px}
