@@ -475,30 +475,27 @@ function buildVarietyWheels(variety, level = 1) {
 
 const MONSTER_VARIETIES = [];
 
-function createMonster(number, index) {
-    const level = rollEnemyLevel();
+function createMonster(number, index, encounterRequest = null) {
+    const exactDefinition = encounterRequest?.monsterDefinition || null;
+    const level = exactDefinition
+        ? Math.max(1, Math.floor(Number(encounterRequest.level) || 1))
+        : rollEnemyLevel();
 
     const enemyPool = (state.config.enemyPool === "personnages") ? "personnages" : "monstres";
 
-    let variety = null;
+    let variety = exactDefinition;
 
-    if (enemyPool === "personnages") {
+    if (!variety && enemyPool === "personnages") {
         const personnages = (state.contenu?.Personnages || []).filter(p => p && p.Nom);
-
         if (personnages.length > 0) variety = personnages[randomInt(0, personnages.length - 1)];
-    } else if (MONSTER_VARIETIES.length > 0) {
+    } else if (!variety && MONSTER_VARIETIES.length > 0) {
         variety = MONSTER_VARIETIES[randomInt(0, MONSTER_VARIETIES.length - 1)];
     }
 
     const isPersonnageEnemy = enemyPool === "personnages" && variety !== null;
-
     const rawBossChance = Math.floor(globalState.monsterKilled / 5);
-
     const bossChance = isPersonnageEnemy ? Math.floor(rawBossChance / 2) : rawBossChance;
-
-    const isBoss = Math.random() * 100 < bossChance;
-
-    const bossMultiplier = isBoss ? Math.max(1, Math.floor(number / 5)) : 1;
+    const isBoss = exactDefinition ? Boolean(exactDefinition.isBoss) : Math.random() * 100 < bossChance;
 
     const baseHp = variety ? Math.max(1, Math.floor(Number(variety.Vie) || MONSTER_BASE_HP)) * (isBoss ? 3 * bossMultiplier : 1) : (isBoss ? MONSTER_BASE_HP * 3 * bossMultiplier : roundToEven(1.5 * number + MONSTER_BASE_HP));
 
