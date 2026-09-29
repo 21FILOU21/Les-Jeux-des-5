@@ -615,8 +615,44 @@ function refreshHeroReferencesIfAffected() {
     }
 }
 
+function synchronizePersonnageAttackRelations() {
+    if (!state.contenu) return;
+
+    const attacksByCharacter = new Map();
+
+    (state.contenu.Attaques || []).forEach(attaque => {
+        if (!attaque || !attaque.Nom || !attaque.Personnage) return;
+
+        if (!attacksByCharacter.has(attaque.Personnage)) {
+            attacksByCharacter.set(attaque.Personnage, []);
+        }
+
+        const names = attacksByCharacter.get(attaque.Personnage);
+
+        if (!names.includes(attaque.Nom)) {
+            names.push(attaque.Nom);
+        }
+    });
+
+    (state.contenu.Personnages || []).forEach(personnage => {
+        if (!personnage || !personnage.Nom) return;
+
+        const names = (attacksByCharacter.get(personnage.Nom) || []).slice();
+
+        personnage.Attaques = names;
+
+        const created = getCreatorContenu().Personnages?.find(entry => entry && entry.Nom === personnage.Nom);
+
+        if (created) {
+            created.Attaques = names.slice();
+        }
+    });
+}
+
 function saveCreatorContenu() {
     mergeCreatorContentIntoContenu();
+
+    synchronizePersonnageAttackRelations();
 
     refreshHeroReferencesIfAffected();
 
