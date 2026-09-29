@@ -100,13 +100,13 @@ function createEmptySaveFile() {
 function normalizeContenuData(data) {
     if (!data || typeof data !== "object" || Array.isArray(data)) data = createEmptyContenu();
 
-    ["Personnages", "Monstres", "Attaques", "Effets", "Energies", "Statuts", "EffetsVisuels"].forEach(key => {
+    ["Personnages", "Monstres", "Attaques", "Effets", "Energies", "Statuts", "EffetsVisuels", "Items"].forEach(key => {
         if (!Array.isArray(data[key])) data[key] = [];
     });
 
     if (!data.suppressions || typeof data.suppressions !== "object" || Array.isArray(data.suppressions)) data.suppressions = {};
 
-    ["Personnages", "Attaques", "Effets", "Energies", "Statuts", "EffetsVisuels"].forEach(key => {
+    ["Personnages", "Attaques", "Effets", "Energies", "Statuts", "EffetsVisuels", "Items"].forEach(key => {
         if (!Array.isArray(data.suppressions[key])) data.suppressions[key] = [];
     });
 
