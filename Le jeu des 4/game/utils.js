@@ -209,10 +209,8 @@ function shakeBattleScreen() {
    via son garde typeof getCharacterImagePath)
 ============================================================ */
 
-function normalizeCharacterImagePath(path, fallbackName = "") {
+function normalizeCharacterImagePath(path) {
     let value = String(path || "").trim();
-
-    if (!value) value = fallbackName ? fallbackName + ".png" : "";
     if (!value) return "";
 
     value = value.replaceAll("\\", "/");
@@ -235,6 +233,11 @@ function normalizeCharacterImagePath(path, fallbackName = "") {
     }
 
     return value;
+}
+
+function getCharacterImagePath(hero) {
+    if (!hero || typeof hero !== "object") return "";
+    return normalizeCharacterImagePath(hero.Image);
 }
 
 function getCharacterImagePath(hero) {
