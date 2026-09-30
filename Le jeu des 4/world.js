@@ -415,9 +415,9 @@ function drawWorldPlayer(ctx) {
     // dans le monde même lorsque son asset est un portrait plus détaillé.
     ctx.save();
     ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
-    ctx.fillRect(displayX + 10 * WORLD_SCALE, displayY + 14 * WORLD_SCALE, 28, 6);
+    ctx.fillRect(displayX + 6 * WORLD_SCALE, displayY + 14 * WORLD_SCALE, 36, 6);
     ctx.fillStyle = "rgba(128, 154, 95, 0.18)";
-    ctx.fillRect(displayX + 14 * WORLD_SCALE, displayY + 14 * WORLD_SCALE, 20, 2);
+    ctx.fillRect(displayX + 10 * WORLD_SCALE, displayY + 14 * WORLD_SCALE, 28, 2);
     ctx.restore();
 
     const image = overworldState.heroImage;
