@@ -880,10 +880,75 @@ function mapEditorRenderList(){
     });
 }
 
+function mapEditorCountTileUsage(tileId){
+    const id=String(tileId);
+    let count=0;
+    for(const m of mapEditorMaps){
+        for(const layer of m.layers||[])for(const cell of layer.cells||[])if(String(cell??"")===id)count++;
+        for(const object of m.objects||[])if(String(object.definitionId||"")===id)count++;
+    }
+    return count;
+}
+
+function mapEditorRemoveTileDefinition(tileId){
+    const id=String(tileId||"");
+    if(!id||id===MAP_EDITOR_EMPTY_TILE_ID)return false;
+
+    const usage=mapEditorCountTileUsage(id);
+    if(usage>0){
+        const confirmed=window.confirm(
+            "Cette tuile est actuellement utilisée sur la map.\n\n"+
+            "Elle est présente sur "+usage+" cases.\n\n"+
+            "Voulez-vous vraiment supprimer cette tuile ?\n\n"+
+            "Les occurrences seront remplacées par VIDE."
+        );
+        if(!confirmed)return false;
+    }
+
+    for(const m of mapEditorMaps){
+        for(const layer of m.layers||[]){
+            layer.cells=(layer.cells||[]).map(cell=>String(cell??"")===id?MAP_EDITOR_EMPTY_TILE_ID:(cell===null||cell===undefined||cell===""?MAP_EDITOR_EMPTY_TILE_ID:cell));
+        }
+        if(Array.isArray(m.tileset))m.tileset=m.tileset.filter(tile=>String(tile)!==id&&String(tile)!==MAP_EDITOR_EMPTY_TILE_ID);
+        m.tileset=[...new Set([...(m.tileset||[]),MAP_EDITOR_EMPTY_TILE_ID])];
+        if(Array.isArray(m.encounters)){
+            m.encounters=m.encounters.map(encounter=>Object.assign({},encounter,{tiles:(encounter.tiles||[]).filter(tile=>String(tile)!==id)})).filter(encounter=>(encounter.tiles||[]).length>0);
+        }
+        if(Array.isArray(m.objects)){
+            m.objects=m.objects.filter(object=>{
+                if(String(object.definitionId||"")!==id)return true;
+                mapEditorOpenedObjectIds.delete(object.instanceId||object.id);
+                return false;
+            });
+        }
+        if(Array.isArray(m.tileDefinitions))m.tileDefinitions=m.tileDefinitions.filter(tile=>String(tile?.id||"")!==id);
+    }
+    mapEditorInteractiveDefinitions=mapEditorInteractiveDefinitions.filter(tile=>String(tile?.id||"")!==id);
+    mapEditorPersistInteractiveDefinitions();
+    mapEditorSelectedTile=null;
+    mapEditorSelectedInstanceId=null;
+    mapEditorHoveredInstanceId=null;
+    for(const m of mapEditorMaps)mapEditorNormalizeMapTileReferences(m);
+    mapEditorSaveCurrent();
+    mapEditorPersist();
+    mapEditorApplyRuntime();
+    mapEditorRenderTiles();
+    mapEditorRender();
+    mapEditorLoadRuntimeImages();
+    return true;
+}
+
+function mapEditorRequestTileDeletion(tileId){
+    const tile=mapEditorFindTileDefinition(tileId);
+    if(!tile||tile.id===MAP_EDITOR_EMPTY_TILE_ID)return false;
+    return mapEditorRemoveTileDefinition(tile.id);
+}
+
 function mapEditorRenderTiles(){
     const list=document.getElementById("map-editor-tiles");if(!list)return;
-    list.innerHTML=mapEditorAllTiles().map(t=>'<button type="button" class="map-editor-tile '+(mapEditorSelectedTile===t.id?"selected":"")+'" data-tile="'+t.id+'"><span style="background:'+(t.fallback||"#777")+'"></span>'+t.name+'</button>').join("");
+    list.innerHTML=mapEditorAllTiles().map(t=>'<div class="map-editor-tile-entry"><button type="button" class="map-editor-tile '+(mapEditorSelectedTile===t.id?"selected":"")+'" data-tile="'+t.id+'"><span style="background:'+(t.fallback||"#777")+'"></span>'+t.name+'</button><button type="button" class="map-editor-tile-delete" data-delete-tile="'+t.id+'" title="Supprimer cette tuile" aria-label="Supprimer '+t.name+'">×</button></div>').join("");
     list.querySelectorAll("[data-tile]").forEach(b=>b.onclick=()=>{mapEditorSelectedTile=b.dataset.tile;mapEditorTool="paint";mapEditorRenderTiles();mapEditorRender();});
+    list.querySelectorAll("[data-delete-tile]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();mapEditorRequestTileDeletion(b.dataset.deleteTile);});
 }
 
 function mapEditorOpenTileForm(existing=null){
