@@ -469,9 +469,9 @@ function renderCharacters() {
 
             <div class="character-avatar">
                 <img src="${chemin}" 
-                alt="${escapeHtml(personnage)}"
+                alt="${escapeHtml(personnage.Nom)}"
                 class="avatar-img"
-                onerror="if(!this.dataset.nestedFallback){this.dataset.nestedFallback='1';this.src='assets/personnages/personnages/${escapeHtml(initial)}.png';}else{this.onerror=null; this.parentElement.innerHTML='${escapeHtml(initial)}';}">
+                onerror="this.onerror=null; this.classList.add('hidden'); this.parentElement.insertAdjacentHTML('beforeend','<span class=\"avatar-fallback\">${escapeHtml(initial)}</span>');">
             </div>
 
             <h2>
