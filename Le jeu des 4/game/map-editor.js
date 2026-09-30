@@ -1033,12 +1033,28 @@ function mapEditorSelectInstanceAt(col,row){
     if(instance)mapEditorOpenInstanceConfig(instance);
 }
 
+async function mapEditorFillConfigImagePreview(elementId,key){
+    const element=document.getElementById(elementId);
+    if(!element)return;
+    if(!key){
+        element.textContent="Rien";
+        return;
+    }
+    element.textContent=String(key);
+    const data=await mapEditorGetAsset(key);
+    const current=document.getElementById(elementId);
+    if(!current||!data)return;
+    current.innerHTML='<span class="me-config-image-value">'+escapeHtml(String(key))+'</span><img class="me-config-image-preview" src="'+escapeHtml(data)+'" alt="Aperçu de l’image">';
+}
+
 function mapEditorOpenInstanceConfig(instance){
     const m=mapEditorCurrent();if(!m||!instance)return;
     const props=mapEditorGetInstanceProps(instance);
     const rows=(props.lootTable||[]).map((e,i)=>'<div class="me-loot-row"><select data-override-loot-item="'+i+'">'+getMapEditorItemCatalog().map(x=>'<option value="'+x.id+'" '+(x.id===e.itemId?"selected":"")+'>'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-override-loot-chance="'+i+'" value="'+(e.chance??100)+'"><input type="number" min="1" data-override-loot-min="'+i+'" value="'+(e.min??1)+'"><input type="number" min="1" data-override-loot-max="'+i+'" value="'+(e.max??1)+'"><button type="button" data-override-loot-del="'+i+'">×</button></div>').join("");
-    const html='<div class="map-editor-dialog"><h3>Configuration de l’instance</h3><p class="map-editor-config-note">Seule cette instance est modifiée. La définition globale reste inchangée.</p><label>ID instance<input id="me-o-id" value="'+instance.instanceId+'" readonly></label><label>Type<input value="'+(mapEditorGetInstanceDefinition(instance)?.name||instance.type)+'" readonly></label><label>X<input id="me-o-x" type="number" min="0" max="'+(m.cols-1)+'" value="'+instance.x+'"></label><label>Y<input id="me-o-y" type="number" min="0" max="'+(m.rows-1)+'" value="'+instance.y+'"></label><label><input id="me-o-collision" type="checkbox" '+(props.collision!==false?"checked":"")+'> Collision override</label><label><input id="me-o-use-custom-images" type="checkbox" '+((instance.overrides.closedImageKey||instance.overrides.openImageKey)?"checked":"")+'> Images propres à cette instance</label><label>Image fermée PNG/JPG<input id="me-o-closed" type="file" accept="image/png,image/jpeg"></label><label>Image ouverte PNG/JPG<input id="me-o-open" type="file" accept="image/png,image/jpeg"></label><h4>Loot de cette instance</h4><div id="me-o-loot">'+rows+'</div><button type="button" id="me-o-loot-add" class="secondary-button">+ Récompense</button><div class="dev-form-actions"><button id="me-o-save" class="primary-button">Appliquer</button><button id="me-o-reset" class="secondary-button">Réinitialiser les overrides</button><button id="me-o-cancel" class="secondary-button">Annuler</button></div></div>';
+    const html='<div class="map-editor-dialog"><h3>Configuration de l’instance</h3><p class="map-editor-config-note">Seule cette instance est modifiée. La définition globale reste inchangée.</p><label>ID instance<input id="me-o-id" value="'+instance.instanceId+'" readonly></label><label>Type<input value="'+(mapEditorGetInstanceDefinition(instance)?.name||instance.type)+'" readonly></label><label>X<input id="me-o-x" type="number" min="0" max="'+(m.cols-1)+'" value="'+instance.x+'"></label><label>Y<input id="me-o-y" type="number" min="0" max="'+(m.rows-1)+'" value="'+instance.y+'"></label><label><input id="me-o-collision" type="checkbox" '+(props.collision!==false?"checked":"")+'> Collision override</label><label><input id="me-o-use-custom-images" type="checkbox" '+((instance.overrides.closedImageKey||instance.overrides.openImageKey)?"checked":"")+'> Images propres à cette instance</label><div class="me-config-image-field"><strong>Image fermée</strong><div id="me-o-closed-current" class="me-config-image-value">Rien</div></div><label>Remplacer l’image fermée PNG/JPG<input id="me-o-closed" type="file" accept="image/png,image/jpeg"></label><div class="me-config-image-field"><strong>Image ouverte</strong><div id="me-o-open-current" class="me-config-image-value">Rien</div></div><label>Remplacer l’image ouverte PNG/JPG<input id="me-o-open" type="file" accept="image/png,image/jpeg"></label><h4>Loot de cette instance</h4><div id="me-o-loot">'+rows+'</div><button type="button" id="me-o-loot-add" class="secondary-button">+ Récompense</button><div class="dev-form-actions"><button id="me-o-save" class="primary-button">Appliquer</button><button id="me-o-reset" class="secondary-button">Réinitialiser les overrides</button><button id="me-o-cancel" class="secondary-button">Annuler</button></div></div>';
     mapEditorDialog(html);
+    mapEditorFillConfigImagePreview("me-o-closed-current",props.closedImageKey);
+    mapEditorFillConfigImagePreview("me-o-open-current",props.openImageKey);
     const loot=document.getElementById("me-o-loot");
     document.getElementById("me-o-loot-add").onclick=()=>{const index=loot.children.length;const div=document.createElement("div");div.className="me-loot-row";div.innerHTML='<select data-override-loot-item="'+index+'">'+getMapEditorItemCatalog().map(x=>'<option value="'+x.id+'">'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-override-loot-chance="'+index+'" value="100"><input type="number" min="1" data-override-loot-min="'+index+'" value="1"><input type="number" min="1" data-override-loot-max="'+index+'" value="1"><button type="button">×</button>';div.querySelector("button").onclick=()=>div.remove();loot.appendChild(div);};
     loot.querySelectorAll("button[data-override-loot-del]").forEach(b=>b.onclick=()=>b.parentElement.remove());
