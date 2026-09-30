@@ -411,17 +411,22 @@ function drawWorldPlayer(ctx) {
     const displayX = Math.round(overworldState.playerX * WORLD_SCALE - overworldState.camera.x);
     const displayY = Math.round((overworldState.playerY - bob) * WORLD_SCALE - overworldState.camera.y);
 
+    // Ombre de contact commune à tous les sprites : le personnage reste ancré
+    // dans le monde même lorsque son asset est un portrait plus détaillé.
+    ctx.save();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
+    ctx.fillRect(displayX + 10 * WORLD_SCALE, displayY + 14 * WORLD_SCALE, 28, 6);
+    ctx.fillStyle = "rgba(128, 154, 95, 0.18)";
+    ctx.fillRect(displayX + 14 * WORLD_SCALE, displayY + 14 * WORLD_SCALE, 20, 2);
+    ctx.restore();
+
     const image = overworldState.heroImage;
 
     if (image && image.complete && image.naturalWidth > 0) {
         ctx.save();
-
-        /* Petit pixel-art → lissage OFF (upscale entier net).
-           Grande image (portrait) → lissage ON (downscale lisible). */
         ctx.imageSmoothingEnabled = image.naturalWidth > 64;
 
         if (overworldState.facing === "left") {
-            /* Le sprite de base regarde à droite → miroir horizontal */
             ctx.translate(displayX + DISPLAY_TILE_SIZE, displayY);
             ctx.scale(-1, 1);
             ctx.drawImage(image, 0, 0, DISPLAY_TILE_SIZE, DISPLAY_TILE_SIZE);
