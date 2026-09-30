@@ -4413,3 +4413,51 @@ body {
         transition-duration: 0.001ms !important;
     }
 }
+
+
+/* Micro-VFX d'impact : particules carrées nettes, limitées et temporaires. */
+.impact-particles {
+    position: absolute;
+    inset: 0;
+    z-index: 18;
+    pointer-events: none;
+}
+
+.impact-particle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    background: #ffe7a3;
+    box-shadow: 0 0 7px rgba(255, 184, 110, .65);
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(.8);
+    animation: impactParticle .32s var(--delay) steps(3, end) forwards;
+}
+
+.impact-particle:nth-child(3n) {
+    width: 5px;
+    height: 9px;
+}
+
+@keyframes impactParticle {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(.7);
+    }
+    18% {
+        opacity: 1;
+        transform: translate(
+            calc(-50% + var(--dx) * .28),
+            calc(-50% + var(--dy) * .28)
+        ) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(
+            calc(-50% + var(--dx)),
+            calc(-50% + var(--dy))
+        ) scale(.55);
+    }
+}
