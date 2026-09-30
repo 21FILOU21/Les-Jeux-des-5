@@ -1109,9 +1109,9 @@ function mapEditorRender(){
     const m=mapEditorCurrent(),canvas=document.getElementById("map-editor-canvas");if(!m||!canvas)return;
     const ctx=canvas.getContext("2d"),zoom=Number(canvas.dataset.zoom)||2,panX=Number(canvas.dataset.panX)||0,panY=Number(canvas.dataset.panY)||0;
     ctx.clearRect(0,0,canvas.width,canvas.height);ctx.save();ctx.translate(canvas.width/2-panX*zoom,canvas.height/2-panY*zoom);ctx.scale(zoom,zoom);
-    const tileMap=new Map(mapEditorAllTiles().map(t=>[t.id,t])),layer=mapEditorTopLayer();
+    const layer=mapEditorTopLayer();
     for(let y=0;y<m.rows;y++)for(let x=0;x<m.cols;x++){
-        const id=layer.cells[y*m.cols+x],t=tileMap.get(id)||MAP_EDITOR_DEFAULT_TILES[0];
+        const id=layer.cells[y*m.cols+x],t=mapEditorFindTile(id);
         ctx.fillStyle=t.fallback||"#777";ctx.fillRect(x*m.tileSize,y*m.tileSize,m.tileSize,m.tileSize);
         const img=t.imageKey?mapEditorRuntimeImages.get(t.imageKey):null;if(img)ctx.drawImage(img,x*m.tileSize,y*m.tileSize,m.tileSize,m.tileSize);
         if(mapEditorSelectedTile===id&&mapEditorMode==="placement"){ctx.strokeStyle="#fff";ctx.lineWidth=1/zoom;ctx.strokeRect(x*m.tileSize+.5,y*m.tileSize+.5,m.tileSize-1,m.tileSize-1);}
