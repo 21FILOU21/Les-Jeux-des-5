@@ -108,37 +108,81 @@ let worldMapCanvas = null;    // carte pré-rendue à l'échelle d'affichage
 
 function drawTileArt(ctx, type, S) {
     if (typeof drawMapEditorRuntimeTile === "function" && drawMapEditorRuntimeTile(ctx, type, S)) return;
+
     const u = S / 16;
 
+    // Palette courte et contrôlée : davantage de volume sans quitter le pixel art.
     if (type === TILE_TYPES.TREE) {
-        ctx.fillStyle = "#173821";
+        ctx.fillStyle = "#162c20";
         ctx.fillRect(0, 0, S, S);
-        ctx.fillStyle = "#2c5e33";
-        ctx.fillRect(u, u, S - 2 * u, S - 5 * u);
-        ctx.fillStyle = "#3d7a42";
-        ctx.fillRect(3 * u, 2 * u, 5 * u, 4 * u);
-        ctx.fillStyle = "#5b3a24";
-        ctx.fillRect(6 * u, S - 4 * u, 4 * u, 3 * u);
+
+        ctx.fillStyle = "#102217";
+        ctx.fillRect(2 * u, 13 * u, 12 * u, 3 * u);
+
+        ctx.fillStyle = "#4b321f";
+        ctx.fillRect(6 * u, 9 * u, 4 * u, 7 * u);
+        ctx.fillStyle = "#69462a";
+        ctx.fillRect(7 * u, 9 * u, 2 * u, 6 * u);
+        ctx.fillStyle = "#352316";
+        ctx.fillRect(9 * u, 11 * u, u, 4 * u);
+
+        ctx.fillStyle = "#1f4728";
+        ctx.fillRect(2 * u, 4 * u, 12 * u, 7 * u);
+        ctx.fillRect(4 * u, 2 * u, 8 * u, 3 * u);
+        ctx.fillRect(6 * u, u, 4 * u, 3 * u);
+
+        ctx.fillStyle = "#2e6335";
+        ctx.fillRect(3 * u, 4 * u, 6 * u, 4 * u);
+        ctx.fillRect(7 * u, 3 * u, 5 * u, 3 * u);
+        ctx.fillRect(5 * u, 7 * u, 7 * u, 3 * u);
+
+        ctx.fillStyle = "#4b8243";
+        ctx.fillRect(4 * u, 3 * u, 3 * u, 2 * u);
+        ctx.fillRect(8 * u, 5 * u, 3 * u, 2 * u);
+        ctx.fillRect(6 * u, 8 * u, 2 * u, u);
+
+        ctx.fillStyle = "#6d9b50";
+        ctx.fillRect(5 * u, 3 * u, u, u);
+        ctx.fillRect(9 * u, 5 * u, u, u);
+
+        ctx.fillStyle = "#183b22";
+        ctx.fillRect(2 * u, 9 * u, 2 * u, 3 * u);
+        ctx.fillRect(12 * u, 8 * u, 2 * u, 3 * u);
         return;
     }
 
     if (type === TILE_TYPES.TALL_GRASS) {
-        ctx.fillStyle = "#2f6b33";
+        ctx.fillStyle = "#2a6130";
         ctx.fillRect(0, 0, S, S);
-        ctx.fillStyle = "#245727";
-        ctx.fillRect(2 * u, 3 * u, u, 3 * u);
-        ctx.fillRect(7 * u, 2 * u, u, 4 * u);
-        ctx.fillRect(12 * u, 5 * u, u, 3 * u);
-        ctx.fillRect(4 * u, 10 * u, u, 3 * u);
-        ctx.fillRect(10 * u, 11 * u, u, 3 * u);
-        ctx.fillStyle = "#4a8f43";
-        ctx.fillRect(5 * u, 7 * u, u, 2 * u);
-        ctx.fillRect(13 * u, 2 * u, u, 2 * u);
+
+        ctx.fillStyle = "#34783a";
+        ctx.fillRect(u, 8 * u, 14 * u, 7 * u);
+        ctx.fillStyle = "#3f873e";
+        ctx.fillRect(2 * u, 10 * u, 4 * u, 4 * u);
+        ctx.fillRect(9 * u, 8 * u, 5 * u, 6 * u);
+
+        ctx.fillStyle = "#1f5228";
+        [[2,3,1,6],[5,1,1,8],[8,4,1,6],[11,2,1,7],[14,5,1,5]].forEach(([x,y,w,h]) => {
+            ctx.fillRect(x * u, y * u, w * u, h * u);
+        });
+        ctx.fillStyle = "#5aa04a";
+        [[3,6,1,3],[6,4,1,4],[9,7,1,3],[12,5,1,4]].forEach(([x,y,w,h]) => {
+            ctx.fillRect(x * u, y * u, w * u, h * u);
+        });
+        ctx.fillStyle = "#79b85a";
+        ctx.fillRect(6 * u, 4 * u, u, u);
+        ctx.fillRect(12 * u, 5 * u, u, u);
         return;
     }
 
-    ctx.fillStyle = "#8fbf6a";
+    ctx.fillStyle = "#86b764";
     ctx.fillRect(0, 0, S, S);
+    ctx.fillStyle = "#91c36b";
+    ctx.fillRect(2 * u, 2 * u, 5 * u, u);
+    ctx.fillRect(10 * u, 11 * u, 4 * u, u);
+    ctx.fillStyle = "#6f9f56";
+    ctx.fillRect(1 * u, 12 * u, 2 * u, u);
+    ctx.fillRect(12 * u, 4 * u, 2 * u, u);
 }
 
 /* Pré-rendu de TOUTE la carte une seule fois, à l'échelle ×3.
@@ -201,11 +245,31 @@ function buildWorldMapCanvas() {
             }
 
             if (type === TILE_TYPES.GRASS || type === "grass") {
+                const seed = Math.abs((col * 92821 + row * 68917) % 97);
+
                 if ((col + row) % 2 === 1) {
-                    ctx.fillStyle = "rgba(0, 0, 0, 0.035)";
+                    ctx.fillStyle = "rgba(30, 62, 34, 0.045)";
                     ctx.fillRect(x, y, DISPLAY_TILE_SIZE, DISPLAY_TILE_SIZE);
                 }
-                if ((col * 7 + row * 13) % 11 === 0) {
+
+                if (seed % 5 === 0) {
+                    ctx.fillStyle = "#6d9e54";
+                    ctx.fillRect(x + (2 + seed % 5) * u, y + (5 + seed % 5) * u, u, 2 * u);
+                    ctx.fillRect(x + (10 + seed % 3) * u, y + (9 + seed % 4) * u, u, 2 * u);
+                }
+
+                if (seed % 9 === 0) {
+                    ctx.fillStyle = "#a7ce7c";
+                    ctx.fillRect(x + 6 * u, y + 4 * u, u, u);
+                    ctx.fillRect(x + 7 * u, y + 3 * u, u, u);
+                }
+
+                if (seed % 13 === 0) {
+                    ctx.fillStyle = "#e6dfbb";
+                    ctx.fillRect(x + 11 * u, y + 5 * u, u, u);
+                    ctx.fillRect(x + 12 * u, y + 6 * u, u, u);
+                }
+            }                if ((col * 7 + row * 13) % 11 === 0) {
                     ctx.fillStyle = "#7aa95a";
                     ctx.fillRect(x + 4 * u, y + 6 * u, 2 * u, u);
                     ctx.fillRect(x + 9 * u, y + 10 * u, 2 * u, u);
