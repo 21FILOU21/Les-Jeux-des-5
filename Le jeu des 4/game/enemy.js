@@ -500,11 +500,11 @@ function createMonster(number, index, encounterRequest = null) {
     const bossChance = isPersonnageEnemy ? Math.floor(rawBossChance / 2) : rawBossChance;
     const isBoss = exactDefinition ? Boolean(exactDefinition.isBoss) : Math.random() * 100 < bossChance;
 
-    const baseHp = variety ? Math.max(1, Math.floor(Number(variety.Vie) || MONSTER_BASE_HP)) * (isBoss ? 3 * bossMultiplier : 1) : (isBoss ? MONSTER_BASE_HP * 3 * bossMultiplier : roundToEven(1.5 * number + MONSTER_BASE_HP));
+    const baseHp = variety ? Math.max(1, Math.floor(Number(variety.Vie) || MONSTER_BASE_HP)) * (isBoss ? 3 * bossMultiplier : 1) : (isBoss ? MONSTER_BASE_HP * 3 * bossMultiplier : roundToEven(1.5 * monsterNumber + MONSTER_BASE_HP));
 
-    const basePower = variety ? Math.max(1, Math.floor(Number(variety.PuissanceBase) || 1)) : (isBoss ? randomInt(3 + roundToEven((number - 1) / 15), 6 + roundToEven((number - 1) / 15)) : randomInt(1, 3));
+    const basePower = variety ? Math.max(1, Math.floor(Number(variety.PuissanceBase) || 1)) : (isBoss ? randomInt(3 + roundToEven((monsterNumber - 1) / 15), 6 + roundToEven((monsterNumber - 1) / 15)) : randomInt(1, 3));
 
-    const baseArmor = variety ? Math.max(0, Math.floor(Number(variety.Armure) || 0)) : (isBoss ? randomInt(3 + roundToEven((number - 1) / 50), 6 + roundToEven((number - 1) / 50)) : randomInt(1, 3));
+    const baseArmor = variety ? Math.max(0, Math.floor(Number(variety.Armure) || 0)) : (isBoss ? randomInt(3 + roundToEven((monsterNumber - 1) / 50), 6 + roundToEven((monsterNumber - 1) / 50)) : randomInt(1, 3));
 
     const energyTypes = variety ? [variety.TypeEnergie, variety.TypeEnergie2].map(t => String(t || "").trim()).filter(Boolean) : rollEnemyEnergyTypes();
 
@@ -519,7 +519,7 @@ function createMonster(number, index, encounterRequest = null) {
     const items = rollMonsterItems(level);
 
     const monster = generateMonsterStats({
-        id: `monster-${number}-${index}`,
+        id: `monster-${monsterNumber}-${index}`,
         number,
         name: variety ? variety.Nom : state.config.monsterName,
         energyType: energyTypes[0],
@@ -542,7 +542,7 @@ function createMonster(number, index, encounterRequest = null) {
         attacks,
         items,
         Vitesse: variety ? Math.max(0, Math.floor(Number(variety.Vitesse) || 0)) : 0,
-        Image: variety ? (variety.Image || (enemyPool === "personnages" ? `assets/personnages/${variety.Nom}.png` : "")) : "",
+        Image: variety && typeof variety.Image === "string" ? variety.Image : "",
         rarete,
     });
 
