@@ -209,14 +209,40 @@ function shakeBattleScreen() {
    via son garde typeof getCharacterImagePath)
 ============================================================ */
 
+function normalizeCharacterImagePath(path, fallbackName = "") {
+    let value = String(path || "").trim();
+
+    if (!value) value = fallbackName ? fallbackName + ".png" : "";
+    if (!value) return "";
+
+    value = value.replaceAll("\\", "/");
+    while (value.startsWith("./")) value = value.slice(2);
+
+    if (value.startsWith("data:") || value.startsWith("blob:") || value.startsWith("http://") || value.startsWith("https://") || value.startsWith("/")) {
+        return value;
+    }
+
+    while (value.toLowerCase().startsWith("assets/personnages/assets/personnages/")) {
+        value = value.slice("assets/personnages/".length);
+    }
+
+    if (value.toLowerCase().startsWith("assets/personnages/personnages/")) {
+        value = "assets/personnages/" + value.slice("assets/personnages/personnages/".length);
+    } else if (value.toLowerCase().startsWith("personnages/")) {
+        value = "assets/" + value;
+    } else if (!value.toLowerCase().startsWith("assets/personnages/")) {
+        value = "assets/personnages/" + value.replace(/^\/+/, "");
+    }
+
+    return value;
+}
+
 function getCharacterImagePath(hero) {
     if (!hero) return "";
 
     if (typeof hero === "object") {
-        if (typeof hero.Image === "string" && hero.Image.trim() !== "") return hero.Image;
-
-        return `assets/personnages/personnages/${hero.Nom}.png`;
+        return normalizeCharacterImagePath(hero.Image, hero.Nom);
     }
 
-    return `assets/personnages/personnages/${hero}.png`;
+    return normalizeCharacterImagePath("", hero);
 }
