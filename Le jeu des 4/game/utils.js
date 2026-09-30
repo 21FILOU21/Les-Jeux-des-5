@@ -157,14 +157,32 @@ function showImpact(container) {
     }
 
     const flash = document.createElement("div");
-
     flash.className = "impact-flash";
-
     container.appendChild(flash);
+
+    // Gerbe courte de pixels : 8 particules maximum, sans boucle permanente.
+    const burst = document.createElement("div");
+    burst.className = "impact-particles";
+    const directions = [
+        [-1, -1], [0, -1], [1, -1], [-1, 0],
+        [1, 0], [-1, 1], [0, 1], [1, 1]
+    ];
+
+    directions.forEach(([dx, dy], index) => {
+        const particle = document.createElement("i");
+        particle.className = "impact-particle";
+        particle.style.setProperty("--dx", String(dx * (18 + (index % 3) * 7)));
+        particle.style.setProperty("--dy", String(dy * (16 + (index % 2) * 8)));
+        particle.style.setProperty("--delay", String((index % 3) * 12) + "ms");
+        burst.appendChild(particle);
+    });
+
+    container.appendChild(burst);
 
     setTimeout(() => {
         flash.remove();
-    }, 300);
+        burst.remove();
+    }, 340);
 }
 
 function shakeBattleScreen() {
