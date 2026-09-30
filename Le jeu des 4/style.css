@@ -3848,3 +3848,568 @@ button:disabled {
 ============================================================ */
 .map-editor-tools button.active,.map-editor-toolbar button.active{outline:2px solid currentColor;box-shadow:0 0 0 1px rgba(255,255,255,.18) inset}
 .map-editor-config-note{font-size:.82rem;opacity:.78;padding:8px 10px;background:rgba(255,255,255,.05);border-radius:8px}
+
+
+/* ============================================================
+   VISUAL OVERHAUL — POLISH PIXEL / REALISTE
+   Couche additive : conserve l'architecture et les classes existantes.
+============================================================ */
+
+:root {
+    --bg: #070b0d;
+    --bg-secondary: #0d1515;
+    --panel: #121b1a;
+    --panel-light: #182522;
+    --border: #31423d;
+    --text: #f1f4e9;
+    --muted: #91a39a;
+    --accent: #63c7a1;
+    --accent-light: #9be6c6;
+    --danger: #e66b63;
+    --danger-dark: #9e3838;
+    --success: #62d49c;
+    --success-dark: #267b58;
+    --energy: #58b8e8;
+    --gold: #e5c76a;
+    --radius: 12px;
+    --radius-small: 7px;
+    --shadow: 0 18px 48px rgba(0, 0, 0, 0.48);
+}
+
+/* Atmosphère générale : profondeur discrète, sans texture lisse qui
+   contredirait le langage pixelisé. */
+body {
+    background:
+        radial-gradient(circle at 50% -10%, rgba(99, 199, 161, 0.08), transparent 38%),
+        radial-gradient(circle at 100% 100%, rgba(88, 184, 232, 0.055), transparent 30%),
+        linear-gradient(180deg, #080d0e 0%, #06090b 100%);
+}
+
+.screen-header h1,
+.game-logo,
+.battle-header h1,
+.end-container h1 {
+    text-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+}
+
+.screen-header {
+    margin-bottom: 28px;
+}
+
+.eyebrow,
+.fighter-label,
+.section-title,
+.roulette-label {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: 0.14em;
+}
+
+/* Cartes : bord extérieur + filet intérieur = finition de panneau de jeu. */
+.setup-card,
+.fighter-panel,
+.log-card,
+.inventory-card,
+.modal-content,
+.roulette-card,
+.character-card,
+.end-stat,
+.info-pill {
+    border-color: #3a4c46;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.035),
+        inset 0 0 0 1px rgba(0,0,0,0.18),
+        var(--shadow);
+}
+
+.setup-card,
+.fighter-panel,
+.modal-content {
+    background:
+        linear-gradient(180deg, rgba(25, 36, 33, 0.98), rgba(13, 21, 20, 0.98));
+}
+
+.character-card {
+    background:
+        linear-gradient(180deg, #17231f 0%, #101917 100%);
+    border-width: 1px;
+}
+
+.character-card:hover {
+    transform: translateY(-4px);
+    border-color: #628d7e;
+    box-shadow:
+        0 14px 30px rgba(0,0,0,.35),
+        inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+.character-card.selected {
+    border-color: var(--accent);
+    background:
+        linear-gradient(180deg, rgba(42, 73, 62, .92), rgba(18, 31, 27, .98));
+    box-shadow:
+        0 0 0 2px rgba(99,199,161,.18),
+        0 16px 35px rgba(0,0,0,.42),
+        inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.character-avatar {
+    background:
+        radial-gradient(circle at 50% 32%, rgba(99,199,161,.18), transparent 54%),
+        repeating-linear-gradient(135deg, rgba(255,255,255,.025) 0 2px, transparent 2px 6px),
+        #0a1110;
+    border: 1px solid #31433d;
+    box-shadow: inset 0 0 0 2px rgba(0,0,0,.22);
+}
+
+.avatar-img {
+    image-rendering: auto;
+    filter: drop-shadow(0 10px 12px rgba(0,0,0,.42));
+}
+
+/* Combat : le panneau devient une scène, pas seulement une carte UI. */
+#battle-screen {
+    background:
+        radial-gradient(circle at 50% 28%, rgba(99,199,161,.045), transparent 34%),
+        radial-gradient(circle at 20% 55%, rgba(88,184,232,.035), transparent 32%);
+}
+
+.fighter-panel {
+    position: relative;
+    overflow: hidden;
+}
+
+.fighter-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border: 1px solid rgba(255,255,255,.025);
+    box-shadow: inset 0 20px 50px rgba(0,0,0,.12);
+}
+
+.fighter-art {
+    min-height: 300px;
+    background:
+        radial-gradient(circle at 50% 42%, rgba(99,199,161,.13), transparent 46%),
+        linear-gradient(180deg, rgba(6,11,10,.2), rgba(6,9,9,.55)),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.018) 0 1px, transparent 1px 6px),
+        #0b1211;
+    border: 1px solid #293b35;
+    box-shadow:
+        inset 0 -24px 40px rgba(0,0,0,.24),
+        inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+.monster-art {
+    background:
+        radial-gradient(circle at 50% 42%, rgba(230,107,99,.13), transparent 46%),
+        linear-gradient(180deg, rgba(9,10,10,.18), rgba(8,9,9,.58)),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.016) 0 1px, transparent 1px 6px),
+        #0d1211;
+}
+
+.fighter-image {
+    filter:
+        drop-shadow(0 16px 0 rgba(0,0,0,.12))
+        drop-shadow(0 18px 22px rgba(0,0,0,.56));
+}
+
+.fighter-art::after {
+    width: 165px;
+    height: 20px;
+    bottom: 16px;
+    background: rgba(0,0,0,.42);
+    filter: blur(6px);
+}
+
+.resource-bar {
+    height: 11px;
+    border: 1px solid rgba(255,255,255,.06);
+    background: #060a09;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.75);
+}
+
+.resource-fill {
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.24), 0 0 8px rgba(99,199,161,.10);
+}
+
+.resource-fill::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        90deg,
+        rgba(255,255,255,.12) 0 3px,
+        transparent 3px 9px
+    );
+    opacity: .38;
+}
+
+.hp-bar .resource-fill {
+    background: linear-gradient(180deg, #ef8178, #b94d48);
+}
+
+.energy-bar .resource-fill {
+    background: linear-gradient(180deg, #70cbed, #398bb9);
+}
+
+.xp-bar .resource-fill {
+    background: linear-gradient(180deg, #f2d57c, #b89a42);
+}
+
+.stat-box {
+    background: linear-gradient(180deg, #111b19, #0a1110);
+    border: 1px solid #263731;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+.stat-box strong {
+    color: #edf3e8;
+}
+
+/* Centre de combat : accent plus cérémoniel. */
+.vs-text {
+    color: #f07a70;
+    text-shadow: 0 0 18px rgba(230,107,99,.24);
+}
+
+.roulette-card {
+    background:
+        linear-gradient(180deg, #18231f, #0b1211);
+    border-color: #486057;
+    box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.025),
+        0 16px 35px rgba(0,0,0,.38);
+}
+
+.roulette-display {
+    border-top: 1px solid rgba(255,255,255,.035);
+    border-bottom: 1px solid rgba(255,255,255,.035);
+    background:
+        radial-gradient(circle, rgba(99,199,161,.08), transparent 60%),
+        #080e0d;
+}
+
+.roulette-display::before {
+    background: linear-gradient(90deg, transparent, rgba(99,199,161,.65), transparent);
+    box-shadow: 0 0 10px rgba(99,199,161,.22);
+}
+
+.roulette-number {
+    color: #eff7ed;
+    text-shadow:
+        0 3px 0 #14201b,
+        0 0 18px rgba(99,199,161,.22);
+}
+
+.monster-list .monster-panel {
+    background: linear-gradient(180deg, #171c1b, #0d1312);
+}
+
+.monster-list .monster-panel.selected-target {
+    border-color: var(--accent);
+    box-shadow:
+        0 0 0 2px rgba(99,199,161,.18),
+        0 0 24px rgba(99,199,161,.10),
+        var(--shadow);
+}
+
+.monster-list .monster-panel:hover {
+    border-color: #d26b63;
+}
+
+.monster-list .monster-panel.monster-dead {
+    filter: grayscale(.85) brightness(.62);
+}
+
+.monster-energy-type,
+.energy-type,
+.level-type,
+.monster-level-badge {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+/* Actions : hiérarchie plus forte, feedback tactile plus visible. */
+.action-button {
+    min-height: 64px;
+    background:
+        linear-gradient(180deg, #17221f, #0e1514);
+    border-color: #33463f;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.04),
+        0 6px 14px rgba(0,0,0,.22);
+}
+
+.action-button:hover:not(:disabled) {
+    transform: translateY(-3px);
+    border-color: #6a9282;
+    background: linear-gradient(180deg, #1d2b27, #101917);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.06),
+        0 10px 20px rgba(0,0,0,.3);
+}
+
+.action-button:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.action-number {
+    background: #0a100f;
+    border: 1px solid #344941;
+    color: #b8c8c0;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.attack-action {
+    border-color: rgba(230,107,99,.42);
+    background: linear-gradient(180deg, rgba(105,43,40,.36), #111615);
+}
+
+.primary-button {
+    background: linear-gradient(180deg, #71d3ad, #3c9e7c);
+    color: #07100c;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.35),
+        0 7px 16px rgba(0,0,0,.3);
+}
+
+.primary-button:hover:not(:disabled) {
+    filter: brightness(1.08);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.4),
+        0 10px 20px rgba(0,0,0,.35);
+}
+
+.secondary-button {
+    background: linear-gradient(180deg, #1b2925, #111a18);
+    border-color: #3b4e47;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+/* Journal et modales : plus de densité visuelle, sans agrandir le DOM. */
+.log-card,
+.inventory-card {
+    background: linear-gradient(180deg, #141e1c, #0d1413);
+}
+
+.combat-log {
+    scrollbar-color: #40564d #0a100f;
+}
+
+.attack-card,
+.inventory-entry,
+.target-card {
+    background: linear-gradient(180deg, #17221f, #0d1513);
+    border-color: #30433b;
+}
+
+.attack-card:hover:not(:disabled),
+.inventory-entry:hover,
+.inventory-entry:focus,
+.target-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 7px 18px rgba(0,0,0,.22);
+}
+
+.modal {
+    background: rgba(2, 6, 5, .82);
+}
+
+.modal-content {
+    border-color: #486057;
+}
+
+/* Feedback combat : impact plus lisible et plus "jeu". */
+.damage-number,
+.heal-number,
+.critical-banner {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    text-shadow:
+        0 3px 0 rgba(0,0,0,.65),
+        0 0 12px rgba(0,0,0,.4);
+}
+
+.damage-number {
+    color: #ff9b91;
+    font-size: 2.35rem;
+}
+
+.heal-number {
+    color: #87e7ba;
+    font-size: 2.15rem;
+}
+
+.critical-banner {
+    color: #ffe48a;
+    text-shadow:
+        0 3px 0 #4d3714,
+        0 0 16px rgba(229,199,106,.42);
+}
+
+.impact-flash {
+    inset: 10%;
+    background: radial-gradient(circle, rgba(255,241,205,.9) 0 7%, rgba(255,122,103,.42) 24%, transparent 68%);
+    mix-blend-mode: screen;
+}
+
+.battle-shake {
+    will-change: transform;
+}
+
+/* Popup d'action : panneau de combat plus distinctif. */
+.battle-popup {
+    background:
+        linear-gradient(180deg, rgba(24,35,32,.98), rgba(9,15,14,.98));
+    border-color: #5e9b86;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.06),
+        0 20px 50px rgba(0,0,0,.55),
+        0 0 24px rgba(99,199,161,.08);
+}
+
+.battle-popup-effectiveness.super {
+    color: #ffe38a;
+}
+
+.battle-popup-skip {
+    background: #0a100f;
+    border-color: #3e554c;
+}
+
+/* Fin de combat : hiérarchie visuelle plus forte. */
+#end-screen {
+    background:
+        radial-gradient(circle at 50% 35%, rgba(99,199,161,.09), transparent 34%),
+        #070b0d;
+}
+
+.end-icon {
+    filter: drop-shadow(0 10px 18px rgba(0,0,0,.48));
+    animation: endIconFloat 2.2s ease-in-out infinite;
+}
+
+@keyframes endIconFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.end-stat {
+    background: linear-gradient(180deg, #17221f, #0d1413);
+}
+
+/* Overworld : cadre d'écran + HUD cohérent avec la scène. */
+#world-screen {
+    background:
+        radial-gradient(circle at 50% 20%, rgba(99,199,161,.07), transparent 42%),
+        #060b0a;
+}
+
+.world-container {
+    width: min(980px, 100%);
+}
+
+.world-hud {
+    width: min(912px, 100%);
+    padding: 12px 16px;
+    text-align: left;
+    background: linear-gradient(180deg, rgba(19,31,27,.96), rgba(10,17,15,.96));
+    border: 1px solid #3b5148;
+    border-radius: 10px;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.04),
+        0 10px 24px rgba(0,0,0,.3);
+}
+
+.world-hud p {
+    margin-top: 4px;
+    color: #a9b9b1;
+}
+
+.canvas-wrapper {
+    border: 5px solid #273932;
+    border-radius: 10px;
+    box-shadow:
+        0 0 0 1px #4c6258,
+        0 22px 55px rgba(0,0,0,.56),
+        0 0 35px rgba(99,199,161,.055);
+}
+
+#world-canvas {
+    background: #17231b;
+}
+
+.world-dialogue {
+    background: rgba(7,13,12,.94);
+    border: 2px solid #73c9a6;
+    border-radius: 6px;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.06),
+        0 12px 28px rgba(0,0,0,.55);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Loading : première impression plus travaillée. */
+#loading-screen {
+    background:
+        radial-gradient(circle at 50% 42%, rgba(99,199,161,.10), transparent 32%),
+        #060a0a;
+}
+
+.game-logo {
+    color: #edf5ed;
+    text-shadow:
+        0 4px 0 #16231e,
+        0 0 30px rgba(99,199,161,.12);
+}
+
+.game-logo span {
+    color: var(--accent-light);
+}
+
+.loader {
+    height: 6px;
+    border: 1px solid #30433b;
+    background: #0a100f;
+}
+
+.loader::after {
+    background: linear-gradient(90deg, #4aaf8b, #8ae0bf);
+}
+
+/* Responsive : conserver les contrastes et l'ordre visuel. */
+@media (max-width: 900px) {
+    .world-hud {
+        width: 100%;
+    }
+}
+
+@media (max-width: 600px) {
+    .fighter-art {
+        min-height: 230px;
+    }
+
+    .world-hud {
+        padding: 10px 12px;
+    }
+
+    .canvas-wrapper {
+        width: 100%;
+    }
+
+    #world-canvas {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.001ms !important;
+    }
+}
