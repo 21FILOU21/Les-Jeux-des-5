@@ -476,6 +476,7 @@ function buildVarietyWheels(variety, level = 1) {
 const MONSTER_VARIETIES = [];
 
 function createMonster(number, index, encounterRequest = null) {
+    const monsterNumber = Math.max(1, Math.floor(Number(number) || 1));
     const exactDefinition = encounterRequest?.monsterDefinition || null;
     const level = exactDefinition
         ? Math.max(1, Math.floor(Number(encounterRequest.level) || 1))
@@ -493,7 +494,7 @@ function createMonster(number, index, encounterRequest = null) {
     }
 
     const isPersonnageEnemy = enemyPool === "personnages" && variety !== null;
-    const bossMultiplier = Math.max(1, Math.floor(Number(number) / 5));
+    const bossMultiplier = Math.max(1, Math.floor(monsterNumber / 5));
     const rawBossChance = Math.floor(globalState.monsterKilled / 5);
     const bossChance = isPersonnageEnemy ? Math.floor(rawBossChance / 2) : rawBossChance;
     const isBoss = exactDefinition ? Boolean(exactDefinition.isBoss) : Math.random() * 100 < bossChance;
