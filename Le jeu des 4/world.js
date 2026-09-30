@@ -584,7 +584,7 @@ function updateWorldUI() {
 function getOverworldSpritePath(hero) {
     if (!hero || typeof hero.Image !== "string") return "";
     return hero.Image.trim();
-}}
+}
 
 function setOverworldPlayerSprite(hero) {
     overworldState.hero = hero || null;
