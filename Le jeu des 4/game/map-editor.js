@@ -40,6 +40,38 @@ const MAP_EDITOR_DEFAULT_TILES = [
     { id:"tall-grass", name:"Hautes herbes", collision:false, terrainType:"grass", encounters:true, description:"Zone de rencontres.", imageKey:null, fallback:"#4c8d43" }
 ];
 
+const MAP_EDITOR_EMPTY_TILE_ID = "VIDE";
+const MAP_EDITOR_EMPTY_TILE = Object.freeze({
+    id: MAP_EDITOR_EMPTY_TILE_ID,
+    name: "VIDE",
+    collision: false,
+    terrainType: "empty",
+    encounters: false,
+    interactive: false,
+    description: "Case vide traversable, sans interaction ni rencontre.",
+    imageKey: null,
+    fallback: "#777777"
+});
+
+function mapEditorGetEmptyTile() {
+    return MAP_EDITOR_EMPTY_TILE;
+}
+
+function mapEditorIsValidTileId(id) {
+    const value = String(id ?? "");
+    return value === MAP_EDITOR_EMPTY_TILE_ID || !!mapEditorFindTileDefinition(value);
+}
+
+function mapEditorFindTileDefinition(id) {
+    const tileId = String(id ?? "");
+    const m = mapEditorCurrent?.();
+    const local = m?.tileDefinitions?.find(t => t && t.id === tileId);
+    if (local) return local;
+    const interactive = mapEditorInteractiveDefinitions.find(t => t && t.id === tileId);
+    if (interactive) return interactive;
+    return MAP_EDITOR_DEFAULT_TILES.find(t => t.id === tileId) || null;
+}
+
 function getMapEditorItemCatalog() {
     if (typeof getInventoryItemDefinitions === "function") {
         return getInventoryItemDefinitions().map(item => ({ id: item.Id, label: item.Nom }));
@@ -263,6 +295,21 @@ function mapEditorDefaultMap() {
     };
 }
 
+function mapEditorNormalizeMapTileReferences(m){
+    if(!m)return m;
+    const validIds=new Set([
+        MAP_EDITOR_EMPTY_TILE_ID,
+        ...MAP_EDITOR_DEFAULT_TILES.map(t=>t.id),
+        ...(m.tileDefinitions||[]).map(t=>t?.id).filter(Boolean),
+        ...mapEditorInteractiveDefinitions.map(t=>t?.id).filter(Boolean)
+    ]);
+    for(const layer of m.layers||[]){
+        layer.cells=(layer.cells||[]).map(cell=>validIds.has(String(cell ?? ""))?String(cell):MAP_EDITOR_EMPTY_TILE_ID);
+    }
+    m.tileset=(m.tileset||[]).map(id=>validIds.has(String(id))?String(id):MAP_EDITOR_EMPTY_TILE_ID).filter((id,i,a)=>id!==MAP_EDITOR_EMPTY_TILE_ID||a.indexOf(id)===i);
+    return m;
+}
+
 function normalizeMapEditorMap(map) {
     const m=mapEditorClone(map||mapEditorDefaultMap());
     m.version=1;
@@ -287,6 +334,7 @@ function normalizeMapEditorMap(map) {
     m.spawn=m.spawn&&Number.isInteger(m.spawn.x)&&Number.isInteger(m.spawn.y)?m.spawn:{x:Math.floor(m.cols/2),y:Math.floor(m.rows/2)};
     m.spawn.x=Math.max(0,Math.min(m.cols-1,m.spawn.x));m.spawn.y=Math.max(0,Math.min(m.rows-1,m.spawn.y));
     m.metadata=m.metadata||{};
+    mapEditorNormalizeMapTileReferences(m);
     return m;
 }
 
@@ -317,14 +365,10 @@ function mapEditorSaveCurrent(){
 }
 
 function mapEditorFindTile(id){
-    const m=mapEditorCurrent();
-    const tileId=String(id);
-    if(m&&Array.isArray(m.tileDefinitions)){
-        const t=m.tileDefinitions.find(x=>x.id===tileId); if(t)return t;
-    }
-    const interactive=mapEditorInteractiveDefinitions.find(x=>x.id===tileId);
-    if(interactive)return interactive;
-    return MAP_EDITOR_DEFAULT_TILES.find(x=>x.id===tileId)||null;
+    const tileId=String(id ?? "");
+    if(tileId===MAP_EDITOR_EMPTY_TILE_ID)return MAP_EDITOR_EMPTY_TILE;
+    const definition=mapEditorFindTileDefinition(tileId);
+    return definition || MAP_EDITOR_EMPTY_TILE;
 }
 
 function mapEditorAllTiles(){
@@ -333,6 +377,7 @@ function mapEditorAllTiles(){
     const globalInteractive=mapEditorInteractiveDefinitions;
     const byId=new Map();
     [...MAP_EDITOR_DEFAULT_TILES,...globalInteractive,...custom].forEach(t=>byId.set(t.id,t));
+    byId.delete(MAP_EDITOR_EMPTY_TILE_ID);
     return [...byId.values()];
 }
 
