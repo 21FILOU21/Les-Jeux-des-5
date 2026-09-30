@@ -32,32 +32,32 @@ async function rollRoulette(minimum, maximum, skipAnimation, source) {
         return result;
     }
 
-    const nombreTours = randomInt(12, 17);
+    const nombreTours = randomInt(22, 27);
 
     const rouletteCard = $(".roulette-card");
 
+    rouletteCard.classList.remove("roulette-lock");
     rouletteCard.classList.add("spinning");
 
     setRoulette("—", `${source} : roulette`);
 
     for (let i = 0; i < nombreTours; i++) {
+        const progress = i / Math.max(1, nombreTours - 1);
         const temporaryValue = randomInt(minimum, maximum);
-
         setRoulette(temporaryValue, `${source} : roulette`);
 
-        const delay = 30 + (i * 5);
-
+        const delay = Math.round(14 + Math.pow(progress, 3.15) * 118);
         await sleep(delay);
     }
 
     const finalValue = randomInt(minimum, maximum);
-
     setRoulette(finalValue, "Résultat");
 
     rouletteCard.classList.remove("spinning");
+    rouletteCard.classList.add("roulette-lock");
 
-    await sleep(300);
-
+    await sleep(260);
+    rouletteCard.classList.remove("roulette-lock");
     return finalValue;
 }
 
@@ -70,6 +70,78 @@ function setRoulette(value, status) {
 /* ============================================================
    MISE À JOUR DU PANNEAU DE COMBAT
 ============================================================ */
+
+const monsterHpBarAnimations = new Map();
+
+function getMonsterHpColor(ratio) {
+    const value = Math.max(0, Math.min(1, Number(ratio) || 0));
+    const stops = [
+        [0.75, [52, 199, 89]],
+        [0.55, [245, 182, 66]],
+        [0.35, [255, 214, 59]],
+        [0.18, [255, 122, 69]],
+        [0.00, [226, 57, 57]]
+    ];
+
+    for (let i = 0; i < stops.length - 1; i++) {
+        const [upper, upperRgb] = stops[i];
+        const [lower, lowerRgb] = stops[i + 1];
+
+        if (value <= upper && value >= lower) {
+            const t = (value - lower) / Math.max(0.0001, upper - lower);
+            const rgb = upperRgb.map((channel, index) =>
+                Math.round(lowerRgb[index] + (channel - lowerRgb[index]) * t)
+            );
+            return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+        }
+    }
+
+    return value >= 0.75 ? "rgb(52, 199, 89)" : "rgb(226, 57, 57)";
+}
+
+function animateMonsterHpBar(monster, fill) {
+    if (!monster || !fill) return;
+
+    const target = Math.max(0, Math.min(1, Number(monster.hp) / Math.max(1, Number(monster.maxHp))));
+    const previous = Number.isFinite(Number(fill.dataset.hpRatio))
+        ? Number(fill.dataset.hpRatio)
+        : target;
+
+    const existingFrame = monsterHpBarAnimations.get(monster.id);
+    if (existingFrame) cancelAnimationFrame(existingFrame);
+
+    if (Math.abs(previous - target) < 0.0005) {
+        fill.dataset.hpRatio = target;
+        fill.style.width = `${target * 100}%`;
+        fill.style.backgroundColor = getMonsterHpColor(target);
+        return;
+    }
+
+    const startedAt = performance.now();
+    const delta = Math.abs(target - previous);
+    const duration = Math.min(720, Math.max(420, 430 + delta * 430));
+
+    function frame(now) {
+        const progress = Math.min(1, (now - startedAt) / duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const ratio = previous + (target - previous) * eased;
+
+        fill.dataset.hpRatio = ratio;
+        fill.style.width = `${ratio * 100}%`;
+        fill.style.backgroundColor = getMonsterHpColor(ratio);
+
+        if (progress < 1) {
+            monsterHpBarAnimations.set(monster.id, requestAnimationFrame(frame));
+        } else {
+            fill.dataset.hpRatio = target;
+            fill.style.width = `${target * 100}%`;
+            fill.style.backgroundColor = getMonsterHpColor(target);
+            monsterHpBarAnimations.delete(monster.id);
+        }
+    }
+
+    monsterHpBarAnimations.set(monster.id, requestAnimationFrame(frame));
+}
 
 function updateBattleUI() {
     if (!state.hero) {
@@ -183,7 +255,7 @@ function renderMonsterCards() {
 
         const hpFill = panel.querySelector(".hp-bar .resource-fill");
 
-        if (hpFill) hpFill.style.width = `${healthBarPercentage(monster.hp, monster.maxHp)}%`;
+        if (hpFill) animateMonsterHpBar(monster, hpFill);
     });
 
     list.querySelectorAll(".monster-panel").forEach(existingPanel => {
