@@ -196,7 +196,9 @@ function buildWorldMapCanvas() {
     const tileIds = new Set();
 
     for (let row = 0; row < MAP_ROWS; row++) {
-        for (let col = 0; col < MAP_COLS; col++) tileIds.add(worldMap[row]?.[col]);
+        for (let col = 0; col < MAP_COLS; col++) {
+            tileIds.add(worldMap[row]?.[col]);
+        }
     }
 
     tileIds.forEach(type => {
@@ -206,7 +208,7 @@ function buildWorldMapCanvas() {
         const tileContext = tile.getContext("2d");
 
         if (type === undefined || type === null) {
-            tileContext.fillStyle = "#8fbf6a";
+            tileContext.fillStyle = "#86b764";
             tileContext.fillRect(0, 0, DISPLAY_TILE_SIZE, DISPLAY_TILE_SIZE);
             tileCanvases[type] = tile;
             return;
@@ -225,6 +227,7 @@ function buildWorldMapCanvas() {
     });
 
     const u = DISPLAY_TILE_SIZE / 16;
+
     for (let row = 0; row < MAP_ROWS; row++) {
         for (let col = 0; col < MAP_COLS; col++) {
             const type = worldMap[row]?.[col];
@@ -235,15 +238,12 @@ function buildWorldMapCanvas() {
             if (tileCanvas) {
                 ctx.drawImage(tileCanvas, x, y);
             } else {
-                ctx.fillStyle = "#8fbf6a";
+                ctx.fillStyle = "#86b764";
                 ctx.fillRect(x, y, DISPLAY_TILE_SIZE, DISPLAY_TILE_SIZE);
-                const warningKey = String(type);
-                if (!worldUnknownTileWarnings.has(warningKey)) {
-                    worldUnknownTileWarnings.add(warningKey);
-                    console.error("Tuile runtime sans rendu :", type);
-                }
             }
 
+            // Variation déterministe du terrain : quelques touffes et fleurs,
+            // pré-rendues une seule fois pour conserver de bonnes performances.
             if (type === TILE_TYPES.GRASS || type === "grass") {
                 const seed = Math.abs((col * 92821 + row * 68917) % 97);
 
@@ -269,15 +269,13 @@ function buildWorldMapCanvas() {
                     ctx.fillRect(x + 11 * u, y + 5 * u, u, u);
                     ctx.fillRect(x + 12 * u, y + 6 * u, u, u);
                 }
-            }                if ((col * 7 + row * 13) % 11 === 0) {
-                    ctx.fillStyle = "#7aa95a";
-                    ctx.fillRect(x + 4 * u, y + 6 * u, 2 * u, u);
-                    ctx.fillRect(x + 9 * u, y + 10 * u, 2 * u, u);
-                }
-                if ((col * 5 + row * 3) % 13 === 0) {
-                    ctx.fillStyle = "#e8e2c8";
-                    ctx.fillRect(x + 7 * u, y + 4 * u, 2 * u, 2 * u);
-                }
+            }
+
+            // Bord d'ombre très discret sous les obstacles : meilleure séparation
+            // du terrain sans modifier les collisions.
+            if (type === TILE_TYPES.TREE || type === "tree") {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.14)";
+                ctx.fillRect(x + 2 * u, y + 14 * u, 12 * u, 2 * u);
             }
         }
     }
