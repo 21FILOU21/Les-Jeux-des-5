@@ -938,15 +938,20 @@ function mapEditorRemoveTileDefinition(tileId){
     return true;
 }
 
+function mapEditorCanDeleteTile(tileId){
+    const id=String(tileId||"");
+    return id!==MAP_EDITOR_EMPTY_TILE_ID && !MAP_EDITOR_DEFAULT_TILES.some(tile=>tile.id===id);
+}
+
 function mapEditorRequestTileDeletion(tileId){
     const tile=mapEditorFindTileDefinition(tileId);
-    if(!tile||tile.id===MAP_EDITOR_EMPTY_TILE_ID)return false;
+    if(!tile||!mapEditorCanDeleteTile(tile.id))return false;
     return mapEditorRemoveTileDefinition(tile.id);
 }
 
 function mapEditorRenderTiles(){
     const list=document.getElementById("map-editor-tiles");if(!list)return;
-    list.innerHTML=mapEditorAllTiles().map(t=>'<div class="map-editor-tile-entry"><button type="button" class="map-editor-tile '+(mapEditorSelectedTile===t.id?"selected":"")+'" data-tile="'+t.id+'"><span style="background:'+(t.fallback||"#777")+'"></span>'+t.name+'</button><button type="button" class="map-editor-tile-delete" data-delete-tile="'+t.id+'" title="Supprimer cette tuile" aria-label="Supprimer '+t.name+'">×</button></div>').join("");
+    list.innerHTML=mapEditorAllTiles().map(t=>'<div class="map-editor-tile-entry"><button type="button" class="map-editor-tile '+(mapEditorSelectedTile===t.id?"selected":"")+'" data-tile="'+t.id+'"><span style="background:'+(t.fallback||"#777")+'"></span>'+t.name+'</button>'+(mapEditorCanDeleteTile(t.id)?'<button type="button" class="map-editor-tile-delete" data-delete-tile="'+t.id+'" title="Supprimer cette tuile" aria-label="Supprimer '+t.name+'">×</button>':"")+'</div>').join("");
     list.querySelectorAll("[data-tile]").forEach(b=>b.onclick=()=>{mapEditorSelectedTile=b.dataset.tile;mapEditorTool="paint";mapEditorRenderTiles();mapEditorRender();});
     list.querySelectorAll("[data-delete-tile]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();mapEditorRequestTileDeletion(b.dataset.deleteTile);});
 }
