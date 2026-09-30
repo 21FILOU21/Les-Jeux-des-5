@@ -36,6 +36,12 @@ async function rollRoulette(minimum, maximum, skipAnimation, source) {
 
     const rouletteCard = $(".roulette-card");
 
+    if (!rouletteCard) {
+        const result = randomInt(minimum, maximum);
+        setRoulette(result, "Résultat");
+        return result;
+    }
+
     rouletteCard.classList.remove("roulette-lock");
     rouletteCard.classList.add("spinning");
 
@@ -62,9 +68,11 @@ async function rollRoulette(minimum, maximum, skipAnimation, source) {
 }
 
 function setRoulette(value, status) {
-    $("#roulette-value").textContent = value;
+    const valueElement = $("#roulette-value");
+    const statusElement = $("#roulette-status");
 
-    $("#roulette-status").textContent = status;
+    if (valueElement) valueElement.textContent = value;
+    if (statusElement) statusElement.textContent = status;
 }
 
 /* ============================================================
@@ -516,18 +524,12 @@ function updatePlayerImage() {
     };
 
     image.onerror = () => {
-        if (!image.dataset.nestedFallback && imagePath === `assets/personnages/${state.hero?.Nom}.png`) {
-            image.dataset.nestedFallback = "1";
-            image.src = `assets/personnages/personnages/${state.hero.Nom}.png`;
-            return;
-        }
-
-        image.src = "";
+        image.onerror = null;
+        image.removeAttribute("src");
         image.style.display = "none";
         fallback.style.display = "flex";
         console.warn(`Image introuvable pour ${state.hero.Nom}: ${imagePath}`);
     };
-
     image.src = imagePath;
 
     image.alt = state.hero.Nom;
