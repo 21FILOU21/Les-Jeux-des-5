@@ -240,12 +240,3 @@ function getCharacterImagePath(hero) {
     return normalizeCharacterImagePath(hero.Image);
 }
 
-function getCharacterImagePath(hero) {
-    if (!hero) return "";
-
-    if (typeof hero === "object") {
-        return normalizeCharacterImagePath(hero.Image, hero.Nom);
-    }
-
-    return normalizeCharacterImagePath("", hero);
-}
