@@ -4461,3 +4461,142 @@ body {
         ) scale(.55);
     }
 }
+
+
+/* PALETTE BLEU + PV MONSTRES + ROULETTE */
+:root {
+    --bg: #07101d;
+    --bg-secondary: #0d1828;
+    --panel: #122033;
+    --panel-light: #1a2c43;
+    --border: #29415e;
+    --accent: #3d8dff;
+    --accent-light: #6fb0ff;
+    --energy: #4db8ff;
+}
+
+body {
+    background:
+        radial-gradient(circle at 18% 0%, rgba(61, 141, 255, 0.15), transparent 36%),
+        radial-gradient(circle at 88% 76%, rgba(77, 184, 255, 0.07), transparent 34%),
+        var(--bg);
+}
+
+.character-card.selected {
+    background: #142641;
+    box-shadow: 0 0 0 3px rgba(61, 141, 255, 0.13);
+}
+
+.character-avatar,
+.fighter-art {
+    background:
+        radial-gradient(circle at 50% 30%, rgba(61, 141, 255, 0.20), transparent 56%),
+        var(--bg-secondary);
+}
+
+.fighter-art-content {
+    text-shadow: 0 10px 40px rgba(61, 141, 255, 0.34);
+}
+
+.energy-type {
+    background: rgba(77, 184, 255, 0.12);
+    border-color: rgba(77, 184, 255, 0.32);
+}
+
+.monster-panel .hp-bar {
+    height: 10px;
+    background: #07101a;
+    border: 1px solid rgba(108, 151, 191, 0.18);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+
+.monster-panel .hp-bar .resource-fill {
+    background: rgb(52, 199, 89);
+    transition: none;
+    box-shadow:
+        0 0 7px rgba(52, 199, 89, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.20);
+    will-change: width, background-color;
+}
+
+.roulette-card {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    box-shadow:
+        0 16px 34px rgba(0, 0, 0, 0.34),
+        inset 0 1px 0 rgba(132, 197, 255, 0.08);
+}
+
+.roulette-card::before {
+    content: "";
+    position: absolute;
+    inset: -35%;
+    z-index: -1;
+    opacity: 0;
+    border-radius: 50%;
+    background: conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        rgba(61, 141, 255, 0.05) 50deg,
+        rgba(111, 176, 255, 0.34) 90deg,
+        transparent 145deg,
+        transparent 250deg,
+        rgba(77, 184, 255, 0.22) 310deg,
+        transparent 360deg
+    );
+    transform: rotate(0deg) scale(0.72);
+}
+
+.roulette-card.spinning {
+    border-color: rgba(77, 184, 255, 0.52);
+    box-shadow:
+        0 0 0 1px rgba(61, 141, 255, 0.10),
+        0 0 30px rgba(61, 141, 255, 0.18),
+        0 16px 38px rgba(0, 0, 0, 0.38);
+}
+
+.roulette-card.spinning::before {
+    opacity: 1;
+    animation: roulette-ring 0.58s linear infinite;
+}
+
+.roulette-card.spinning .roulette-value {
+    animation:
+        roulette-number-pulse 0.105s steps(2, end) infinite,
+        roulette-number-glow 0.32s ease-in-out infinite alternate;
+    color: #f5fbff;
+}
+
+.roulette-card.roulette-lock {
+    animation: roulette-lock 0.26s ease-out;
+}
+
+.roulette-card.roulette-lock .roulette-value {
+    color: #fff;
+    text-shadow:
+        0 0 8px rgba(111, 176, 255, 0.75),
+        0 0 22px rgba(61, 141, 255, 0.40);
+}
+
+@keyframes roulette-ring {
+    from { transform: rotate(0deg) scale(0.72); }
+    to { transform: rotate(360deg) scale(0.72); }
+}
+
+@keyframes roulette-number-pulse {
+    0% { transform: scale(0.96) translateY(1px); }
+    50% { transform: scale(1.06) translateY(-1px); }
+    100% { transform: scale(0.98) translateY(0); }
+}
+
+@keyframes roulette-number-glow {
+    from { filter: brightness(0.94); }
+    to { filter: brightness(1.20); }
+}
+
+@keyframes roulette-lock {
+    0% { transform: scale(1.08); }
+    55% { transform: scale(0.98); }
+    100% { transform: scale(1); }
+}
