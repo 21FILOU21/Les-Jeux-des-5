@@ -5192,13 +5192,14 @@ body {
 }
 
 
-/* Aperçu mosaïque des tuiles normales + aperçus unitaires interactifs */
+/* Aperçu unitaire des tuiles dans la liste latérale */
 .map-editor-tile-preview{
-    width:48px!important;
-    height:48px!important;
-    flex:0 0 48px;
-    background-repeat:repeat!important;
-    background-size:16px 16px!important;
+    width:30px!important;
+    height:30px!important;
+    flex:0 0 30px;
+    background-repeat:no-repeat!important;
+    background-size:cover!important;
+    background-position:center!important;
     image-rendering:pixelated;
     border:1px solid #355b7d;
     border-radius:6px;
