@@ -85,7 +85,8 @@ function mapEditorNormalizeInteractiveDefinition(definition) {
     d.id=mapEditorNormalizeId(d.id,mapEditorUid("interactive"));
     d.name=String(d.name||d.id);
     d.kind=String(d.kind||"container");
-    d.collision=d.collision!==false;
+    d.collision=d.kind==="transition"?false:d.collision!==false;
+    d.collision=d.kind==="transition"?false:d.collision!==false;
     d.terrainType="interactive";
     d.encounters=false;
     d.description=String(d.description||"Objet interactif.");
@@ -97,8 +98,12 @@ function mapEditorNormalizeInteractiveDefinition(definition) {
         closedImageKey:null,
         openImageKey:null,
         lootTable:[],
-        initialOpen:false
+        initialOpen:false,
+        destinationMapId:null,
+        destinationX:0,
+        destinationY:0
     },d.interactive||{});
+    if(d.kind==="transition")d.interactive.collision=false;
     d.interactive.lootTable=Array.isArray(d.interactive.lootTable)?d.interactive.lootTable.map(e=>({
         itemId:String(e?.itemId||""),
         chance:Math.max(0,Math.min(100,Number(e?.chance)||0)),
@@ -223,6 +228,43 @@ function mapEditorGetInstanceProps(instance){
         lootTable:Array.isArray(overrides.lootTable)?overrides.lootTable:(Array.isArray(base.lootTable)?base.lootTable:[]),
         collision:overrides.collision!==undefined?overrides.collision:base.collision!==false
     });
+}
+
+function mapEditorGetTransitionConfig(instance){
+    const props=mapEditorGetInstanceProps(instance);
+    if(String(props.type||mapEditorGetInstanceDefinition(instance)?.kind||"")!=="transition")return null;
+    return {destinationMapId:String(props.destinationMapId||""),destinationX:Math.floor(Number(props.destinationX)||0),destinationY:Math.floor(Number(props.destinationY)||0)};
+}
+function mapEditorGetTransitionDestination(instance){
+    const config=mapEditorGetTransitionConfig(instance);
+    if(!config||!config.destinationMapId)return null;
+    const map=mapEditorMaps.find(m=>m.id===config.destinationMapId);
+    if(!map||config.destinationX<0||config.destinationY<0||config.destinationX>=map.cols||config.destinationY>=map.rows)return null;
+    return {map,x:config.destinationX*TILE_SIZE,y:config.destinationY*TILE_SIZE};
+}
+function mapEditorTriggerTransitionAtPlayer(){
+    if(typeof overworldState==="undefined"||overworldState.zoneTransitionLock)return false;
+    const m=mapEditorCurrent();if(!m)return false;
+    const col=Math.floor((overworldState.playerX+TILE_SIZE/2)/TILE_SIZE);
+    const row=Math.floor((overworldState.playerY+TILE_SIZE/2)/TILE_SIZE);
+    const instance=(m.objects||[]).find(o=>Number(o.x)===col&&Number(o.y)===row);
+    if(!instance||String(instance.type||mapEditorGetInstanceDefinition(instance)?.kind||"")!=="transition")return false;
+    const destination=mapEditorGetTransitionDestination(instance);
+    if(!destination){
+        showWorldDialogue("Transition invalide : destination non configurée.",2200);
+        console.error("Transition de zone invalide :",instance.instanceId||instance.id);
+        overworldState.zoneTransitionLock=true;
+        return true;
+    }
+    overworldState.zoneTransitionLock=true;overworldState.keys.clear();overworldState.moveFrom=null;overworldState.moveTarget=null;overworldState.moveProgress=0;
+    mapEditorApplyRuntime(destination.map.id);
+    overworldState.playerX=destination.x;overworldState.playerY=destination.y;
+    overworldState.graceDistance=WORLD_GRACE_TILES*TILE_SIZE;
+    overworldState.stepCooldown=WORLD_MOVEMENT.stepRepeatDelayMs;
+    if(typeof updateWorldCamera==="function")updateWorldCamera();
+    if(typeof renderWorld==="function")renderWorld();
+    mapEditorLoadRuntimeImages();
+    return true;
 }
 
 function mapEditorIsInteractiveTile(tileId){
