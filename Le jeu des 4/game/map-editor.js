@@ -1107,8 +1107,27 @@ function mapEditorOpenTileForm(existing=null,replacePlacedTileId=null){
                 grid.style.gridAutoRows="16px";
                 grid.style.alignContent="start";
                 grid.style.justifyContent="start";
+                grid.style.height="180px";
+                grid.style.position="relative";
                 grid.style.overflow="hidden";
                 grid.style.backgroundColor="#0a1421";
+                grid.style.cursor="grab";
+                grid.style.touchAction="none";
+                grid.setAttribute("title","Molette : zoom · Glisser : déplacer · Double-clic : recentrer");
+
+                const viewport=document.createElement("div");
+                viewport.style.position="absolute";
+                viewport.style.left="0";
+                viewport.style.top="0";
+                viewport.style.width="160px";
+                viewport.style.height="176px";
+                viewport.style.transformOrigin="0 0";
+                viewport.style.willChange="transform";
+                viewport.style.pointerEvents="none";
+                viewport.style.display="grid";
+                viewport.style.gridTemplateColumns="repeat(10,16px)";
+                viewport.style.gridAutoRows="16px";
+
                 for(let i=0;i<110;i++){
                     const cell=document.createElement("span");
                     cell.style.width="16px";
@@ -1118,8 +1137,79 @@ function mapEditorOpenTileForm(existing=null,replacePlacedTileId=null){
                     cell.style.backgroundPosition="center";
                     cell.style.backgroundRepeat="no-repeat";
                     cell.style.imageRendering="pixelated";
-                    grid.appendChild(cell);
+                    viewport.appendChild(cell);
                 }
+                grid.appendChild(viewport);
+
+                let zoom=2;
+                let panX=12;
+                let panY=2;
+                let dragging=false;
+                let dragStartX=0;
+                let dragStartY=0;
+                let startPanX=0;
+                let startPanY=0;
+
+                const clampPan=()=>{
+                    const contentW=160*zoom;
+                    const contentH=176*zoom;
+                    const viewW=grid.clientWidth||160;
+                    const viewH=grid.clientHeight||180;
+                    const minX=Math.min(0,viewW-contentW);
+                    const minY=Math.min(0,viewH-contentH);
+                    panX=Math.max(minX,Math.min(panX,Math.max(0,viewW-contentW)));
+                    panY=Math.max(minY,Math.min(panY,Math.max(0,viewH-contentH)));
+                };
+                const renderView=()=>{
+                    clampPan();
+                    viewport.style.transform="translate("+panX+"px,"+panY+"px) scale("+zoom+")";
+                };
+
+                grid.addEventListener("wheel",event=>{
+                    event.preventDefault();
+                    const rect=grid.getBoundingClientRect();
+                    const mouseX=event.clientX-rect.left;
+                    const mouseY=event.clientY-rect.top;
+                    const oldZoom=zoom;
+                    const factor=event.deltaY<0?1.2:0.8333333333;
+                    zoom=Math.max(1,Math.min(8,zoom*factor));
+                    const localX=(mouseX-panX)/oldZoom;
+                    const localY=(mouseY-panY)/oldZoom;
+                    panX=mouseX-localX*zoom;
+                    panY=mouseY-localY*zoom;
+                    renderView();
+                },{passive:false});
+
+                grid.addEventListener("pointerdown",event=>{
+                    dragging=true;
+                    grid.setPointerCapture?.(event.pointerId);
+                    dragStartX=event.clientX;
+                    dragStartY=event.clientY;
+                    startPanX=panX;
+                    startPanY=panY;
+                    grid.style.cursor="grabbing";
+                });
+                grid.addEventListener("pointermove",event=>{
+                    if(!dragging)return;
+                    panX=startPanX+(event.clientX-dragStartX);
+                    panY=startPanY+(event.clientY-dragStartY);
+                    renderView();
+                });
+                const stopDrag=event=>{
+                    if(!dragging)return;
+                    dragging=false;
+                    try{grid.releasePointerCapture?.(event.pointerId);}catch(_){}
+                    grid.style.cursor="grab";
+                };
+                grid.addEventListener("pointerup",stopDrag);
+                grid.addEventListener("pointercancel",stopDrag);
+                grid.addEventListener("dblclick",()=>{
+                    zoom=2;
+                    panX=12;
+                    panY=2;
+                    renderView();
+                });
+                renderView();
             }
         }
     };
