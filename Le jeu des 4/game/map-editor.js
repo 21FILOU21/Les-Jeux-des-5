@@ -1044,7 +1044,7 @@ function mapEditorRenderTiles(){
         entry.onmouseleave=()=>{if(config)config.style.display="none";};
     });
     list.querySelectorAll("[data-tile]").forEach(b=>b.onclick=()=>{mapEditorSelectedTile=b.dataset.tile;mapEditorTool="paint";mapEditorRenderTiles();mapEditorRender();});
-    list.querySelectorAll("[data-config-tile]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const tile=mapEditorFindTileDefinition(b.dataset.configTile);if(tile)mapEditorOpenTileForm(tile,b.dataset.configTile);});
+    list.querySelectorAll("[data-config-tile]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const tile=mapEditorFindTileDefinition(b.dataset.configTile);if(!tile)return;if(tile.interactive)mapEditorOpenInteractiveTileForm(tile);else mapEditorOpenTileForm(tile,b.dataset.configTile);});
     list.querySelectorAll("[data-delete-tile]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();mapEditorRequestTileDeletion(b.dataset.deleteTile);});
 }
 
