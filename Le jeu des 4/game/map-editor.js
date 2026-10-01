@@ -1095,9 +1095,33 @@ function mapEditorOpenTileForm(existing=null,replacePlacedTileId=null){
     const showTileImagePreview=(src,label)=>{
         if(!tileImagePreview)return;
         tileImagePreview.innerHTML=src
-            ? '<div class="me-normal-tile-image-grid" style="background-image:url(\''+escapeHtml(src)+'\')"></div><div class="me-selected-image-caption">'+escapeHtml(label||"Image sélectionnée")+'</div>'
+            ? '<div class="me-normal-tile-image-grid" aria-label="Aperçu 16×16"></div><div class="me-selected-image-caption">'+escapeHtml(label||"Image sélectionnée")+'</div>'
             : '<div class="me-selected-image-empty">Aucune image sélectionnée</div>';
-    };
+        if(src){
+            const grid=tileImagePreview.querySelector(".me-normal-tile-image-grid");
+            if(grid){
+                grid.style.width="100%";
+                grid.style.minHeight="180px";
+                grid.style.display="grid";
+                grid.style.gridTemplateColumns="repeat(10,16px)";
+                grid.style.gridAutoRows="16px";
+                grid.style.alignContent="start";
+                grid.style.justifyContent="start";
+                grid.style.overflow="hidden";
+                grid.style.backgroundColor="#0a1421";
+                for(let i=0;i<110;i++){
+                    const cell=document.createElement("span");
+                    cell.style.width="16px";
+                    cell.style.height="16px";
+                    cell.style.backgroundImage="url("+JSON.stringify(src)+")";
+                    cell.style.backgroundSize="16px 16px";
+                    cell.style.backgroundPosition="center";
+                    cell.style.backgroundRepeat="no-repeat";
+                    cell.style.imageRendering="pixelated";
+                    grid.appendChild(cell);
+                }
+            }
+        }
     if(t.imageKey){
         const existingImage=mapEditorAssetCache.get(t.imageKey);
         if(existingImage)showTileImagePreview(existingImage,"Image actuelle");
