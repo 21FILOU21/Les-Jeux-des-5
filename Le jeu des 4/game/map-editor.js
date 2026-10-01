@@ -1037,8 +1037,14 @@ function mapEditorRequestTileDeletion(tileId){
 
 function mapEditorRenderTiles(){
     const list=document.getElementById("map-editor-tiles");if(!list)return;
-    list.innerHTML=mapEditorAllTiles().map(t=>'<div class="map-editor-tile-entry"><button type="button" class="map-editor-tile '+(mapEditorSelectedTile===t.id?"selected":"")+'" data-tile="'+t.id+'"><span style="background:'+(t.fallback||"#777")+'"></span>'+t.name+'</button>'+(mapEditorCanDeleteTile(t.id)?'<button type="button" class="map-editor-tile-delete" data-delete-tile="'+t.id+'" title="Supprimer cette tuile" aria-label="Supprimer '+t.name+'">×</button>':"")+'</div>').join("");
+    list.innerHTML=mapEditorAllTiles().map(t=>'<div class="map-editor-tile-entry"><button type="button" class="map-editor-tile '+(mapEditorSelectedTile===t.id?"selected":"")+'" data-tile="'+t.id+'"><span style="background:'+(t.fallback||"#777")+'"></span>'+t.name+'</button><button type="button" class="map-editor-tile-config" data-config-tile="'+t.id+'" title="Configurer cette tuile" aria-label="Configurer '+t.name+'" style="display:none">⚙</button>'+(mapEditorCanDeleteTile(t.id)?'<button type="button" class="map-editor-tile-delete" data-delete-tile="'+t.id+'" title="Supprimer cette tuile" aria-label="Supprimer '+t.name+'">×</button>':"")+'</div>').join("");
+    list.querySelectorAll(".map-editor-tile-entry").forEach(entry=>{
+        const config=entry.querySelector("[data-config-tile]");
+        entry.onmouseenter=()=>{if(config)config.style.display="inline-flex";};
+        entry.onmouseleave=()=>{if(config)config.style.display="none";};
+    });
     list.querySelectorAll("[data-tile]").forEach(b=>b.onclick=()=>{mapEditorSelectedTile=b.dataset.tile;mapEditorTool="paint";mapEditorRenderTiles();mapEditorRender();});
+    list.querySelectorAll("[data-config-tile]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const tile=mapEditorFindTileDefinition(b.dataset.configTile);if(tile)mapEditorOpenTileForm(tile,b.dataset.configTile);});
     list.querySelectorAll("[data-delete-tile]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();mapEditorRequestTileDeletion(b.dataset.deleteTile);});
 }
 
@@ -1273,10 +1279,6 @@ function mapEditorBuildUi(){
     const wrap=document.createElement("div");wrap.id="map-editor-root";wrap.className="save-menu map-editor-shell hidden";
     wrap.innerHTML='<div class="save-menu-content map-editor-content"><div class="save-menu-header"><div><span class="eyebrow">OUTIL DÉVELOPPEUR</span><h2>Créateur de Map</h2><p id="map-editor-current-name"></p></div><button id="map-editor-close" class="close-button">×</button></div><div class="map-editor-toolbar"><button id="me-new" class="primary-button">Nouvelle</button><button id="me-dup" class="secondary-button">Dupliquer</button><button id="me-del" class="secondary-button">Supprimer</button><button id="me-import" class="secondary-button">Importer JSON</button><button id="me-export" class="secondary-button">Exporter JSON</button><button id="me-undo" class="secondary-button">↶</button><button id="me-redo" class="secondary-button">↷</button><button id="me-test" class="secondary-button">Tester</button><button id="me-resize" class="secondary-button">Dimensions</button><select id="me-layer-select" title="Calque actif"></select><button id="me-layer" class="secondary-button">+ Calque</button><button id="me-encounter" class="secondary-button">Rencontres</button><button id="me-mode-placement" class="secondary-button">Placement</button><button id="me-mode-config" class="secondary-button">Configuration</button></div><div class="map-editor-layout"><aside><h3>Maps</h3><div id="map-editor-list"></div><h3>Tuiles</h3><div id="map-editor-tiles"></div><button id="me-new-tile" class="secondary-button">+ Tuile</button><button id="me-chest" class="secondary-button">+ Tuile interactive</button><h3>Outils</h3><div class="map-editor-tools"><button data-tool="paint">Pinceau</button><button data-tool="erase">Gomme</button><button data-tool="eyedropper">Pipette</button><button data-tool="fill">Remplir</button><button data-tool="spawn">Spawn</button></div></aside><main><canvas id="map-editor-canvas" width="1100" height="650" data-zoom="2" data-pan-x="0" data-pan-y="0"></canvas><div class="map-editor-hint">Clic gauche : placer · clic droit : effacer · glisser : peindre · molette : zoom · clic molette : déplacer</div></main></div><input id="map-editor-import-file" type="file" accept=".json,application/json" hidden></div>';
     document.body.appendChild(wrap);
-    const hoverConfig=document.createElement("button");
-    hoverConfig.id="me-hover-config";hoverConfig.type="button";hoverConfig.className="secondary-button";hoverConfig.textContent="⚙ Configurer";hoverConfig.style.cssText="position:fixed;z-index:10000;display:none;padding:5px 9px;";
-    document.body.appendChild(hoverConfig);
-    hoverConfig.onclick=()=>{const id=hoverConfig.dataset.tileId;const tile=mapEditorFindTileDefinition(id);if(tile)mapEditorOpenTileForm(tile,id);};
     document.getElementById("map-editor-close").onclick=mapEditorClose;
     document.getElementById("me-new").onclick=mapEditorCreateMap;document.getElementById("me-dup").onclick=mapEditorDuplicateMap;document.getElementById("me-del").onclick=mapEditorDeleteMap;document.getElementById("me-import").onclick=()=>document.getElementById("map-editor-import-file").click();document.getElementById("me-export").onclick=mapEditorExport;document.getElementById("me-undo").onclick=mapEditorUndoAction;document.getElementById("me-redo").onclick=mapEditorRedoAction;
     document.getElementById("me-resize").onclick=mapEditorResize;document.getElementById("me-layer").onclick=mapEditorAddLayer;document.getElementById("me-encounter").onclick=mapEditorOpenEncounterForm;
@@ -1335,15 +1337,6 @@ function mapEditorBuildUi(){
             const nextId=next?.instanceId||null;
             if(nextId!==mapEditorHoveredInstanceId){mapEditorHoveredInstanceId=nextId;mapEditorRender();}
         }
-        const hoverButton=document.getElementById("me-hover-config");
-        if(hoverButton&&mapEditorMode==="placement"&&inside&&!mapEditorPointerMode){
-            const tileId=String(mapEditorTopLayer()?.cells?.[cell.row*mapEditorCurrent().cols+cell.col]||"");
-            const tile=mapEditorFindTileDefinition(tileId);
-            if(tile&&tileId!==MAP_EDITOR_EMPTY_TILE_ID){
-                hoverButton.dataset.tileId=tileId;hoverButton.textContent="⚙ Configurer « "+tile.name+" »";hoverButton.style.display="block";
-                hoverButton.style.left=Math.round(e.clientX+12)+"px";hoverButton.style.top=Math.round(e.clientY+12)+"px";
-            }else hoverButton.style.display="none";
-        }else if(hoverButton&&!inside)hoverButton.style.display="none";
         if(mapEditorPointerMode==="pan"&&mapEditorPan){
             const point=mapEditorCanvasPointFromEvent(e);if(!point)return;
             const z=mapEditorPan.zoom||Number(canvas.dataset.zoom)||2;
