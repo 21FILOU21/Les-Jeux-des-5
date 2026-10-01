@@ -1100,6 +1100,7 @@ function mapEditorOpenTileForm(existing=null,replacePlacedTileId=null){
         tileImagePreview.innerHTML=src
             ? '<img src="'+escapeHtml(src)+'" alt="Aperçu de la tuile sélectionnée"><div class="me-selected-image-caption">'+escapeHtml(label||"Image sélectionnée")+'</div>'
             : '<div class="me-selected-image-empty">Aucune image sélectionnée</div>';
+    };
     if(t.imageKey){
         const existingImage=mapEditorAssetCache.get(t.imageKey);
         if(existingImage)showTileImagePreview(existingImage,"Image actuelle");
