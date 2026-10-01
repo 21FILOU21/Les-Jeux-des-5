@@ -256,8 +256,9 @@ function mapEditorTriggerTransitionAtPlayer(){
         overworldState.zoneTransitionLock=true;
         return true;
     }
-    overworldState.zoneTransitionLock=true;overworldState.keys.clear();overworldState.moveFrom=null;overworldState.moveTarget=null;overworldState.moveProgress=0;
+    overworldState.keys.clear();overworldState.moveFrom=null;overworldState.moveTarget=null;overworldState.moveProgress=0;
     mapEditorApplyRuntime(destination.map.id);
+    overworldState.zoneTransitionLock=true;
     overworldState.playerX=destination.x;overworldState.playerY=destination.y;
     overworldState.graceDistance=WORLD_GRACE_TILES*TILE_SIZE;
     overworldState.stepCooldown=WORLD_MOVEMENT.stepRepeatDelayMs;
