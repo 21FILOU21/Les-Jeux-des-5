@@ -545,6 +545,20 @@ function drawMapEditorRuntimeTile(ctx,type,S){
     }
     return true;
 }
+function mapEditorDrawInteractiveFallback(ctx,x,y,S,instance,props,opened){
+    const kind=String(instance?.type||props?.type||"");
+    if(kind==="transition"){
+        ctx.fillStyle="#5f6872";ctx.fillRect(x+S*.12,y+S*.12,S*.76,S*.76);
+        ctx.strokeStyle="#d7e0ea";ctx.lineWidth=Math.max(1,S*.08);ctx.strokeRect(x+S*.24,y+S*.24,S*.52,S*.52);
+        ctx.fillStyle="#d7e0ea";ctx.font=Math.max(8,Math.floor(S*.28))+"px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("→",x+S*.5,y+S*.5);
+        return;
+    }
+    if(kind==="container"){
+        ctx.fillStyle=opened?"#654b2d":"#b87b37";ctx.fillRect(x+S*.12,y+S*.28,S*.76,S*.55);ctx.fillStyle="#e0b34f";ctx.fillRect(x+S*.42,y+S*.44,S*.16,S*.18);
+        return;
+    }
+    ctx.fillStyle=props?.fallback||"#777";ctx.fillRect(x,y,S,S);
+}
 const mapEditorRuntimeImages=new Map();
 
 function drawMapEditorRuntimeObjects(ctx,S){
@@ -556,7 +570,7 @@ function drawMapEditorRuntimeObjects(ctx,S){
         const img=key?mapEditorRuntimeImages.get(key):null;
         const x=o.x*S,y=o.y*S;
         if(img&&img.complete)ctx.drawImage(img,x,y,S,S);
-        else if(o.type==="container"){ctx.fillStyle=opened?"#654b2d":"#b87b37";ctx.fillRect(x+S*.12,y+S*.28,S*.76,S*.55);ctx.fillStyle="#e0b34f";ctx.fillRect(x+S*.42,y+S*.44,S*.16,S*.18);}
+        else mapEditorDrawInteractiveFallback(ctx,x,y,S,o,props,opened);
     }
 }
 
@@ -1221,7 +1235,7 @@ function mapEditorRender(){
         const img=key?mapEditorRuntimeImages.get(key):null;
         const x=o.x*m.tileSize,y=o.y*m.tileSize;
         if(img&&img.complete)ctx.drawImage(img,x,y,m.tileSize,m.tileSize);
-        else {ctx.fillStyle=opened?"#654b2d":"#b87b3d";ctx.fillRect(x+2,y+2,m.tileSize-4,m.tileSize-4);ctx.fillStyle="#e0b34f";ctx.fillRect(x+m.tileSize*.42,y+m.tileSize*.44,m.tileSize*.16,m.tileSize*.18);}
+        else mapEditorDrawInteractiveFallback(ctx,x,y,m.tileSize,o,props,opened);
         if(mapEditorMode==="configuration"&&(o.instanceId===mapEditorSelectedInstanceId||o.instanceId===mapEditorHoveredInstanceId)){
             ctx.strokeStyle=o.instanceId===mapEditorSelectedInstanceId?"#ffd54a":"#fff";ctx.lineWidth=2/zoom;ctx.strokeRect(x+.5,y+.5,m.tileSize-1,m.tileSize-1);
         }
