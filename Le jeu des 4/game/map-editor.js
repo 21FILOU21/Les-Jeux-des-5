@@ -1306,37 +1306,118 @@ function mapEditorOpenInteractiveTileForm(existing=null){
     const kindSelect=document.getElementById("me-i-kind"),transitionFields=document.getElementById("me-i-transition-fields"),collisionInput=document.getElementById("me-i-collision");
     const minimap=document.getElementById("me-i-destination-minimap"),destinationSelect=document.getElementById("me-i-destination"),destinationSideButtons=[...document.querySelectorAll("[data-transition-side]")];
     const drawDestinationMinimap=()=>{
-        const map=mapEditorMaps.find(m=>m.id===destinationSelect?.value),ctx=minimap?.getContext("2d");if(!map||!ctx||!minimap)return;
-        const scale=Math.min(minimap.width/(map.cols*map.tileSize),minimap.height/(map.rows*map.tileSize));
-        const mapW=map.cols*map.tileSize*scale,mapH=map.rows*map.tileSize*scale;
-        const offsetX=(minimap.width-mapW)/2,offsetY=(minimap.height-mapH)/2;
-        const layer=map.layers?.[0];ctx.clearRect(0,0,minimap.width,minimap.height);
-        ctx.fillStyle="#0a1421";ctx.fillRect(0,0,minimap.width,minimap.height);
-        for(let y=0;y<map.rows;y++)for(let x=0;x<map.cols;x++){const tile=mapEditorFindTileDefinition(layer?.cells?.[y*map.cols+x])||MAP_EDITOR_EMPTY_TILE;ctx.fillStyle=tile.fallback||"#777";ctx.fillRect(offsetX+x*map.tileSize*scale,offsetY+y*map.tileSize*scale,map.tileSize*scale+1,map.tileSize*scale+1);}
-        // Grille discrète : repères aux intersections de chaque tuile.
-        ctx.save();
-        ctx.strokeStyle="rgba(190,200,212,.24)";
-        ctx.lineWidth=Math.max(.5,Math.min(1.25,scale*.65));
-        ctx.beginPath();
-        for(let x=0;x<=map.cols;x++){
-            const px=offsetX+x*map.tileSize*scale;
-            ctx.moveTo(Math.round(px)+.5,offsetY);
-            ctx.lineTo(Math.round(px)+.5,offsetY+mapH);
-        }
-        for(let y=0;y<=map.rows;y++){
-            const py=offsetY+y*map.tileSize*scale;
-            ctx.moveTo(offsetX,Math.round(py)+.5);
-            ctx.lineTo(offsetX+mapW,Math.round(py)+.5);
-        }
-        ctx.stroke();
-        ctx.restore();
-        const dx=Math.floor(Number(document.getElementById("me-i-destination-x")?.value)||0),dy=Math.floor(Number(document.getElementById("me-i-destination-y")?.value)||0);
-        const side=document.getElementById("me-i-destination-side")?.dataset.side||"";
+        const destination=mapEditorMaps.find(m=>m.id===destinationSelect?.value),current=mapEditorCurrent(),ctx=minimap?.getContext("2d");
+        if(!destination||!current||!ctx||!minimap)return;
+        const side=document.getElementById("me-i-destination-side")?.dataset.side||"right";
         destinationSideButtons.forEach(button=>button.classList.toggle("selected",button.dataset.transitionSide===side));
-        const markerX=offsetX+dx*map.tileSize*scale,markerY=offsetY+dy*map.tileSize*scale;
-        ctx.strokeStyle="#ffd54a";ctx.lineWidth=3;ctx.strokeRect(markerX+1,markerY+1,map.tileSize*scale-2,map.tileSize*scale-2);
-        ctx.fillStyle="rgba(255,213,74,.18)";ctx.fillRect(markerX,markerY,map.tileSize*scale,map.tileSize*scale);
-        const label=document.getElementById("me-i-destination-position");if(label)label.textContent="Arrivée : case "+dx+" × "+dy+(side?" · bord "+({top:"haut",left:"gauche",right:"droite",bottom:"bas"}[side]||side):"");
+
+        const horizontal=side==="left"||side==="right";
+        minimap.width=horizontal?640:420;
+        minimap.height=horizontal?300:560;
+        ctx.clearRect(0,0,minimap.width,minimap.height);
+        ctx.fillStyle="#07101d";ctx.fillRect(0,0,minimap.width,minimap.height);
+
+        const gap=18,pad=18;
+        const fitMap=(map,box)=>{
+            const scale=Math.min(box.w/(map.cols*map.tileSize),box.h/(map.rows*map.tileSize));
+            const w=map.cols*map.tileSize*scale,h=map.rows*map.tileSize*scale;
+            return {scale,w,h,x:box.x+(box.w-w)/2,y:box.y+(box.h-h)/2};
+        };
+        const currentBox=horizontal
+            ? {x:pad+(side==="left"?minimap.width/2+gap/2:0),y:42,w:minimap.width/2-gap/2-pad,h:minimap.height-58}
+            : {x:42,y:pad+(side==="top"?minimap.height/2+gap/2:0),w:minimap.width-58,h:minimap.height/2-gap/2-pad};
+        const destinationBox=horizontal
+            ? {x:pad+(side==="left"?0:0),y:42,w:minimap.width/2-gap/2-pad,h:minimap.height-58}
+            : {x:42,y:pad+(side==="top"?0:0),w:minimap.width-58,h:minimap.height/2-gap/2-pad};
+        if(horizontal&&side==="right"){
+            destinationBox.x=minimap.width/2+gap/2;
+            currentBox.x=pad;
+        }
+        if(horizontal&&side==="left"){
+            destinationBox.x=pad;
+            currentBox.x=minimap.width/2+gap/2;
+        }
+        if(!horizontal&&side==="bottom"){
+            currentBox.y=pad;
+            destinationBox.y=minimap.height/2+gap/2;
+        }
+        if(!horizontal&&side==="top"){
+            destinationBox.y=pad;
+            currentBox.y=minimap.height/2+gap/2;
+        }
+
+        const currentView=fitMap(current,currentBox),destinationView=fitMap(destination,destinationBox);
+        const drawMap=(map,view,title)=>{
+            const layer=map.layers?.[0];
+            ctx.save();
+            ctx.fillStyle="#0b1725";
+            ctx.fillRect(view.x-2,view.y-2,view.w+4,view.h+4);
+            for(let y=0;y<map.rows;y++)for(let x=0;x<map.cols;x++){
+                const tile=mapEditorFindTileDefinition(layer?.cells?.[y*map.cols+x])||MAP_EDITOR_EMPTY_TILE;
+                ctx.fillStyle=tile.fallback||"#777";
+                ctx.fillRect(view.x+x*map.tileSize*view.scale,view.y+y*map.tileSize*view.scale,map.tileSize*view.scale+1,map.tileSize*view.scale+1);
+            }
+            ctx.strokeStyle="rgba(190,200,212,.22)";
+            ctx.lineWidth=Math.max(.5,Math.min(1.1,view.scale*.55));
+            ctx.beginPath();
+            for(let x=0;x<=map.cols;x++){
+                const px=view.x+x*map.tileSize*view.scale;
+                ctx.moveTo(Math.round(px)+.5,view.y);ctx.lineTo(Math.round(px)+.5,view.y+view.h);
+            }
+            for(let y=0;y<=map.rows;y++){
+                const py=view.y+y*map.tileSize*view.scale;
+                ctx.moveTo(view.x,Math.round(py)+.5);ctx.lineTo(view.x+view.w,Math.round(py)+.5);
+            }
+            ctx.stroke();
+            ctx.strokeStyle="#355a7d";ctx.lineWidth=1.5;ctx.strokeRect(view.x,view.y,view.w,view.h);
+            ctx.fillStyle="#dbeafe";ctx.font="bold 11px sans-serif";ctx.textAlign="center";ctx.textBaseline="bottom";
+            ctx.fillText(title,view.x+view.w/2,view.y-6);
+            ctx.restore();
+        };
+        drawMap(current,currentView,"MAP ACTUELLE");
+        drawMap(destination,destinationView,"MAP D’ARRIVÉE");
+
+        // Le raccord visuel montre immédiatement quel bord des deux maps est relié.
+        ctx.save();
+        ctx.strokeStyle="#6fb0ff";ctx.fillStyle="rgba(61,141,255,.16)";ctx.lineWidth=3;
+        if(horizontal){
+            const destinationOnLeft=side==="left";
+            const seamX=destinationOnLeft
+                ? destinationView.x+destinationView.w
+                : destinationView.x;
+            const currentSeamX=destinationOnLeft
+                ? currentView.x
+                : currentView.x+currentView.w;
+            ctx.fillRect(Math.min(seamX,currentSeamX)-2,Math.min(destinationView.y,currentView.y),Math.abs(currentSeamX-seamX)+4,Math.max(destinationView.h,currentView.h));
+            ctx.beginPath();ctx.moveTo(seamX,destinationView.y);ctx.lineTo(seamX,destinationView.y+destinationView.h);ctx.stroke();
+            ctx.beginPath();ctx.moveTo(currentSeamX,currentView.y);ctx.lineTo(currentSeamX,currentView.y+currentView.h);ctx.stroke();
+        }else{
+            const destinationOnTop=side==="top";
+            const seamY=destinationOnTop
+                ? destinationView.y+destinationView.h
+                : destinationView.y;
+            const currentSeamY=destinationOnTop
+                ? currentView.y
+                : currentView.y+currentView.h;
+            ctx.fillRect(Math.min(destinationView.x,currentView.x),Math.min(seamY,currentSeamY)-2,Math.max(destinationView.w,currentView.w),Math.abs(currentSeamY-seamY)+4);
+            ctx.beginPath();ctx.moveTo(destinationView.x,seamY);ctx.lineTo(destinationView.x+destinationView.w,seamY);ctx.stroke();
+            ctx.beginPath();ctx.moveTo(currentView.x,currentSeamY);ctx.lineTo(currentView.x+currentView.w,currentSeamY);ctx.stroke();
+        }
+        ctx.restore();
+
+        const dx=Math.floor(Number(document.getElementById("me-i-destination-x")?.value)||0),dy=Math.floor(Number(document.getElementById("me-i-destination-y")?.value)||0);
+        const markerX=destinationView.x+dx*destination.tileSize*destinationView.scale;
+        const markerY=destinationView.y+dy*destination.tileSize*destinationView.scale;
+        const markerW=destination.tileSize*destinationView.scale,markerH=destination.tileSize*destinationView.scale;
+        ctx.save();
+        ctx.strokeStyle="#ffd54a";ctx.lineWidth=3;ctx.strokeRect(markerX+1,markerY+1,Math.max(2,markerW-2),Math.max(2,markerH-2));
+        ctx.fillStyle="rgba(255,213,74,.2)";ctx.fillRect(markerX,markerY,markerW,markerH);
+        ctx.fillStyle="#ffd54a";ctx.font="bold 10px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+        ctx.fillText("ARRIVÉE",markerX+markerW/2,markerY+markerH/2);
+        ctx.restore();
+
+        const label=document.getElementById("me-i-destination-position");
+        if(label)label.textContent="Raccord : "+({top:"haut",left:"gauche",right:"droite",bottom:"bas"}[side]||side)+" · arrivée : case "+dx+" × "+dy;
     };
     const applyTransitionSide=side=>{
         const map=mapEditorMaps.find(m=>m.id===destinationSelect?.value);if(!map)return;
@@ -1351,24 +1432,29 @@ function mapEditorOpenInteractiveTileForm(existing=null){
     destinationSideButtons.forEach(button=>button.onclick=()=>applyTransitionSide(button.dataset.transitionSide));
 
     if(minimap)minimap.onclick=e=>{
-        const map=mapEditorMaps.find(m=>m.id===destinationSelect?.value);if(!map)return;
+        const map=mapEditorMaps.find(m=>m.id===destinationSelect?.value),current=mapEditorCurrent();if(!map||!current)return;
         const rect=minimap.getBoundingClientRect();
         const styles=getComputedStyle(minimap);
-        const borderLeft=parseFloat(styles.borderLeftWidth)||0;
-        const borderTop=parseFloat(styles.borderTopWidth)||0;
-        const borderRight=parseFloat(styles.borderRightWidth)||0;
-        const borderBottom=parseFloat(styles.borderBottomWidth)||0;
-        const contentWidth=Math.max(1,rect.width-borderLeft-borderRight);
-        const contentHeight=Math.max(1,rect.height-borderTop-borderBottom);
+        const borderLeft=parseFloat(styles.borderLeftWidth)||0,borderTop=parseFloat(styles.borderTopWidth)||0;
+        const borderRight=parseFloat(styles.borderRightWidth)||0,borderBottom=parseFloat(styles.borderBottomWidth)||0;
+        const contentWidth=Math.max(1,rect.width-borderLeft-borderRight),contentHeight=Math.max(1,rect.height-borderTop-borderBottom);
         const canvasX=(e.clientX-rect.left-borderLeft)*(minimap.width/contentWidth);
         const canvasY=(e.clientY-rect.top-borderTop)*(minimap.height/contentHeight);
-        const scale=Math.min(minimap.width/(map.cols*map.tileSize),minimap.height/(map.rows*map.tileSize));
+        const side=document.getElementById("me-i-destination-side")?.dataset.side||"right";
+        const horizontal=side==="left"||side==="right";
+        const gap=18,pad=18;
+        const destinationBox=horizontal
+            ? {x:pad,y:42,w:minimap.width/2-gap/2-pad,h:minimap.height-58}
+            : {x:42,y:pad,w:minimap.width-58,h:minimap.height/2-gap/2-pad};
+        if(horizontal&&side==="right")destinationBox.x=minimap.width/2+gap/2;
+        if(!horizontal&&side==="top")destinationBox.y=pad;
+        if(!horizontal&&side==="bottom")destinationBox.y=minimap.height/2+gap/2;
+        const scale=Math.min(destinationBox.w/(map.cols*map.tileSize),destinationBox.h/(map.rows*map.tileSize));
         const mapW=map.cols*map.tileSize*scale,mapH=map.rows*map.tileSize*scale;
-        const offsetX=(minimap.width-mapW)/2,offsetY=(minimap.height-mapH)/2;
+        const offsetX=destinationBox.x+(destinationBox.w-mapW)/2,offsetY=destinationBox.y+(destinationBox.h-mapH)/2;
         const px=canvasX-offsetX,py=canvasY-offsetY;
         if(px<0||py<0||px>=mapW||py>=mapH)return;
-        const x=Math.floor((px/scale)/map.tileSize);
-        const y=Math.floor((py/scale)/map.tileSize);
+        const x=Math.floor((px/scale)/map.tileSize),y=Math.floor((py/scale)/map.tileSize);
         if(x<0||y<0||x>=map.cols||y>=map.rows)return;
         document.getElementById("me-i-destination-x").value=x;
         document.getElementById("me-i-destination-y").value=y;
@@ -1376,10 +1462,11 @@ function mapEditorOpenInteractiveTileForm(existing=null){
         if(sidePicker){
             const edgeDistances={top:y,left:x,right:map.cols-1-x,bottom:map.rows-1-y};
             const nearest=Object.entries(edgeDistances).sort((a,b)=>a[1]-b[1])[0];
-            sidePicker.dataset.side=nearest?.[0]||"";
+            sidePicker.dataset.side=nearest?.[0]||side;
         }
         drawDestinationMinimap();
     };
+
     const syncTransitionFields=()=>{
         const transition=kindSelect.value==="transition";
         transitionFields?.classList.toggle("hidden",!transition);
