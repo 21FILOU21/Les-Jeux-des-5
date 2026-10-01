@@ -668,10 +668,24 @@ function getMapEditorOverworldSaveData(){
 function applyMapEditorOverworldSaveData(data){
     if(data?.mapId)loadActiveMapIntoWorld(data.mapId);
     const m=mapEditorCurrent();if(!m)return;
-    const validIds=new Set((m.objects||[]).map(o=>o.id));
-    const opened=new Set((Array.isArray(data?.openedObjectIds)?data.openedObjectIds:[]).filter(id=>validIds.has(id)));
-    mapEditorOpenedObjectIds=opened;
-    for(const o of m.objects||[])if(o.instanceId) { o.state=o.state||{}; o.state.opened=opened.has(o.instanceId); }
+    const objects=m.objects||[];
+    const validIds=new Set(objects.flatMap(o=>[o.id,o.instanceId].filter(Boolean).map(String)));
+    const savedIds=new Set((Array.isArray(data?.openedObjectIds)?data.openedObjectIds:[]).map(String));
+    const opened=new Set([...savedIds].filter(id=>validIds.has(id)));
+    mapEditorOpenedObjectIds=new Set();
+    for(const o of objects){
+        const objectId=String(o.instanceId||o.id||"");
+        const legacyId=String(o.id||"");
+        const isOpened=opened.has(objectId)||opened.has(legacyId);
+        o.state=o.state||{};
+        o.state.opened=isOpened;
+        if(isOpened&&objectId)mapEditorOpenedObjectIds.add(objectId);
+    }
+    if(typeof buildWorldMapCanvas==="function"){
+        worldMapCanvas=buildWorldMapCanvas();
+    }
+    if(typeof renderWorld==="function")renderWorld();
+    mapEditorLoadRuntimeImages();
 }
 
 function mapEditorResetOpenedObjectsForNewRun(){
