@@ -498,7 +498,6 @@ button:disabled {
 .battle-main {
     width: min(1600px, 100%);
     margin: 0 auto;
-
     display: grid;
     grid-template-columns: minmax(300px, 1fr) 170px minmax(300px, 1fr);
     gap: 20px;
@@ -997,8 +996,7 @@ button:disabled {
     overflow-y: auto;
 
     background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border: 1px solid var(--border);    border-radius: var(--radius);
 
     padding: 24px;
 
@@ -1498,7 +1496,6 @@ button:disabled {
     .action-buttons {
         grid-template-columns: 1fr 1fr;
     }
-
     .inventory-grid {
         grid-template-columns: 1fr 1fr;
     }
@@ -1997,8 +1994,7 @@ button:disabled {
 
     20% {
         opacity: 1;
-        transform: translate(-50%, 0) scale(1.15);
-    }
+        transform: translate(-50%, 0) scale(1.15);    }
 
     100% {
         opacity: 0;
@@ -2497,7 +2493,6 @@ button:disabled {
 
     margin-bottom: 22px;
 }
-
 .save-menu-header h2 {
     margin: 6px 0 5px;
 
@@ -2998,7 +2993,6 @@ button:disabled {
         opacity: 1;
         transform: translateX(-50%) scale(1.2);
     }
-
     100% {
         opacity: 0;
         transform: translateX(-50%) scale(1);
@@ -3497,8 +3491,7 @@ button:disabled {
     color: var(--muted)
 }
 
-.save-inspector-line span:last-child {
-    color: var(--text);
+.save-inspector-line span:last-child {    color: var(--text);
     font-weight: 700;
     text-align: right
 }
@@ -3997,8 +3990,7 @@ body {
     border: 1px solid #293b35;
     box-shadow:
         inset 0 -24px 40px rgba(0,0,0,.24),
-        inset 0 1px 0 rgba(255,255,255,.035);
-}
+        inset 0 1px 0 rgba(255,255,255,.035);}
 
 .monster-art {
     background:
@@ -4497,7 +4489,6 @@ body {
 .fighter-art-content {
     text-shadow: 0 10px 40px rgba(61, 141, 255, 0.34);
 }
-
 .energy-type {
     background: rgba(77, 184, 255, 0.12);
     border-color: rgba(77, 184, 255, 0.32);
@@ -4997,8 +4988,7 @@ body {
     min-height:40px;
 }
 @media(max-width:700px){
-    .me-loot-head{display:none}
-    .me-loot-row{grid-template-columns:1fr 1fr 1fr 1fr 38px}
+    .me-loot-head{display:none}    .me-loot-row{grid-template-columns:1fr 1fr 1fr 1fr 38px}
     .map-editor-toolbar{padding:8px}
 }
 
@@ -5349,4 +5339,4 @@ body {
 .map-editor-dialog .me-tile-type-field select:focus{
     border-color:#6fb0ff;
     box-shadow:0 0 0 2px rgba(61,141,255,.18),0 0 18px rgba(61,141,255,.12);
-}
+}\n\n/* Aperçu grille 16×16 — configuration des tuiles normales uniquement */\n.me-normal-tile-image-grid{\n    width:100%;\n    min-height:180px;\n    border:1px solid #355b7d;\n    border-radius:8px;\n    background-color:#0a1421;\n    background-repeat:repeat;\n    background-size:16px 16px;\n    background-position:top left;\n    image-rendering:pixelated;\n    box-shadow:inset 0 0 0 1px rgba(255,255,255,.035), inset 0 0 18px rgba(0,0,0,.28);\n}\n
