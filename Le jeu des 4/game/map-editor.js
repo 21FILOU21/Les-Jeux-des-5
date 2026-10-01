@@ -617,6 +617,26 @@ function applyMapEditorOverworldSaveData(data){
     for(const o of m.objects||[])if(o.instanceId) { o.state=o.state||{}; o.state.opened=opened.has(o.instanceId); }
 }
 
+function mapEditorResetOpenedObjectsForNewRun(){
+    const m=mapEditorCurrent();
+    if(!m)return;
+    const opened=new Set();
+    for(const o of m.objects||[]){
+        const props=mapEditorGetInstanceProps(o);
+        const initialOpen=props?.initialOpen===true;
+        if(o.type==="container"){
+            o.state=o.state||{};
+            o.state.opened=initialOpen;
+            if(initialOpen)opened.add(o.instanceId||o.id);
+        }
+    }
+    mapEditorOpenedObjectIds=opened;
+    if(typeof buildWorldMapCanvas==="function"){
+        worldMapCanvas=buildWorldMapCanvas();
+    }
+    if(typeof renderWorld==="function")renderWorld();
+}
+
 function mapEditorGrantItem(id,qty){
     qty=Math.max(0,Math.floor(Number(qty)||0));if(!qty)return;
     if(typeof addItemToInventory === "function") addItemToInventory(id,qty);

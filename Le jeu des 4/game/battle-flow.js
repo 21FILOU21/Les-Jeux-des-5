@@ -685,6 +685,10 @@ function beginAdventure() {
 
     globalState.evolutionDeclinedLevel = null;
 
+    if (typeof mapEditorResetOpenedObjectsForNewRun === "function") {
+        mapEditorResetOpenedObjectsForNewRun();
+    }
+
     if (typeof resetOverworldState === "function") {
         resetOverworldState();
     }
