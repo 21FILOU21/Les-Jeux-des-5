@@ -1098,9 +1098,8 @@ function mapEditorOpenTileForm(existing=null,replacePlacedTileId=null){
     const showTileImagePreview=(src,label)=>{
         if(!tileImagePreview)return;
         tileImagePreview.innerHTML=src
-            ? '<div class="me-normal-tile-image-mosaic" style="background-image:url(\''+escapeHtml(src)+'\')"></div><div class="me-selected-image-caption">'+escapeHtml(label||"Image sélectionnée")+' · aperçu répété 16×16</div>'
+            ? '<img src="'+escapeHtml(src)+'" alt="Aperçu de la tuile sélectionnée"><div class="me-selected-image-caption">'+escapeHtml(label||"Image sélectionnée")+'</div>'
             : '<div class="me-selected-image-empty">Aucune image sélectionnée</div>';
-    };
     if(t.imageKey){
         const existingImage=mapEditorAssetCache.get(t.imageKey);
         if(existingImage)showTileImagePreview(existingImage,"Image actuelle");
