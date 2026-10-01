@@ -1083,10 +1083,35 @@ function mapEditorOpenTileForm(existing=null,replacePlacedTileId=null){
     '<label><input type="checkbox" id="me-t-collision" '+(t.collision?"checked":"")+'> Collision</label>'+
     '<label><input type="checkbox" id="me-t-encounters" '+(t.encounters?"checked":"")+'> Autoriser les rencontres</label>'+
     '<label>Couleur de secours<input type="color" id="me-t-fallback" value="'+(t.fallback||"#8fbf6a")+'"></label>'+
-    '<label>Description<textarea id="me-t-desc">'+(t.description||"")+'</textarea></label>'+
-    '<label>Image PNG/JPG<input type="file" id="me-t-image" accept="image/png,image/jpeg"></label>'+
+    '<label class="me-description-field"><span>Description</span><textarea id="me-t-desc" placeholder="Décris clairement cette tuile : apparence, usage, collision, rôle dans la carte…">'+(t.description||"")+'</textarea><small class="me-field-hint">Cette description sert à identifier rapidement la tuile dans le créateur.</small></label>'+
+    '<div class="me-image-picker">'+
+        '<div class="me-image-picker-head"><span>Image de la tuile</span><small>PNG ou JPG · aperçu avant validation</small></div>'+
+        '<label class="me-file-field">Choisir une image<input type="file" id="me-t-image" accept="image/png,image/jpeg"></label>'+
+        '<div id="me-t-image-preview" class="me-selected-image-preview"><div class="me-selected-image-empty">Aucune image sélectionnée</div></div>'+
+    '</div>'+
     '<div class="dev-form-actions"><button id="me-t-save" class="primary-button">Enregistrer</button><button id="me-t-cancel" class="secondary-button">Annuler</button></div></div>';
     mapEditorDialog(html);
+    const tileImageInput=document.getElementById("me-t-image");
+    const tileImagePreview=document.getElementById("me-t-image-preview");
+    const showTileImagePreview=(src,label)=>{
+        if(!tileImagePreview)return;
+        tileImagePreview.innerHTML=src
+            ? '<img src="'+escapeHtml(src)+'" alt="Aperçu de la tuile sélectionnée"><div class="me-selected-image-caption">'+escapeHtml(label||"Image sélectionnée")+'</div>'
+            : '<div class="me-selected-image-empty">Aucune image sélectionnée</div>';
+    };
+    if(t.imageKey){
+        const existingImage=mapEditorAssetCache.get(t.imageKey);
+        if(existingImage)showTileImagePreview(existingImage,"Image actuelle");
+        else mapEditorGetAsset(t.imageKey).then(data=>{if(data)showTileImagePreview(data,"Image actuelle");});
+    }
+    tileImageInput?.addEventListener("change",()=>{
+        const file=tileImageInput.files?.[0];
+        if(!file){showTileImagePreview(t.imageKey?mapEditorAssetCache.get(t.imageKey):null,t.imageKey?"Image actuelle":"");return;}
+        if(!["image/png","image/jpeg","image/jpg"].includes(file.type)){showTileImagePreview(null,"");return;}
+        const reader=new FileReader();
+        reader.onload=()=>showTileImagePreview(reader.result,file.name);
+        reader.readAsDataURL(file);
+    });
     document.getElementById("me-t-cancel").onclick=mapEditorCloseDialog;
     document.getElementById("me-t-save").onclick=async()=>{
         try{
