@@ -584,7 +584,7 @@ async function mapEditorLoadRuntimeImages(){
     for(const tile of mapEditorAllTiles()){
         if(!tile.imageKey||mapEditorRuntimeImages.has(tile.imageKey))continue;
         const data=await mapEditorGetAsset(tile.imageKey);if(!data)continue;
-        const img=new Image();img.onload=()=>{mapEditorRuntimeImages.set(tile.imageKey,img);if(typeof buildWorldMapCanvas==="function"){worldMapCanvas=buildWorldMapCanvas();renderWorld();}};img.src=data;
+        const img=new Image();img.onload=()=>{mapEditorRuntimeImages.set(tile.imageKey,img);mapEditorRenderTiles();if(typeof buildWorldMapCanvas==="function"){worldMapCanvas=buildWorldMapCanvas();renderWorld();}};img.src=data;
     }
 }
 
@@ -1037,7 +1037,18 @@ function mapEditorRequestTileDeletion(tileId){
 
 function mapEditorRenderTiles(){
     const list=document.getElementById("map-editor-tiles");if(!list)return;
-    list.innerHTML=mapEditorAllTiles().map(t=>'<div class="map-editor-tile-entry"><button type="button" class="map-editor-tile '+(mapEditorSelectedTile===t.id?"selected":"")+'" data-tile="'+t.id+'"><span style="background:'+(t.fallback||"#777")+'"></span>'+t.name+'</button><button type="button" class="map-editor-tile-config" data-config-tile="'+t.id+'" title="Configurer cette tuile" aria-label="Configurer '+t.name+'" style="display:none">⚙</button>'+(mapEditorCanDeleteTile(t.id)?'<button type="button" class="map-editor-tile-delete" data-delete-tile="'+t.id+'" title="Supprimer cette tuile" aria-label="Supprimer '+t.name+'">×</button>':"")+'</div>').join("");
+    const tiles=mapEditorAllTiles();
+    list.innerHTML=tiles.map(t=>'<div class="map-editor-tile-entry"><button type="button" class="map-editor-tile '+(mapEditorSelectedTile===t.id?"selected":"")+'" data-tile="'+t.id+'"><span class="map-editor-tile-preview" data-preview-tile="'+t.id+'" style="background:'+(t.fallback||"#777")+'"></span>'+t.name+'</button><button type="button" class="map-editor-tile-config" data-config-tile="'+t.id+'" title="Configurer cette tuile" aria-label="Configurer '+t.name+'" style="display:none">⚙</button>'+(mapEditorCanDeleteTile(t.id)?'<button type="button" class="map-editor-tile-delete" data-delete-tile="'+t.id+'" title="Supprimer cette tuile" aria-label="Supprimer '+t.name+'">×</button>':"")+'</div>').join("");
+    list.querySelectorAll("[data-preview-tile]").forEach(preview=>{
+        const tile=mapEditorFindTileDefinition(preview.dataset.previewTile);
+        const data=tile?.imageKey?mapEditorAssetCache.get(tile.imageKey):null;
+        if(data){
+            preview.style.backgroundImage='url("'+data+'")';
+            preview.style.backgroundSize="cover";
+            preview.style.backgroundPosition="center";
+            preview.style.backgroundRepeat="no-repeat";
+        }
+    });
     list.querySelectorAll(".map-editor-tile-entry").forEach(entry=>{
         const config=entry.querySelector("[data-config-tile]");
         entry.onmouseenter=()=>{if(config)config.style.display="inline-flex";};
