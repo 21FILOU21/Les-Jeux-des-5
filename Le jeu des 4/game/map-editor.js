@@ -1154,7 +1154,7 @@ function mapEditorOpenInstanceConfig(instance){
     const transitionRoot=document.getElementById("me-o-transition-fields");
     if(transitionRoot&&isTransition){
         const cfg=mapEditorGetTransitionConfig(instance)||{destinationMapId:"",destinationX:0,destinationY:0};
-        transitionRoot.innerHTML='<label>Type : Transition de zone</label><label>Destination<select id="me-o-transition-destination">'+mapEditorMaps.map(m=>'<option value="'+m.id+'" '+(m.id===cfg.destinationMapId?"selected":"")+'>'+escapeHtml(m.name)+'</option>').join("")+'</select></label><label>Position d’arrivée X<input id="me-o-transition-x" type="number" min="0" value="'+cfg.destinationX+'"></label><label>Position d’arrivée Y<input id="me-o-transition-y" type="number" min="0" value="'+cfg.destinationY+'"></label>';
+        transitionRoot.innerHTML='<label>Nom / identifiant de l’instance<input id="me-o-transition-name" value="'+(instance.overrides.instanceName||instance.instanceId)+'"></label><label>Type : Transition de zone</label><label>Destination<select id="me-o-transition-destination">'+mapEditorMaps.map(m=>'<option value="'+m.id+'" '+(m.id===cfg.destinationMapId?"selected":"")+'>'+escapeHtml(m.name)+'</option>').join("")+'</select></label><label>Position d’arrivée X<input id="me-o-transition-x" type="number" min="0" value="'+cfg.destinationX+'"></label><label>Position d’arrivée Y<input id="me-o-transition-y" type="number" min="0" value="'+cfg.destinationY+'"></label>';
     }
     mapEditorFillConfigImagePreview("me-o-closed-current",props.closedImageKey);
     mapEditorFillConfigImagePreview("me-o-open-current",props.openImageKey);
@@ -1176,6 +1176,7 @@ function mapEditorOpenInstanceConfig(instance){
                 const destinationY=Math.floor(Number(document.getElementById("me-o-transition-y")?.value)||0);
                 const destinationMap=mapEditorMaps.find(m=>m.id===destinationMapId);
                 if(!destinationMap||destinationX<0||destinationY<0||destinationX>=destinationMap.cols||destinationY>=destinationMap.rows)throw new Error("Destination ou coordonnées d’arrivée invalides.");
+                overrides.instanceName=String(document.getElementById("me-o-transition-name")?.value||instance.instanceId).trim()||instance.instanceId;
                 overrides.destinationMapId=destinationMapId;
                 overrides.destinationX=destinationX;
                 overrides.destinationY=destinationY;
