@@ -641,6 +641,11 @@ function mapEditorOpenObjectAt(col,row){
         if(qty){mapEditorGrantItem(entry.itemId,qty);rewards.push((getMapEditorItemCatalog().find(x=>x.id===entry.itemId)?.label||entry.itemId)+(qty>1?" ×"+qty:""));}
     }
     mapEditorSaveCurrent();
+    mapEditorRender();
+    if(typeof buildWorldMapCanvas==="function"){
+        worldMapCanvas=buildWorldMapCanvas();
+        if(typeof renderWorld==="function")renderWorld();
+    }
     showWorldDialogue(rewards.length?"Butin : "+rewards.join(", "):"Le coffre est vide.",2200);
     return true;
 }

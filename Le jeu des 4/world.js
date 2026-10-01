@@ -695,7 +695,6 @@ function bindWorldEvents() {
         const keyName = String(event.key || "").toLowerCase(); let action = null; if (typeof getKeyAction === "function") { action = getKeyAction(keyName) } else { action = WORLD_KEY_DIRECTIONS[keyName] || null }
         if (action === "fastWalk") { overworldState.fastWalkHeld = !0; return }
         if (action === "action5") { if (typeof openInventoryModal === "function") openInventoryModal("world"); return; }
-        if (action === "interact") { if (typeof mapEditorInteract === "function") mapEditorInteract(); return; }
         if (action !== "up" && action !== "down" && action !== "left" && action !== "right") return; overworldState.keys.add(keyName); if (event.key.startsWith("Arrow")) { event.preventDefault() }
         if (!event.repeat) { requestWorldStep(action) }
     }); document.addEventListener("keyup", (event) => {
