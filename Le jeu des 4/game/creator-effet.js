@@ -19,11 +19,6 @@ function startEffectCreator(existing) {
     const isEdit = Boolean(existing);
     const existingId = existing ? String(existing.Id || existing.Nom || "") : "";
 
-    if ((!isEdit || id !== existingId) && (state.contenu?.Effets || []).some(effect => effect && String(effect.Id || "").trim() === id)) {
-        showToast("ID déjà utilisé", `Un effet avec l'ID « ${id} » existe déjà.`);
-        return;
-    }
-
     const isStockEdit = isEdit && isStockContentName("Effets", existing.Nom);
 
     const typeOptions = CREATOR_EFFECT_TYPES.map(t => `<option value="${escapeHtml(t)}"${existing && existing.Type === t ? " selected" : ""}>${escapeHtml(t)}</option>`).join("");
