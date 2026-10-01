@@ -103,7 +103,8 @@ function mapEditorNormalizeInteractiveDefinition(definition) {
         initialOpen:false,
         destinationMapId:null,
         destinationX:0,
-        destinationY:0
+        destinationY:0,
+        destinationSide:"top"
     },d.interactive||{});
     if(d.kind==="transition"){
         d.interactive.collision=false;
@@ -1302,7 +1303,7 @@ function mapEditorOpenInteractiveTileForm(existing=null){
     bindInteractiveImagePreview("me-i-open","me-i-open-preview",d.interactive.openImageKey);
     bindInteractiveImagePreview("me-i-transition","me-i-transition-preview",d.interactive.transitionImageKey||d.imageKey);
     const kindSelect=document.getElementById("me-i-kind"),transitionFields=document.getElementById("me-i-transition-fields"),collisionInput=document.getElementById("me-i-collision");
-    const minimap=document.getElementById("me-i-destination-minimap"),destinationSelect=document.getElementById("me-i-destination");
+    const minimap=document.getElementById("me-i-destination-minimap"),destinationSelect=document.getElementById("me-i-destination"),destinationSideButtons=[...document.querySelectorAll("[data-transition-side]")];
     const drawDestinationMinimap=()=>{
         const map=mapEditorMaps.find(m=>m.id===destinationSelect?.value),ctx=minimap?.getContext("2d");if(!map||!ctx||!minimap)return;
         const scale=Math.min(minimap.width/(map.cols*map.tileSize),minimap.height/(map.rows*map.tileSize));
@@ -1329,11 +1330,25 @@ function mapEditorOpenInteractiveTileForm(existing=null){
         ctx.stroke();
         ctx.restore();
         const dx=Math.floor(Number(document.getElementById("me-i-destination-x")?.value)||0),dy=Math.floor(Number(document.getElementById("me-i-destination-y")?.value)||0);
+        const side=document.getElementById("me-i-destination-side")?.dataset.side||"";
+        destinationSideButtons.forEach(button=>button.classList.toggle("selected",button.dataset.transitionSide===side));
         const markerX=offsetX+dx*map.tileSize*scale,markerY=offsetY+dy*map.tileSize*scale;
         ctx.strokeStyle="#ffd54a";ctx.lineWidth=3;ctx.strokeRect(markerX+1,markerY+1,map.tileSize*scale-2,map.tileSize*scale-2);
         ctx.fillStyle="rgba(255,213,74,.18)";ctx.fillRect(markerX,markerY,map.tileSize*scale,map.tileSize*scale);
-        const label=document.getElementById("me-i-destination-position");if(label)label.textContent="Arrivée : case "+dx+" × "+dy;
+        const label=document.getElementById("me-i-destination-position");if(label)label.textContent="Arrivée : case "+dx+" × "+dy+(side?" · bord "+({top:"haut",left:"gauche",right:"droite",bottom:"bas"}[side]||side):"");
     };
+    const applyTransitionSide=side=>{
+        const map=mapEditorMaps.find(m=>m.id===destinationSelect?.value);if(!map)return;
+        const xInput=document.getElementById("me-i-destination-x"),yInput=document.getElementById("me-i-destination-y"),sidePicker=document.getElementById("me-i-destination-side");if(!xInput||!yInput||!sidePicker)return;
+        let x=Math.floor((map.cols-1)/2),y=Math.floor((map.rows-1)/2);
+        if(side==="top")y=0;
+        else if(side==="bottom")y=Math.max(0,map.rows-1);
+        else if(side==="left")x=0;
+        else if(side==="right")x=Math.max(0,map.cols-1);
+        xInput.value=x;yInput.value=y;sidePicker.dataset.side=side;drawDestinationMinimap();
+    };
+    destinationSideButtons.forEach(button=>button.onclick=()=>applyTransitionSide(button.dataset.transitionSide));
+    const initialSide=document.getElementById("me-i-destination-side");if(initialSide)initialSide.dataset.side=d.interactive.destinationSide||"";
     if(minimap)minimap.onclick=e=>{
         const map=mapEditorMaps.find(m=>m.id===destinationSelect?.value);if(!map)return;
         const rect=minimap.getBoundingClientRect();
@@ -1356,6 +1371,12 @@ function mapEditorOpenInteractiveTileForm(existing=null){
         if(x<0||y<0||x>=map.cols||y>=map.rows)return;
         document.getElementById("me-i-destination-x").value=x;
         document.getElementById("me-i-destination-y").value=y;
+        const sidePicker=document.getElementById("me-i-destination-side");
+        if(sidePicker){
+            const edgeDistances={top:y,left:x,right:map.cols-1-x,bottom:map.rows-1-y};
+            const nearest=Object.entries(edgeDistances).sort((a,b)=>a[1]-b[1])[0];
+            sidePicker.dataset.side=nearest?.[0]||"";
+        }
         drawDestinationMinimap();
     };
     const syncTransitionFields=()=>{
@@ -1371,7 +1392,7 @@ function mapEditorOpenInteractiveTileForm(existing=null){
     };
     const opacityInput=document.getElementById("me-i-opacity"),opacityValue=document.getElementById("me-i-opacity-value");
     if(opacityInput&&opacityValue)opacityInput.oninput=()=>{opacityValue.textContent=opacityInput.value+" %";};
-    kindSelect.onchange=syncTransitionFields;destinationSelect.onchange=drawDestinationMinimap;syncTransitionFields();
+    kindSelect.onchange=syncTransitionFields;destinationSelect.onchange=()=>{const sidePicker=document.getElementById("me-i-destination-side");if(sidePicker)sidePicker.dataset.side="";drawDestinationMinimap();};syncTransitionFields();
     const loot=document.getElementById("me-i-loot");
     document.getElementById("me-i-loot-add").onclick=()=>{const index=loot.children.length;const div=document.createElement("div");div.className="me-loot-row";div.innerHTML='<select aria-label="Objet" data-loot-item="'+index+'">'+getMapEditorItemCatalog().map(x=>'<option value="'+x.id+'">'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-loot-chance="'+index+'" value="100"><input type="number" min="1" data-loot-min="'+index+'" value="1"><input type="number" min="1" data-loot-max="'+index+'" value="1"><button type="button">×</button>';div.querySelector("button").onclick=()=>div.remove();loot.appendChild(div);};
     loot.querySelectorAll("button[data-loot-del]").forEach(b=>b.onclick=()=>b.parentElement.remove());
@@ -1392,7 +1413,9 @@ function mapEditorOpenInteractiveTileForm(existing=null){
                     imageOpacity:Math.max(0,Math.min(1,(Number(document.getElementById("me-i-opacity")?.value)||100)/100)),
                     initialOpen:document.getElementById("me-i-opened").checked,
                     destinationMapId:document.getElementById("me-i-destination")?.value||null,
-                    destinationX:Math.floor(Number(document.getElementById("me-i-destination-x")?.value)||0),                    destinationY:Math.floor(Number(document.getElementById("me-i-destination-y")?.value)||0),
+                    destinationX:Math.floor(Number(document.getElementById("me-i-destination-x")?.value)||0),
+                    destinationY:Math.floor(Number(document.getElementById("me-i-destination-y")?.value)||0),
+                    destinationSide:document.getElementById("me-i-destination-side")?.dataset.side||"",
                     lootTable:[...loot.children].map(row=>({itemId:row.querySelector("[data-loot-item]")?.value,chance:Number(row.querySelector("[data-loot-chance]")?.value)||0,min:Number(row.querySelector("[data-loot-min]")?.value)||1,max:Number(row.querySelector("[data-loot-max]")?.value)||1})).filter(x=>x.itemId)
                 }
             });
