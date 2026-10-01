@@ -787,7 +787,7 @@ async function monsterHeal(monster) {
    MORT DU MONSTRE (RÉCOMPENSES + CHAÎNE DE DÉCÈS)
 ============================================================ */
 
-async function handleMonsterDeath(monster) {
+async function handleMonsterDeath(monster, finalizeBattle = !0) {
     if (!monster || monster.hp > 0 || monster.defeatHandled) return !1;
 
     const totems = (monster.items && Number(monster.items.totem)) || 0;
@@ -814,12 +814,30 @@ async function handleMonsterDeath(monster) {
 
     await animateMonsterDeath(monster);
 
-    await monsterKilled(monster);
+    await monsterKilled(monster, finalizeBattle);
 
     return !0;
 }
 
-async function monsterKilled(target) {
+async function finishBattleIfNoLivingMonsters() {
+    if (getLivingMonsters().length > 0 || state.battleOver) return !1;
+
+    await sleep(500);
+
+    state.battleOver = !0;
+
+    await animateVictoryXp();
+
+    await maybePromptEvolution();
+
+    await sleep(400);
+
+    startOverworldMode();
+
+    return !0;
+}
+
+async function monsterKilled(target, finalizeBattle = !0) {
     const wasAlive = target.hp > 0;
 
     const wasBoss = target.isBoss;
@@ -840,27 +858,15 @@ async function monsterKilled(target) {
 
     updateBattleUI();
 
-    if (state.remainingMonsters <= 0) {
-        await sleep(500);
-
-        state.battleOver = !0;
-
-        await animateVictoryXp();
-
-        await maybePromptEvolution();
-
-        await sleep(400);
-
-        startOverworldMode();
-
+    if (finalizeBattle && state.remainingMonsters <= 0) {
+        await finishBattleIfNoLivingMonsters();
         return;
     }
 
-    await handleMonsterDeath(target);
-
-    state.selectedMonsterId = getLivingMonsters()[0].id;
-
-    updateBattleUI();
+    const livingMonsters = getLivingMonsters();
+    if (livingMonsters.length > 0) {
+        state.selectedMonsterId = livingMonsters[0].id;
+    }
 
     return wasAlive && target.hp <= 0;
 }

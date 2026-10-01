@@ -271,8 +271,17 @@ async function executeAttack(attaque, target = getSelectedMonster()) {
             addLog("Ce n'est pas très efficace...", "system");
         }
 
-        if (await handleMonsterDeath(target)) {
-            if (getLivingMonsters().length === 0) break;
+        const defeatedMonsters = state.monsters.filter(monster =>
+            monster && monster.hp <= 0 && !monster.defeatHandled
+        );
+
+        for (const defeatedMonster of defeatedMonsters) {
+            await handleMonsterDeath(defeatedMonster, !1);
+        }
+
+        if (getLivingMonsters().length === 0) {
+            await finishBattleIfNoLivingMonsters();
+            break;
         }
 
         if (!state.battleOver) await sleep(120);
