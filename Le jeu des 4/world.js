@@ -582,8 +582,11 @@ function updateWorldUI() {
 ============================================================ */
 
 function getOverworldSpritePath(hero) {
-    if (!hero || typeof hero.Image !== "string") return "";
-    return hero.Image.trim();
+    if (!hero || typeof hero !== "object") return "";
+    if (typeof getCharacterImagePath === "function") {
+        return getCharacterImagePath(hero);
+    }
+    return typeof hero.Image === "string" ? hero.Image.trim() : "";
 }
 
 function setOverworldPlayerSprite(hero) {
