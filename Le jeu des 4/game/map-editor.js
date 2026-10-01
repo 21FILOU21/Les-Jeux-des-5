@@ -1122,6 +1122,7 @@ function mapEditorOpenTileForm(existing=null,replacePlacedTileId=null){
                 }
             }
         }
+    };
     if(t.imageKey){
         const existingImage=mapEditorAssetCache.get(t.imageKey);
         if(existingImage)showTileImagePreview(existingImage,"Image actuelle");
