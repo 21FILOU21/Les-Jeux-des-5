@@ -1132,8 +1132,15 @@ function mapEditorOpenInstanceConfig(instance){
     const m=mapEditorCurrent();if(!m||!instance)return;
     const props=mapEditorGetInstanceProps(instance);
     const rows=(props.lootTable||[]).map((e,i)=>'<div class="me-loot-row"><select data-override-loot-item="'+i+'">'+getMapEditorItemCatalog().map(x=>'<option value="'+x.id+'" '+(x.id===e.itemId?"selected":"")+'>'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-override-loot-chance="'+i+'" value="'+(e.chance??100)+'"><input type="number" min="1" data-override-loot-min="'+i+'" value="'+(e.min??1)+'"><input type="number" min="1" data-override-loot-max="'+i+'" value="'+(e.max??1)+'"><button type="button" data-override-loot-del="'+i+'">×</button></div>').join("");
-    const html='<div class="map-editor-dialog"><h3>Configuration de l’instance</h3><p class="map-editor-config-note">Seule cette instance est modifiée. La définition globale reste inchangée.</p><label>ID instance<input id="me-o-id" value="'+instance.instanceId+'" readonly></label><label>Type<input value="'+(mapEditorGetInstanceDefinition(instance)?.name||instance.type)+'" readonly></label><label>X<input id="me-o-x" type="number" min="0" max="'+(m.cols-1)+'" value="'+instance.x+'"></label><label>Y<input id="me-o-y" type="number" min="0" max="'+(m.rows-1)+'" value="'+instance.y+'"></label><label><input id="me-o-collision" type="checkbox" '+(props.collision!==false?"checked":"")+'> Collision override</label><label><input id="me-o-use-custom-images" type="checkbox" '+((instance.overrides.closedImageKey||instance.overrides.openImageKey)?"checked":"")+'> Images propres à cette instance</label><div class="me-config-image-field"><strong>Image fermée</strong><div id="me-o-closed-current" class="me-config-image-value">Rien</div></div><label>Remplacer l’image fermée PNG/JPG<input id="me-o-closed" type="file" accept="image/png,image/jpeg"></label><div class="me-config-image-field"><strong>Image ouverte</strong><div id="me-o-open-current" class="me-config-image-value">Rien</div></div><label>Remplacer l’image ouverte PNG/JPG<input id="me-o-open" type="file" accept="image/png,image/jpeg"></label><h4>Loot de cette instance</h4><div id="me-o-loot">'+rows+'</div><button type="button" id="me-o-loot-add" class="secondary-button">+ Récompense</button><div class="dev-form-actions"><button id="me-o-save" class="primary-button">Appliquer</button><button id="me-o-reset" class="secondary-button">Réinitialiser les overrides</button><button id="me-o-cancel" class="secondary-button">Annuler</button></div></div>';
+    const html='<div class="map-editor-dialog"><h3>Configuration de l’instance</h3><p class="map-editor-config-note">Seule cette instance est modifiée. La définition globale reste inchangée.</p><label>ID instance<input id="me-o-id" value="'+instance.instanceId+'" readonly></label><label>Type<input value="'+(mapEditorGetInstanceDefinition(instance)?.name||instance.type)+'" readonly></label><div id="me-o-transition-fields"></div><label>X<input id="me-o-x" type="number" min="0" max="'+(m.cols-1)+'" value="'+instance.x+'"></label><label>Y<input id="me-o-y" type="number" min="0" max="'+(m.rows-1)+'" value="'+instance.y+'"></label><label><input id="me-o-collision" type="checkbox" '+(props.collision!==false?"checked":"")+'> Collision override</label><label><input id="me-o-use-custom-images" type="checkbox" '+((instance.overrides.closedImageKey||instance.overrides.openImageKey)?"checked":"")+'> Images propres à cette instance</label><div class="me-config-image-field"><strong>Image fermée</strong><div id="me-o-closed-current" class="me-config-image-value">Rien</div></div><label>Remplacer l’image fermée PNG/JPG<input id="me-o-closed" type="file" accept="image/png,image/jpeg"></label><div class="me-config-image-field"><strong>Image ouverte</strong><div id="me-o-open-current" class="me-config-image-value">Rien</div></div><label>Remplacer l’image ouverte PNG/JPG<input id="me-o-open" type="file" accept="image/png,image/jpeg"></label><h4>Loot de cette instance</h4><div id="me-o-loot">'+rows+'</div><button type="button" id="me-o-loot-add" class="secondary-button">+ Récompense</button><div class="dev-form-actions"><button id="me-o-save" class="primary-button">Appliquer</button><button id="me-o-reset" class="secondary-button">Réinitialiser les overrides</button><button id="me-o-cancel" class="secondary-button">Annuler</button></div></div>';
     mapEditorDialog(html);
+    const definition=mapEditorGetInstanceDefinition(instance);
+    const isTransition=String(instance.type||definition?.kind||"")==="transition";
+    const transitionRoot=document.getElementById("me-o-transition-fields");
+    if(transitionRoot&&isTransition){
+        const cfg=mapEditorGetTransitionConfig(instance)||{destinationMapId:"",destinationX:0,destinationY:0};
+        transitionRoot.innerHTML='<label>Type : Transition de zone</label><label>Destination<select id="me-o-transition-destination">'+mapEditorMaps.map(m=>'<option value="'+m.id+'" '+(m.id===cfg.destinationMapId?"selected":"")+'>'+escapeHtml(m.name)+'</option>').join("")+'</select></label><label>Position d’arrivée X<input id="me-o-transition-x" type="number" min="0" value="'+cfg.destinationX+'"></label><label>Position d’arrivée Y<input id="me-o-transition-y" type="number" min="0" value="'+cfg.destinationY+'"></label>';
+    }
     mapEditorFillConfigImagePreview("me-o-closed-current",props.closedImageKey);
     mapEditorFillConfigImagePreview("me-o-open-current",props.openImageKey);
     const loot=document.getElementById("me-o-loot");
@@ -1145,9 +1152,19 @@ function mapEditorOpenInstanceConfig(instance){
         try{
             const useCustom=document.getElementById("me-o-use-custom-images").checked;
             const overrides={
-                collision:document.getElementById("me-o-collision").checked,
+                collision:isTransition?false:document.getElementById("me-o-collision").checked,
                 lootTable:[...loot.children].map(row=>({itemId:row.querySelector("[data-override-loot-item]")?.value,chance:Number(row.querySelector("[data-override-loot-chance]")?.value)||0,min:Number(row.querySelector("[data-override-loot-min]")?.value)||1,max:Number(row.querySelector("[data-override-loot-max]")?.value)||1})).filter(x=>x.itemId)
             };
+            if(isTransition){
+                const destinationMapId=document.getElementById("me-o-transition-destination")?.value||"";
+                const destinationX=Math.floor(Number(document.getElementById("me-o-transition-x")?.value)||0);
+                const destinationY=Math.floor(Number(document.getElementById("me-o-transition-y")?.value)||0);
+                const destinationMap=mapEditorMaps.find(m=>m.id===destinationMapId);
+                if(!destinationMap||destinationX<0||destinationY<0||destinationX>=destinationMap.cols||destinationY>=destinationMap.rows)throw new Error("Destination ou coordonnées d’arrivée invalides.");
+                overrides.destinationMapId=destinationMapId;
+                overrides.destinationX=destinationX;
+                overrides.destinationY=destinationY;
+            }
             if(useCustom){
                 const closed=document.getElementById("me-o-closed").files[0],open=document.getElementById("me-o-open").files[0];
                 if(instance.overrides.closedImageKey)overrides.closedImageKey=instance.overrides.closedImageKey;
