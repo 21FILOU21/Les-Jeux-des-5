@@ -1385,7 +1385,6 @@ function mapEditorClose(){
         return;
     }
     const r=document.getElementById("map-editor-root");if(r)r.classList.add("hidden");
-    const hoverButton=document.getElementById("me-hover-config");if(hoverButton)hoverButton.style.display="none";
 }
 function mapEditorAddDevButton(){
     const main=document.getElementById("dev-menu-main");if(!main||document.getElementById("dev-cat-maps"))return;
