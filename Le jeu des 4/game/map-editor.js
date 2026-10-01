@@ -298,7 +298,6 @@ function mapEditorCreateInteractiveInstance(definition,col,row){
     if(instance.state.opened)mapEditorOpenedObjectIds.add(instance.instanceId);
     return instance;
 }
-
 function mapEditorGetEffectiveInstanceImage(instance,opened=false){
     const props=mapEditorGetInstanceProps(instance);
     return opened?props.openImageKey:props.closedImageKey;
@@ -598,7 +597,6 @@ function mapEditorTileHasEncounter(tileId){
     const m=mapEditorCurrent();
     return !!m?.encounters?.some(e=>Array.isArray(e.tiles)&&e.tiles.includes(String(tileId))&&Number(e.chance)>0&&Array.isArray(e.monsters)&&e.monsters.length);
 }
-
 function mapEditorWeighted(list){
     const valid=list.filter(e=>e&&Number(e.weight)>0);
     const total=valid.reduce((s,e)=>s+Number(e.weight),0);
@@ -897,8 +895,7 @@ function mapEditorCenterViewport(){
     const m=mapEditorCurrent();
     if(!canvas||!m)return;
     canvas.dataset.panX=String((m.cols*m.tileSize)/2);
-    canvas.dataset.panY=String((m.rows*m.tileSize)/2);
-}
+    canvas.dataset.panY=String((m.rows*m.tileSize)/2);}
 
 function mapEditorPaintAt(event, pointerTool=null){
     const m=mapEditorCurrent();const layer=mapEditorTopLayer();if(!m||!layer)return;
@@ -1098,7 +1095,7 @@ function mapEditorOpenTileForm(existing=null,replacePlacedTileId=null){
     const showTileImagePreview=(src,label)=>{
         if(!tileImagePreview)return;
         tileImagePreview.innerHTML=src
-            ? '<img src="'+escapeHtml(src)+'" alt="Aperçu de la tuile sélectionnée"><div class="me-selected-image-caption">'+escapeHtml(label||"Image sélectionnée")+'</div>'
+            ? '<div class="me-normal-tile-image-grid" style="background-image:url(\''+escapeHtml(src)+'\')"></div><div class="me-selected-image-caption">'+escapeHtml(label||"Image sélectionnée")+'</div>'
             : '<div class="me-selected-image-empty">Aucune image sélectionnée</div>';
     };
     if(t.imageKey){
@@ -1197,8 +1194,7 @@ function mapEditorOpenInteractiveTileForm(existing=null){
                     openImageKey:d.interactive.openImageKey,
                     initialOpen:document.getElementById("me-i-opened").checked,
                     destinationMapId:document.getElementById("me-i-destination")?.value||null,
-                    destinationX:Math.floor(Number(document.getElementById("me-i-destination-x")?.value)||0),
-                    destinationY:Math.floor(Number(document.getElementById("me-i-destination-y")?.value)||0),
+                    destinationX:Math.floor(Number(document.getElementById("me-i-destination-x")?.value)||0),                    destinationY:Math.floor(Number(document.getElementById("me-i-destination-y")?.value)||0),
                     lootTable:[...loot.children].map(row=>({itemId:row.querySelector("[data-loot-item]")?.value,chance:Number(row.querySelector("[data-loot-chance]")?.value)||0,min:Number(row.querySelector("[data-loot-min]")?.value)||1,max:Number(row.querySelector("[data-loot-max]")?.value)||1})).filter(x=>x.itemId)
                 }
             });
@@ -1469,4 +1465,3 @@ document.addEventListener("DOMContentLoaded",()=>{
         if(typeof isWorldScreenActive==="function"&&isWorldScreenActive()&&!mapEditorTestMode&&typeof getKeyAction==="function"&&getKeyAction(e.key)==="confirm"){mapEditorInteract();}
     });
 });
-
