@@ -16,11 +16,6 @@ function startEffectCreator(existing) {
 
     panel.classList.remove("hidden");
 
-    if (!id) {
-        showToast("ID invalide", "L'ID de l'effet ne peut pas être vide.");
-        return;
-    }
-
     const isEdit = Boolean(existing);
     const existingId = existing ? String(existing.Id || existing.Nom || "") : "";
 
