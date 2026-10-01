@@ -496,6 +496,12 @@ function updateOverworld(deltaTime) {
 }
 
 function completeWorldStep() {
+    if (overworldState.zoneTransitionLock) {
+        overworldState.zoneTransitionLock=false;
+        if (overworldState.graceDistance > 0) overworldState.graceDistance=Math.max(0,overworldState.graceDistance-TILE_SIZE);
+        return;
+    }
+    if (typeof mapEditorTriggerTransitionAtPlayer==="function" && mapEditorTriggerTransitionAtPlayer()) return;
     if (overworldState.graceDistance > 0) { overworldState.graceDistance = Math.max(0, overworldState.graceDistance - TILE_SIZE) }
     tryWorldEncounter()
 }
@@ -675,7 +681,7 @@ function applyOverworldSaveData(data) {
     hideWorldDialogue();
 }
 
-function resetOverworldState() { overworldState.playerX = WORLD_START_X; overworldState.playerY = WORLD_START_Y; overworldState.facing = "right"; overworldState.keys.clear(); overworldState.walking = !1; overworldState.walkPhase = 0; overworldState.distanceSinceCheck = 0; overworldState.graceDistance = WORLD_GRACE_TILES * TILE_SIZE; overworldState.moveFrom = null; overworldState.moveTarget = null; overworldState.moveProgress = 0; overworldState.stepCooldown = 0; overworldState.fastWalkHeld = !1; hideWorldDialogue() }
+function resetOverworldState() { overworldState.playerX = WORLD_START_X; overworldState.playerY = WORLD_START_Y; overworldState.facing = "right"; overworldState.keys.clear(); overworldState.walking = !1; overworldState.walkPhase = 0; overworldState.distanceSinceCheck = 0; overworldState.graceDistance = WORLD_GRACE_TILES * TILE_SIZE; overworldState.zoneTransitionLock=false; overworldState.moveFrom = null; overworldState.moveTarget = null; overworldState.moveProgress = 0; overworldState.stepCooldown = 0; overworldState.fastWalkHeld = !1; hideWorldDialogue() }
 
 /* ============================================================
    ENTRÉES CLAVIER (flèches + WASD + ZQSD)
