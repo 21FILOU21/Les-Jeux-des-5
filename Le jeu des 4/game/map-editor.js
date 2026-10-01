@@ -1311,6 +1311,23 @@ function mapEditorOpenInteractiveTileForm(existing=null){
         const layer=map.layers?.[0];ctx.clearRect(0,0,minimap.width,minimap.height);
         ctx.fillStyle="#0a1421";ctx.fillRect(0,0,minimap.width,minimap.height);
         for(let y=0;y<map.rows;y++)for(let x=0;x<map.cols;x++){const tile=mapEditorFindTileDefinition(layer?.cells?.[y*map.cols+x])||MAP_EDITOR_EMPTY_TILE;ctx.fillStyle=tile.fallback||"#777";ctx.fillRect(offsetX+x*map.tileSize*scale,offsetY+y*map.tileSize*scale,map.tileSize*scale+1,map.tileSize*scale+1);}
+        // Grille discrète : repères aux intersections de chaque tuile.
+        ctx.save();
+        ctx.strokeStyle="rgba(190,200,212,.24)";
+        ctx.lineWidth=Math.max(.5,Math.min(1.25,scale*.65));
+        ctx.beginPath();
+        for(let x=0;x<=map.cols;x++){
+            const px=offsetX+x*map.tileSize*scale;
+            ctx.moveTo(Math.round(px)+.5,offsetY);
+            ctx.lineTo(Math.round(px)+.5,offsetY+mapH);
+        }
+        for(let y=0;y<=map.rows;y++){
+            const py=offsetY+y*map.tileSize*scale;
+            ctx.moveTo(offsetX,Math.round(py)+.5);
+            ctx.lineTo(offsetX+mapW,Math.round(py)+.5);
+        }
+        ctx.stroke();
+        ctx.restore();
         const dx=Math.floor(Number(document.getElementById("me-i-destination-x")?.value)||0),dy=Math.floor(Number(document.getElementById("me-i-destination-y")?.value)||0);
         const markerX=offsetX+dx*map.tileSize*scale,markerY=offsetY+dy*map.tileSize*scale;
         ctx.strokeStyle="#ffd54a";ctx.lineWidth=3;ctx.strokeRect(markerX+1,markerY+1,map.tileSize*scale-2,map.tileSize*scale-2);
