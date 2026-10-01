@@ -217,6 +217,13 @@ async function activateMegaEvolution(stone) {
         state.playerMaxRoulette = maxRoulette;
         state.playerNombreRoulette = Math.max(1, Math.floor(Number(target.NombreRoulette) || 1));
 
+        // La forme Méga doit conserver les bonus déjà gagnés grâce au niveau.
+        // On part des stats natives de la forme cible, puis on réapplique
+        // exactement les mêmes bonus de niveau que lors d'une évolution normale.
+        for (let niveau = 2; niveau <= Math.max(1, Math.floor(globalState.playerLevel || 1)); niveau++) {
+            applyLevelUp(niveau);
+        }
+
         state.playerHp = Math.min(state.playerMaxHp, oldHp);
         state.playerEnergy = Math.min(state.playerMaxEnergy, oldEnergy);
 
