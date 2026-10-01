@@ -97,20 +97,28 @@ function mapEditorNormalizeInteractiveDefinition(definition) {
         collision:d.collision,
         closedImageKey:null,
         openImageKey:null,
+        transitionImageKey:null,
+        imageOpacity:1,
         lootTable:[],
         initialOpen:false,
         destinationMapId:null,
         destinationX:0,
         destinationY:0
     },d.interactive||{});
-    if(d.kind==="transition")d.interactive.collision=false;
+    if(d.kind==="transition"){
+        d.interactive.collision=false;
+        d.interactive.imageOpacity=Math.max(0,Math.min(1,Number(d.interactive.imageOpacity ?? 1)));
+        d.interactive.transitionImageKey=d.interactive.transitionImageKey||d.imageKey||null;
+    }
     d.interactive.lootTable=Array.isArray(d.interactive.lootTable)?d.interactive.lootTable.map(e=>({
         itemId:String(e?.itemId||""),
         chance:Math.max(0,Math.min(100,Number(e?.chance)||0)),
         min:Math.max(1,Math.floor(Number(e?.min)||1)),
         max:Math.max(1,Math.floor(Number(e?.max)||1))
     })).filter(e=>e.itemId):[];
-    d.imageKey=d.interactive.closedImageKey||d.imageKey||null;
+    d.imageKey=d.kind==="transition"
+        ? (d.interactive.transitionImageKey||d.imageKey||null)
+        : (d.interactive.closedImageKey||d.imageKey||null);
     return d;
 }
 
@@ -300,7 +308,13 @@ function mapEditorCreateInteractiveInstance(definition,col,row){
 }
 function mapEditorGetEffectiveInstanceImage(instance,opened=false){
     const props=mapEditorGetInstanceProps(instance);
+    const kind=String(instance?.type||props?.type||"");
+    if(kind==="transition")return props.transitionImageKey||props.closedImageKey||null;
     return opened?props.openImageKey:props.closedImageKey;
+}
+function mapEditorGetInstanceImageOpacity(instance){
+    const props=mapEditorGetInstanceProps(instance);
+    return Math.max(0,Math.min(1,Number(props?.imageOpacity ?? 1)));
 }
 
 function mapEditorUid(prefix="id") {
@@ -568,13 +582,19 @@ function drawMapEditorRuntimeObjects(ctx,S){
         const key=mapEditorGetEffectiveInstanceImage(o,opened);
         const img=key?mapEditorRuntimeImages.get(key):null;
         const x=o.x*S,y=o.y*S;
+        ctx.save();
+        ctx.globalAlpha=mapEditorGetInstanceImageOpacity(o);
         if(img&&img.complete)ctx.drawImage(img,x,y,S,S);
         else mapEditorDrawInteractiveFallback(ctx,x,y,S,o,props,opened);
+        ctx.restore();
     }
 }
 
 async function mapEditorLoadRuntimeImages(){
-    const objectKeys=(mapEditorCurrent()?.objects||[]).flatMap(o=>{const p=mapEditorGetInstanceProps(o);return [p.closedImageKey,p.openImageKey];}).filter(Boolean);
+    const objectKeys=(mapEditorCurrent()?.objects||[]).flatMap(o=>{
+        const p=mapEditorGetInstanceProps(o);
+        return [p.closedImageKey,p.openImageKey,p.transitionImageKey];
+    }).filter(Boolean);
     for(const key of objectKeys){
         if(mapEditorRuntimeImages.has(key))continue;
         const data=await mapEditorGetAsset(key);if(!data)continue;
@@ -1258,10 +1278,10 @@ function mapEditorOpenInteractiveTileForm(existing=null){
         kind:"container",
         collision:true,
         fallback:"#b9823d",
-        interactive:{type:"container",collision:true,closedImageKey:null,openImageKey:null,lootTable:[],initialOpen:false}
+        interactive:{type:"container",collision:true,closedImageKey:null,openImageKey:null,transitionImageKey:null,imageOpacity:1,lootTable:[],initialOpen:false}
     });
     const rows=(d.interactive.lootTable||[]).map((e,i)=>'<div class="me-loot-row"><select aria-label="Objet" data-loot-item="'+i+'">'+getMapEditorItemCatalog().map(x=>'<option value="'+x.id+'" '+(x.id===e.itemId?"selected":"")+'>'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-loot-chance="'+i+'" value="'+(e.chance??100)+'"><input type="number" min="1" data-loot-min="'+i+'" value="'+(e.min??1)+'"><input type="number" min="1" data-loot-max="'+i+'" value="'+(e.max??1)+'"><button type="button" data-loot-del="'+i+'">×</button></div>').join("");
-    const html='<div class="map-editor-dialog"><h3>'+(existing?"Modifier":"Créer")+' une tuile interactive</h3><label class="me-tile-type-field"><span>Type de tuiles</span><select id="me-tile-type-config"><option value="normal">Tuiles</option><option value="interactive" selected>Interactives</option></select></label><p class="map-editor-config-note">La définition est réutilisable. Chaque placement aura ensuite sa propre instance.</p><label>ID<input id="me-i-id" value="'+d.id+'"></label><label>Nom<input id="me-i-name" value="'+d.name+'"></label><label>Type<select id="me-i-kind"><option value="container" '+(d.kind==="container"?"selected":"")+'>Coffre / conteneur</option><option value="transition" '+(d.kind==="transition"?"selected":"")+'>Transition de zone</option></select></label><label><input id="me-i-collision" type="checkbox" '+(d.collision!==false?"checked":"")+'> Collision par défaut</label><div id="me-i-transition-fields"><label>Destination<select id="me-i-destination">'+mapEditorMaps.map(m=>'<option value="'+m.id+'" '+(m.id===d.interactive.destinationMapId?"selected":"")+'>'+escapeHtml(m.name)+'</option>').join("")+'</select></label><div id="me-i-destination-minimap-wrap" class="me-destination-minimap-wrap"><canvas id="me-i-destination-minimap" width="320" height="180"></canvas><p class="map-editor-config-note">Clique sur la minimap pour choisir la case d’arrivée.</p></div><input id="me-i-destination-x" type="hidden" value="'+(d.interactive.destinationX??0)+'"><input id="me-i-destination-y" type="hidden" value="'+(d.interactive.destinationY??0)+'"><div id="me-i-destination-position" class="map-editor-config-note"></div></div><div id="me-i-container-images" class="me-interactive-images"><div class="me-interactive-image-card"><strong>Image fermée</strong><label class="me-file-field">Choisir l’image fermée<input id="me-i-closed" type="file" accept="image/png,image/jpeg"></label><div id="me-i-closed-preview" class="me-interactive-image-preview"><div class="me-selected-image-empty">Aucune image</div></div></div><div class="me-interactive-image-card"><strong>Image ouverte</strong><label class="me-file-field">Choisir l’image ouverte<input id="me-i-open" type="file" accept="image/png,image/jpeg"></label><div id="me-i-open-preview" class="me-interactive-image-preview"><div class="me-selected-image-empty">Aucune image</div></div></div><label><input id="me-i-opened" type="checkbox" '+(d.interactive.initialOpen?"checked":"")+'> État initial ouvert</label></div><h4>Table de butin par défaut</h4><div class="me-loot-head"><span>Objet</span><span>Chance %</span><span>Qté min</span><span>Qté max</span><span></span></div><div id="me-i-loot">'+rows+'</div><button type="button" id="me-i-loot-add" class="secondary-button">+ Récompense</button><div class="dev-form-actions"><button id="me-i-save" class="primary-button">Enregistrer</button><button id="me-i-cancel" class="secondary-button">Annuler</button></div></div>';
+    const html='<div class="map-editor-dialog"><h3>'+(existing?"Modifier":"Créer")+' une tuile interactive</h3><label class="me-tile-type-field"><span>Type de tuiles</span><select id="me-tile-type-config"><option value="normal">Tuiles</option><option value="interactive" selected>Interactives</option></select></label><p class="map-editor-config-note">La définition est réutilisable. Chaque placement aura ensuite sa propre instance.</p><label>ID<input id="me-i-id" value="'+d.id+'"></label><label>Nom<input id="me-i-name" value="'+d.name+'"></label><label>Type<select id="me-i-kind"><option value="container" '+(d.kind==="container"?"selected":"")+'>Coffre / conteneur</option><option value="transition" '+(d.kind==="transition"?"selected":"")+'>Transition de zone</option></select></label><label><input id="me-i-collision" type="checkbox" '+(d.collision!==false?"checked":"")+'> Collision par défaut</label><div id="me-i-transition-fields"><label>Destination<select id="me-i-destination">'+mapEditorMaps.map(m=>'<option value="'+m.id+'" '+(m.id===d.interactive.destinationMapId?"selected":"")+'>'+escapeHtml(m.name)+'</option>').join("")+'</select></label><div id="me-i-destination-minimap-wrap" class="me-destination-minimap-wrap"><canvas id="me-i-destination-minimap" width="320" height="180"></canvas><p class="map-editor-config-note">Clique sur la minimap pour choisir la case d’arrivée.</p></div><input id="me-i-destination-x" type="hidden" value="'+(d.interactive.destinationX??0)+'"><input id="me-i-destination-y" type="hidden" value="'+(d.interactive.destinationY??0)+'"><div id="me-i-destination-position" class="map-editor-config-note"></div></div><div id="me-i-container-images" class="me-interactive-images"><div class="me-interactive-image-card"><strong>Image fermée</strong><label class="me-file-field">Choisir l’image fermée<input id="me-i-closed" type="file" accept="image/png,image/jpeg"></label><div id="me-i-closed-preview" class="me-interactive-image-preview"><div class="me-selected-image-empty">Aucune image</div></div></div><div class="me-interactive-image-card"><strong>Image ouverte</strong><label class="me-file-field">Choisir l’image ouverte<input id="me-i-open" type="file" accept="image/png,image/jpeg"></label><div id="me-i-open-preview" class="me-interactive-image-preview"><div class="me-selected-image-empty">Aucune image</div></div></div><label><input id="me-i-opened" type="checkbox" '+(d.interactive.initialOpen?"checked":"")+'> État initial ouvert</label></div><div id="me-i-transition-image" class="me-interactive-image-card hidden"><strong>Image de transition</strong><label class="me-file-field">Choisir l’image de transition<input id="me-i-transition" type="file" accept="image/png,image/jpeg"></label><div id="me-i-transition-preview" class="me-interactive-image-preview"><div class="me-selected-image-empty">Aucune image</div></div><label>Transparence <span id="me-i-opacity-value">100 %</span><input id="me-i-opacity" type="range" min="0" max="100" step="1" value="'+Math.round((d.interactive.imageOpacity??1)*100)+'"></label></div><h4 id="me-i-loot-title">Table de butin par défaut</h4><div id="me-i-loot-section"><div class="me-loot-head"><span>Objet</span><span>Chance %</span><span>Qté min</span><span>Qté max</span><span></span></div><div id="me-i-loot">'+rows+'</div><button type="button" id="me-i-loot-add" class="secondary-button">+ Récompense</button><div class="dev-form-actions"><button id="me-i-save" class="primary-button">Enregistrer</button><button id="me-i-cancel" class="secondary-button">Annuler</button></div></div>';
     mapEditorDialog(html);
     document.getElementById("me-tile-type-config")?.addEventListener("change",e=>{if(e.target.value==="normal")mapEditorOpenTileForm();});
     const bindInteractiveImagePreview=(inputId,previewId,imageKey)=>{
@@ -1280,16 +1300,50 @@ function mapEditorOpenInteractiveTileForm(existing=null){
     };
     bindInteractiveImagePreview("me-i-closed","me-i-closed-preview",d.interactive.closedImageKey);
     bindInteractiveImagePreview("me-i-open","me-i-open-preview",d.interactive.openImageKey);
+    bindInteractiveImagePreview("me-i-transition","me-i-transition-preview",d.interactive.transitionImageKey||d.imageKey);
     const kindSelect=document.getElementById("me-i-kind"),transitionFields=document.getElementById("me-i-transition-fields"),collisionInput=document.getElementById("me-i-collision");
     const minimap=document.getElementById("me-i-destination-minimap"),destinationSelect=document.getElementById("me-i-destination");
     const drawDestinationMinimap=()=>{
         const map=mapEditorMaps.find(m=>m.id===destinationSelect?.value),ctx=minimap?.getContext("2d");if(!map||!ctx||!minimap)return;
-        const scale=Math.min(minimap.width/(map.cols*map.tileSize),minimap.height/(map.rows*map.tileSize)),layer=map.layers?.[0];ctx.clearRect(0,0,minimap.width,minimap.height);
-        for(let y=0;y<map.rows;y++)for(let x=0;x<map.cols;x++){const tile=mapEditorFindTileDefinition(layer?.cells?.[y*map.cols+x])||MAP_EDITOR_EMPTY_TILE;ctx.fillStyle=tile.fallback||"#777";ctx.fillRect(x*map.tileSize*scale,y*map.tileSize*scale,map.tileSize*scale+1,map.tileSize*scale+1);}
-        const dx=Math.floor(Number(document.getElementById("me-i-destination-x")?.value)||0),dy=Math.floor(Number(document.getElementById("me-i-destination-y")?.value)||0);ctx.strokeStyle="#ffd54a";ctx.lineWidth=3;ctx.strokeRect(dx*map.tileSize*scale+1,dy*map.tileSize*scale+1,map.tileSize*scale-2,map.tileSize*scale-2);const label=document.getElementById("me-i-destination-position");if(label)label.textContent="Arrivée : case "+dx+" × "+dy;
+        const scale=Math.min(minimap.width/(map.cols*map.tileSize),minimap.height/(map.rows*map.tileSize));
+        const mapW=map.cols*map.tileSize*scale,mapH=map.rows*map.tileSize*scale;
+        const offsetX=(minimap.width-mapW)/2,offsetY=(minimap.height-mapH)/2;
+        const layer=map.layers?.[0];ctx.clearRect(0,0,minimap.width,minimap.height);
+        ctx.fillStyle="#0a1421";ctx.fillRect(0,0,minimap.width,minimap.height);
+        for(let y=0;y<map.rows;y++)for(let x=0;x<map.cols;x++){const tile=mapEditorFindTileDefinition(layer?.cells?.[y*map.cols+x])||MAP_EDITOR_EMPTY_TILE;ctx.fillStyle=tile.fallback||"#777";ctx.fillRect(offsetX+x*map.tileSize*scale,offsetY+y*map.tileSize*scale,map.tileSize*scale+1,map.tileSize*scale+1);}
+        const dx=Math.floor(Number(document.getElementById("me-i-destination-x")?.value)||0),dy=Math.floor(Number(document.getElementById("me-i-destination-y")?.value)||0);
+        const markerX=offsetX+dx*map.tileSize*scale,markerY=offsetY+dy*map.tileSize*scale;
+        ctx.strokeStyle="#ffd54a";ctx.lineWidth=3;ctx.strokeRect(markerX+1,markerY+1,map.tileSize*scale-2,map.tileSize*scale-2);
+        ctx.fillStyle="rgba(255,213,74,.18)";ctx.fillRect(markerX,markerY,map.tileSize*scale,map.tileSize*scale);
+        const label=document.getElementById("me-i-destination-position");if(label)label.textContent="Arrivée : case "+dx+" × "+dy;
     };
-    if(minimap)minimap.onclick=e=>{const map=mapEditorMaps.find(m=>m.id===destinationSelect?.value);if(!map)return;const rect=minimap.getBoundingClientRect(),scale=Math.min(minimap.width/(map.cols*map.tileSize),minimap.height/(map.rows*map.tileSize));const x=Math.max(0,Math.min(map.cols-1,Math.floor(((e.clientX-rect.left)/scale)/map.tileSize))),y=Math.max(0,Math.min(map.rows-1,Math.floor(((e.clientY-rect.top)/scale)/map.tileSize)));document.getElementById("me-i-destination-x").value=x;document.getElementById("me-i-destination-y").value=y;drawDestinationMinimap();};
-    const syncTransitionFields=()=>{const transition=kindSelect.value==="transition";transitionFields?.classList.toggle("hidden",!transition);document.getElementById("me-i-container-images")?.classList.toggle("hidden",transition);if(transition&&collisionInput)collisionInput.checked=false;drawDestinationMinimap();};
+    if(minimap)minimap.onclick=e=>{
+        const map=mapEditorMaps.find(m=>m.id===destinationSelect?.value);if(!map)return;
+        const rect=minimap.getBoundingClientRect();
+        const scale=Math.min(minimap.width/(map.cols*map.tileSize),minimap.height/(map.rows*map.tileSize));
+        const mapW=map.cols*map.tileSize*scale,mapH=map.rows*map.tileSize*scale;
+        const offsetX=(minimap.width-mapW)/2,offsetY=(minimap.height-mapH)/2;
+        const px=(e.clientX-rect.left)*(minimap.width/rect.width)-offsetX;
+        const py=(e.clientY-rect.top)*(minimap.height/rect.height)-offsetY;
+        const x=Math.max(0,Math.min(map.cols-1,Math.floor((px/scale)/map.tileSize)));
+        const y=Math.max(0,Math.min(map.rows-1,Math.floor((py/scale)/map.tileSize)));
+        document.getElementById("me-i-destination-x").value=x;
+        document.getElementById("me-i-destination-y").value=y;
+        drawDestinationMinimap();
+    };
+    const syncTransitionFields=()=>{
+        const transition=kindSelect.value==="transition";
+        transitionFields?.classList.toggle("hidden",!transition);
+        document.getElementById("me-i-container-images")?.classList.toggle("hidden",transition);
+        document.getElementById("me-i-transition-image")?.classList.toggle("hidden",!transition);
+        document.getElementById("me-i-loot-title")?.classList.toggle("hidden",transition);
+        document.getElementById("me-i-loot-section")?.classList.toggle("hidden",transition);
+        document.getElementById("me-i-loot-add")?.classList.toggle("hidden",transition);
+        if(transition&&collisionInput)collisionInput.checked=false;
+        drawDestinationMinimap();
+    };
+    const opacityInput=document.getElementById("me-i-opacity"),opacityValue=document.getElementById("me-i-opacity-value");
+    if(opacityInput&&opacityValue)opacityInput.oninput=()=>{opacityValue.textContent=opacityInput.value+" %";};
     kindSelect.onchange=syncTransitionFields;destinationSelect.onchange=drawDestinationMinimap;syncTransitionFields();
     const loot=document.getElementById("me-i-loot");
     document.getElementById("me-i-loot-add").onclick=()=>{const index=loot.children.length;const div=document.createElement("div");div.className="me-loot-row";div.innerHTML='<select aria-label="Objet" data-loot-item="'+index+'">'+getMapEditorItemCatalog().map(x=>'<option value="'+x.id+'">'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-loot-chance="'+index+'" value="100"><input type="number" min="1" data-loot-min="'+index+'" value="1"><input type="number" min="1" data-loot-max="'+index+'" value="1"><button type="button">×</button>';div.querySelector("button").onclick=()=>div.remove();loot.appendChild(div);};
@@ -1307,6 +1361,8 @@ function mapEditorOpenInteractiveTileForm(existing=null){
                     collision:document.getElementById("me-i-kind").value==="transition"?false:document.getElementById("me-i-collision").checked,
                     closedImageKey:d.interactive.closedImageKey,
                     openImageKey:d.interactive.openImageKey,
+                    transitionImageKey:d.interactive.transitionImageKey,
+                    imageOpacity:Math.max(0,Math.min(1,(Number(document.getElementById("me-i-opacity")?.value)||100)/100)),
                     initialOpen:document.getElementById("me-i-opened").checked,
                     destinationMapId:document.getElementById("me-i-destination")?.value||null,
                     destinationX:Math.floor(Number(document.getElementById("me-i-destination-x")?.value)||0),                    destinationY:Math.floor(Number(document.getElementById("me-i-destination-y")?.value)||0),
@@ -1314,6 +1370,15 @@ function mapEditorOpenInteractiveTileForm(existing=null){
                 }
             });
             if(definition.kind==="transition"&&!definition.interactive.destinationMapId)throw new Error("Une destination est obligatoire pour une transition de zone.");
+            if(definition.kind==="transition"){
+                const transitionFile=document.getElementById("me-i-transition")?.files?.[0];
+                if(transitionFile){
+                    const asset=await mapEditorImportImage(transitionFile);
+                    definition.interactive.transitionImageKey=asset.key;
+                }
+                definition.imageKey=definition.interactive.transitionImageKey||definition.imageKey||null;
+                definition.interactive.imageOpacity=Math.max(0,Math.min(1,(Number(document.getElementById("me-i-opacity")?.value)||100)/100));
+            }
             const destinationMap=mapEditorMaps.find(m=>m.id===definition.interactive.destinationMapId);
             if(definition.kind==="transition"&&(!destinationMap||definition.interactive.destinationX<0||definition.interactive.destinationY<0||definition.interactive.destinationX>=destinationMap.cols||definition.interactive.destinationY>=destinationMap.rows))throw new Error("La destination ou les coordonnées d’arrivée sont invalides.");
             const closedFile=document.getElementById("me-i-closed").files[0],openFile=document.getElementById("me-i-open").files[0];
@@ -1442,8 +1507,11 @@ function mapEditorRender(){
         const key=mapEditorGetEffectiveInstanceImage(o,opened);
         const img=key?mapEditorRuntimeImages.get(key):null;
         const x=o.x*m.tileSize,y=o.y*m.tileSize;
+        ctx.save();
+        ctx.globalAlpha=mapEditorGetInstanceImageOpacity(o);
         if(img&&img.complete)ctx.drawImage(img,x,y,m.tileSize,m.tileSize);
         else mapEditorDrawInteractiveFallback(ctx,x,y,m.tileSize,o,props,opened);
+        ctx.restore();
         if(mapEditorMode==="configuration"&&(o.instanceId===mapEditorSelectedInstanceId||o.instanceId===mapEditorHoveredInstanceId)){
             ctx.strokeStyle=o.instanceId===mapEditorSelectedInstanceId?"#ffd54a":"#fff";ctx.lineWidth=2/zoom;ctx.strokeRect(x+.5,y+.5,m.tileSize-1,m.tileSize-1);
         }
