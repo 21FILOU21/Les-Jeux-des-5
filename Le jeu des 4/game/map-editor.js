@@ -1096,7 +1096,7 @@ function mapEditorOpenTileForm(existing=null,replacePlacedTileId=null){
     const showTileImagePreview=(src,label)=>{
         if(!tileImagePreview)return;
         tileImagePreview.innerHTML=src
-            ? '<img src="'+escapeHtml(src)+'" alt="Aperçu de la tuile sélectionnée"><div class="me-selected-image-caption">'+escapeHtml(label||"Image sélectionnée")+'</div>'
+            ? '<div class="me-normal-tile-image-mosaic" style="background-image:url(\''+escapeHtml(src)+'\')"></div><div class="me-selected-image-caption">'+escapeHtml(label||"Image sélectionnée")+' · aperçu répété 16×16</div>'
             : '<div class="me-selected-image-empty">Aucune image sélectionnée</div>';
     };
     if(t.imageKey){
@@ -1343,7 +1343,7 @@ function mapEditorRender(){
 function mapEditorBuildUi(){
     if(document.getElementById("map-editor-root"))return;
     const wrap=document.createElement("div");wrap.id="map-editor-root";wrap.className="save-menu map-editor-shell hidden";
-    wrap.innerHTML='<div class="save-menu-content map-editor-content"><div class="save-menu-header"><div><span class="eyebrow">OUTIL DÉVELOPPEUR</span><h2>Créateur de Map</h2><p id="map-editor-current-name"></p></div><button id="map-editor-close" class="close-button">×</button></div><div class="map-editor-toolbar"><button id="me-new" class="primary-button">Nouvelle</button><button id="me-dup" class="secondary-button">Dupliquer</button><button id="me-del" class="secondary-button">Supprimer</button><button id="me-import" class="secondary-button">Importer JSON</button><button id="me-export" class="secondary-button">Exporter JSON</button><button id="me-undo" class="secondary-button">↶</button><button id="me-redo" class="secondary-button">↷</button><button id="me-test" class="secondary-button">Tester</button><button id="me-resize" class="secondary-button">Dimensions</button><select id="me-layer-select" title="Calque actif"></select><button id="me-layer" class="secondary-button">+ Calque</button><button id="me-encounter" class="secondary-button">Rencontres</button><button id="me-mode-placement" class="secondary-button">Placement</button><button id="me-mode-config" class="secondary-button">Configuration</button></div><div class="map-editor-layout"><aside><h3>Maps</h3><div id="map-editor-list"></div><h3>Tuiles</h3><div id="map-editor-tiles"></div><button id="me-new-tile" class="secondary-button">+ Tuile</button><button id="me-chest" class="secondary-button">+ Tuile interactive</button><h3>Outils</h3><div class="map-editor-tools"><button data-tool="paint">Pinceau</button><button data-tool="erase">Gomme</button><button data-tool="eyedropper">Pipette</button><button data-tool="fill">Remplir</button><button data-tool="spawn">Spawn</button></div></aside><main><canvas id="map-editor-canvas" width="1100" height="650" data-zoom="2" data-pan-x="0" data-pan-y="0"></canvas><div class="map-editor-hint">Clic gauche : placer · clic droit : effacer · glisser : peindre · molette : zoom · clic molette : déplacer</div></main></div><input id="map-editor-import-file" type="file" accept=".json,application/json" hidden></div>';
+    wrap.innerHTML='<div class="save-menu-content map-editor-content"><div class="save-menu-header"><div><span class="eyebrow">OUTIL DÉVELOPPEUR</span><h2>Créateur de Map</h2><p id="map-editor-current-name"></p></div><button id="map-editor-close" class="close-button">×</button></div><div class="map-editor-toolbar"><button id="me-new" class="primary-button">Nouvelle</button><button id="me-dup" class="secondary-button">Dupliquer</button><button id="me-del" class="secondary-button">Supprimer</button><button id="me-import" class="secondary-button">Importer JSON</button><button id="me-export" class="secondary-button">Exporter JSON</button><button id="me-undo" class="secondary-button">↶</button><button id="me-redo" class="secondary-button">↷</button><button id="me-test" class="secondary-button">Tester</button><button id="me-resize" class="secondary-button">Dimensions</button><select id="me-layer-select" title="Calque actif"></select><button id="me-layer" class="secondary-button">+ Calque</button><button id="me-encounter" class="secondary-button">Rencontres</button><button id="me-mode-placement" class="secondary-button">Placement</button><button id="me-mode-config" class="secondary-button">Configuration</button></div><div class="map-editor-layout"><aside><h3>Maps</h3><div id="map-editor-list"></div><div class="map-editor-tile-creator"><div class="map-editor-tile-creator-label">Créer une tuile</div><select id="me-tile-type" title="Type de tuile à créer" aria-label="Type de tuile à créer"><option value="normal">Tuile normale</option><option value="interactive">Tuile interactive</option></select><button id="me-create-tile" class="primary-button">+ Ajouter la tuile</button></div><h3>Tuiles</h3><div id="map-editor-tiles"></div><h3>Outils</h3><div class="map-editor-tools"><button data-tool="paint">Pinceau</button><button data-tool="erase">Gomme</button><button data-tool="eyedropper">Pipette</button><button data-tool="fill">Remplir</button><button data-tool="spawn">Spawn</button></div></aside><main><canvas id="map-editor-canvas" width="1100" height="650" data-zoom="2" data-pan-x="0" data-pan-y="0"></canvas><div class="map-editor-hint">Clic gauche : placer · clic droit : effacer · glisser : peindre · molette : zoom · clic molette : déplacer</div></main></div><input id="map-editor-import-file" type="file" accept=".json,application/json" hidden></div>';
     document.body.appendChild(wrap);
     document.getElementById("map-editor-close").onclick=mapEditorClose;
     document.getElementById("me-new").onclick=mapEditorCreateMap;document.getElementById("me-dup").onclick=mapEditorDuplicateMap;document.getElementById("me-del").onclick=mapEditorDeleteMap;document.getElementById("me-import").onclick=()=>document.getElementById("map-editor-import-file").click();document.getElementById("me-export").onclick=mapEditorExport;document.getElementById("me-undo").onclick=mapEditorUndoAction;document.getElementById("me-redo").onclick=mapEditorRedoAction;
@@ -1354,8 +1354,19 @@ function mapEditorBuildUi(){
         const r=document.getElementById("map-editor-root");if(r)r.classList.add("hidden");
         if(typeof startOverworldMode==="function")startOverworldMode();
     };
-    document.getElementById("me-new-tile").onclick=()=>mapEditorOpenTileForm();
-    document.getElementById("me-chest").onclick=()=>mapEditorOpenInteractiveTileForm();
+    const tileTypeSelect=document.getElementById("me-tile-type");
+    const createTileButton=document.getElementById("me-create-tile");
+    const updateTileCreatorLabel=()=>{
+        const interactive=tileTypeSelect?.value==="interactive";
+        if(createTileButton)createTileButton.textContent=interactive?"+ Ajouter la tuile interactive":"+ Ajouter la tuile";
+        if(tileTypeSelect)tileTypeSelect.setAttribute("aria-label",interactive?"Type de tuile à créer : tuile interactive":"Type de tuile à créer : tuile normale");
+    };
+    tileTypeSelect?.addEventListener("change",updateTileCreatorLabel);
+    createTileButton?.addEventListener("click",()=>{
+        if(tileTypeSelect?.value==="interactive")mapEditorOpenInteractiveTileForm();
+        else mapEditorOpenTileForm();
+    });
+    updateTileCreatorLabel();
     document.getElementById("me-mode-placement").onclick=()=>{mapEditorMode="placement";mapEditorSelectedInstanceId=null;mapEditorRender();};
     document.getElementById("me-mode-config").onclick=()=>{mapEditorMode="configuration";mapEditorSelectedTile=null;mapEditorRender();};
     document.querySelectorAll(".map-editor-tools [data-tool]").forEach(b=>b.onclick=()=>{mapEditorTool=b.dataset.tool;mapEditorMode="placement";mapEditorRender();});
