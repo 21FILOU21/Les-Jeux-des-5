@@ -1431,7 +1431,38 @@ function mapEditorOpenInteractiveTileForm(existing=null){
     };
     destinationSideButtons.forEach(button=>button.onclick=()=>applyTransitionSide(button.dataset.transitionSide));
 
-    // La carte composite est un aperçu uniquement : la position d’arrivée\n    // est modifiée exclusivement par les boutons Haut / Bas / Gauche / Droite.\n    if(minimap)minimap.onclick=null;\n
+    // Le clic sur la carte déplace uniquement la case d'arrivée.
+    // Le côté de raccord reste inchangé : seul le sélecteur Haut / Bas / Gauche / Droite le modifie.
+    if(minimap)minimap.onclick=e=>{
+        const map=mapEditorMaps.find(m=>m.id===destinationSelect?.value),current=mapEditorCurrent();if(!map||!current)return;
+        const rect=minimap.getBoundingClientRect();
+        const styles=getComputedStyle(minimap);
+        const borderLeft=parseFloat(styles.borderLeftWidth)||0,borderTop=parseFloat(styles.borderTopWidth)||0;
+        const borderRight=parseFloat(styles.borderRightWidth)||0,borderBottom=parseFloat(styles.borderBottomWidth)||0;
+        const contentWidth=Math.max(1,rect.width-borderLeft-borderRight),contentHeight=Math.max(1,rect.height-borderTop-borderBottom);
+        const canvasX=(e.clientX-rect.left-borderLeft)*(minimap.width/contentWidth);
+        const canvasY=(e.clientY-rect.top-borderTop)*(minimap.height/contentHeight);
+        const side=document.getElementById("me-i-destination-side")?.dataset.side||"right";
+        const horizontal=side==="left"||side==="right";
+        const gap=18,pad=18;
+        const destinationBox=horizontal
+            ? {x:pad,y:42,w:minimap.width/2-gap/2-pad,h:minimap.height-58}
+            : {x:42,y:pad,w:minimap.width-58,h:minimap.height/2-gap/2-pad};
+        if(horizontal&&side==="right")destinationBox.x=minimap.width/2+gap/2;
+        if(horizontal&&side==="left")destinationBox.x=pad;
+        if(!horizontal&&side==="top")destinationBox.y=pad;
+        if(!horizontal&&side==="bottom")destinationBox.y=minimap.height/2+gap/2;
+        const scale=Math.min(destinationBox.w/(map.cols*map.tileSize),destinationBox.h/(map.rows*map.tileSize));
+        const mapW=map.cols*map.tileSize*scale,mapH=map.rows*map.tileSize*scale;
+        const offsetX=destinationBox.x+(destinationBox.w-mapW)/2,offsetY=destinationBox.y+(destinationBox.h-mapH)/2;
+        const px=canvasX-offsetX,py=canvasY-offsetY;
+        if(px<0||py<0||px>=mapW||py>=mapH)return;
+        const x=Math.floor((px/scale)/map.tileSize),y=Math.floor((py/scale)/map.tileSize);
+        if(x<0||y<0||x>=map.cols||y>=map.rows)return;
+        document.getElementById("me-i-destination-x").value=x;
+        document.getElementById("me-i-destination-y").value=y;
+        drawDestinationMinimap();
+    };
     const syncTransitionFields=()=>{
         const transition=kindSelect.value==="transition";
         transitionFields?.classList.toggle("hidden",!transition);
