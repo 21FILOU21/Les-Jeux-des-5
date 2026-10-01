@@ -5190,3 +5190,69 @@ body {
     letter-spacing:.04em;
     text-align:center;
 }
+
+
+/* Aperçu mosaïque des tuiles normales + aperçus unitaires interactifs */
+.map-editor-tile-preview{
+    width:48px!important;
+    height:48px!important;
+    flex:0 0 48px;
+    background-repeat:repeat!important;
+    background-size:16px 16px!important;
+    image-rendering:pixelated;
+    border:1px solid #355b7d;
+    border-radius:6px;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.035);
+}
+.me-interactive-images{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+    margin:14px 0;
+}
+.me-interactive-image-card{
+    min-width:0;
+    padding:11px;
+    background:linear-gradient(180deg,rgba(16,35,57,.82),rgba(6,16,28,.9));
+    border:1px solid rgba(78,128,178,.34);
+    border-radius:10px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+}
+.me-interactive-image-card>strong{
+    display:block;
+    margin-bottom:8px;
+    color:#dceeff;
+    font-size:.78rem;
+    letter-spacing:.03em;
+}
+.me-interactive-image-preview{
+    min-height:132px;
+    margin-top:8px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:8px;
+    background:#06111d;
+    border:1px solid #294968;
+    border-radius:7px;
+    overflow:hidden;
+}
+.me-interactive-image-preview img{
+    width:128px;
+    height:128px;
+    max-width:100%;
+    object-fit:contain;
+    image-rendering:pixelated;
+    background:#050d16;
+    border:1px solid rgba(111,176,255,.34);
+    border-radius:5px;
+}
+.me-interactive-image-preview .me-selected-image-caption{
+    max-width:100%;
+    font-size:.66rem;
+}
+@media (max-width:700px){
+    .me-interactive-images{grid-template-columns:1fr}
+}
