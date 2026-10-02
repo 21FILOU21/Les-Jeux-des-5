@@ -38,7 +38,7 @@ function startItemCreator(existing) {
 
     const isEdit = Boolean(existing);
     const item = existing || {};
-    const categories = ["Soin", "Combat", "Évolution", "Méga Stone", "Exploration", "Clé", "Récompense", "Autre"];
+    const categories = ["Soin", "Combat", "Attraper", "Évolution", "Méga Stone", "Exploration", "Clé", "Récompense", "Autre"];
     const categoryOptions = categories.map(category => `<option value="${escapeHtml(category)}"${item.Categorie === category ? " selected" : ""}>${escapeHtml(category)}</option>`).join("");
     const effectRows = renderCreatorItemEffectRows(item.Effets || []);
 
@@ -64,6 +64,10 @@ function startItemCreator(existing) {
         <label class="dev-check-item"><input type="checkbox" id="dev-item-usable" ${item.Utilisable !== !1 ? "checked" : ""}> Utilisable en combat</label>
         <label class="dev-check-item"><input type="checkbox" id="dev-item-outside" ${item.UtilisableHorsCombat === !0 ? "checked" : ""}> Utilisable hors combat</label>
         <label class="dev-check-item"><input type="checkbox" id="dev-item-consumable" ${item.MegaStone ? (item.Consommable !== !1 ? "checked" : "") : (item.Categorie === "Méga Stone" ? "" : "checked")}> Consommer une unité à l'utilisation</label>
+        <div id="dev-item-capture-config" class="${item.Categorie === "Attraper" ? "" : "hidden"}">
+            <div class="input-group"><label for="dev-item-capture-chance">Chance de capture (%)</label><input type="number" id="dev-item-capture-chance" min="0" max="100" step="any" value="${item.Categorie === "Attraper" ? (item.CaptureChance ?? item.Valeur ?? 10) : 10}"></div>
+            <p class="dev-info-note">La valeur est directement exprimée en pourcentage : 1 = 1 %, 5 = 5 %, 100 = 100 %.</p>
+        </div>
 
         <div class="dev-section-title">Effets</div>
         <div id="dev-item-effects">${effectRows || '<p class="dev-info-note">Aucun effet configuré.</p>'}</div>
@@ -112,7 +116,9 @@ function startItemCreator(existing) {
     });
 
     $("#dev-item-category").addEventListener("change", () => {
-        const mega = $("#dev-item-category").value === "Méga Stone";
+        const category = $("#dev-item-category").value;
+        const mega = category === "Méga Stone";
+        $("#dev-item-capture-config").classList.toggle("hidden", category !== "Attraper");
         $("#dev-item-mega").checked = mega || $("#dev-item-mega").checked;
         if (mega) {
             $("#dev-item-usable").checked = true;
@@ -181,6 +187,20 @@ function submitItemCreator(existing) {
         UtilisableHorsCombat: $("#dev-item-outside").checked,
         Consommable: $("#dev-item-consumable").checked
     };
+
+    if (category === "Attraper") {
+        const captureChance = Number($("#dev-item-capture-chance").value);
+        if (!Number.isFinite(captureChance) || captureChance < 0 || captureChance > 100) {
+            showToast("Chance de capture invalide", "La chance doit être comprise entre 0 et 100 %.");
+            return;
+        }
+        item.Valeur = captureChance;
+        item.CaptureChance = captureChance;
+        item.Utilisable = true;
+        item.UtilisableHorsCombat = false;
+        item.Consommable = true;
+        item.Effets = [];
+    }
 
     if (mega) {
         item.Categorie = "Méga Stone";

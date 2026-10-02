@@ -128,6 +128,10 @@ async function exportCreatorImagesToAssets() {
         ... (created.Monstres || []).map(m => ({
             obj: m,
             subfolder: "monstres"
+        })),
+        ... (created.Animaux || []).map(a => ({
+            obj: a,
+            subfolder: "animaux"
         }))
     ];
 

@@ -77,6 +77,8 @@ function createEmptyContenu() {
         Statuts: [],
         EffetsVisuels: [],
         Items: [],
+        Animaux: [],
+        AnimauxConfig: { Raretes: { Commun: 70, Rare: 20, "Épique": 8, "Mythique": 2 } },
         suppressions: {
             Personnages: [],
             Attaques: [],
@@ -102,13 +104,14 @@ function createEmptySaveFile() {
 function normalizeContenuData(data) {
     if (!data || typeof data !== "object" || Array.isArray(data)) data = createEmptyContenu();
 
-    ["Personnages", "Monstres", "Attaques", "Effets", "Energies", "Statuts", "EffetsVisuels", "Items"].forEach(key => {
+    ["Personnages", "Monstres", "Attaques", "Effets", "Energies", "Statuts", "EffetsVisuels", "Items", "Animaux"].forEach(key => {
         if (!Array.isArray(data[key])) data[key] = [];
     });
 
+    if (!data.AnimauxConfig || typeof data.AnimauxConfig !== "object") data.AnimauxConfig = { Raretes: { Commun: 70, Rare: 20, "Épique": 8, "Mythique": 2 } };
     if (!data.suppressions || typeof data.suppressions !== "object" || Array.isArray(data.suppressions)) data.suppressions = {};
 
-    ["Personnages", "Attaques", "Effets", "Energies", "Statuts", "EffetsVisuels", "Items"].forEach(key => {
+    ["Personnages", "Attaques", "Effets", "Energies", "Statuts", "EffetsVisuels", "Items", "Animaux"].forEach(key => {
         if (!Array.isArray(data.suppressions[key])) data.suppressions[key] = [];
     });
 
@@ -228,7 +231,7 @@ function absorbLegacyContenu(data) {
     if (!data || typeof data !== "object" || Array.isArray(data)) return;
 
     if (data.contenuCue && typeof data.contenuCue === "object" && !Array.isArray(data.contenuCue)) {
-        const hasLocalContent = contenuMemory.Personnages.length > 0 || contenuMemory.Monstres.length > 0 || contenuMemory.Attaques.length > 0;
+        const hasLocalContent = contenuMemory.Personnages.length > 0 || contenuMemory.Monstres.length > 0 || contenuMemory.Attaques.length > 0 || contenuMemory.Animaux.length > 0;
 
         if (!hasLocalContent) {
             contenuMemory = normalizeContenuData(structuredClone(data.contenuCue));

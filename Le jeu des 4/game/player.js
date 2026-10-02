@@ -186,6 +186,8 @@ async function executeAttack(attaque, target = getSelectedMonster()) {
 
     state.busy = !0;
 
+    if (typeof triggerAnimalEffects === "function") triggerAnimalEffects("Sur attaque", { attackerIsEnemy: false, target: getSelectedMonster() });
+
     updateActionButtons();
 
     state.playerEnergy -= attaque.CoutEnergie;

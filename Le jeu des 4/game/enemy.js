@@ -46,52 +46,64 @@ function rollEnemyEnergyTypes() {
 }
 
 function getRarityTable() {
-    const playerLevel = Math.max(1, Math.floor(globalState.playerLevel || 1));
+    /*
+       Les rencontres sauvages doivent rester majoritairement communes.
+       La rareté ne monte plus artificiellement avec le nombre de kills :
+       cela rendait les ennemis rares/légendaires beaucoup trop présents
+       sur les longues parties.
 
-    /* Sous le niveau 5 : table FIXE — 60 % commun, 35 % rare, 5 % légendaire,
-       indépendamment des kills (vraiment 5 %). */
-    if (playerLevel < 5) {
-        return { commun: 60, rare: 35, legendaire: 5 };
-    }
-
-    /* Niveau 5+ : la progression par kills s'applique. */
-    const kills = Math.max(0, Math.floor(Number(globalState.monsterKilled) || 0));
-
-    const shift = Math.floor(kills / 5);
-
-    let commun = 60 - shift;
-
-    let rare = 35 + shift;
-
-    let legendaire = 5;
-
-    if (rare > 50) {
-        legendaire += rare - 50;
-
-        rare = 50;
-    }
-
-    if (commun < 0) {
-        legendaire += -commun;
-
-        commun = 0;
-    }
-
-    if (legendaire > 100) legendaire = 100;
-
-    return { commun, rare, legendaire };
+       Répartition globale :
+       - 85 % Commun
+       - 14 % Rare
+       - 1 % Légendaire
+    */
+    return { commun: 85, rare: 14, legendaire: 1 };
 }
 
 function rollEnemyRarity() {
     const table = getRarityTable();
-
     const roll = Math.random() * 100;
 
     if (roll < table.legendaire) return "Légendaire";
-
     if (roll < table.legendaire + table.rare) return "Rare";
 
     return "Commun";
+}
+
+function pickEnemyVariety(pool) {
+    if (!Array.isArray(pool) || pool.length === 0) return null;
+
+    const available = {
+        Commun: pool.filter(entry => (entry?.Rarete || "Commun") === "Commun"),
+        Rare: pool.filter(entry => entry?.Rarete === "Rare"),
+        Légendaire: pool.filter(entry => entry?.Rarete === "Légendaire")
+    };
+
+    const table = getRarityTable();
+    const roll = Math.random() * 100;
+
+    let rarity = roll < table.legendaire
+        ? "Légendaire"
+        : roll < table.legendaire + table.rare
+            ? "Rare"
+            : "Commun";
+
+    /*
+       Si une catégorie n'existe pas dans le contenu, on retombe sur une
+       catégorie disponible au lieu de modifier artificiellement les poids.
+    */
+    if (!available[rarity] || available[rarity].length === 0) {
+        const fallbackOrder = rarity === "Légendaire"
+            ? ["Rare", "Commun"]
+            : rarity === "Rare"
+                ? ["Commun", "Légendaire"]
+                : ["Rare", "Légendaire"];
+
+        rarity = fallbackOrder.find(name => available[name]?.length > 0) || "Commun";
+    }
+
+    const candidates = available[rarity] || pool;
+    return candidates[randomInt(0, candidates.length - 1)] || null;
 }
 
 /* ============================================================
@@ -489,9 +501,9 @@ function createMonster(number, index, encounterRequest = null) {
 
     if (!variety && enemyPool === "personnages") {
         const personnages = (state.contenu?.Personnages || []).filter(p => p && p.Nom);
-        if (personnages.length > 0) variety = personnages[randomInt(0, personnages.length - 1)];
+        variety = pickEnemyVariety(personnages);
     } else if (!variety && MONSTER_VARIETIES.length > 0) {
-        variety = MONSTER_VARIETIES[randomInt(0, MONSTER_VARIETIES.length - 1)];
+        variety = pickEnemyVariety(MONSTER_VARIETIES);
     }
 
     const isPersonnageEnemy = enemyPool === "personnages" && variety !== null;
@@ -610,6 +622,7 @@ async function monsterTurn() {
         await processTimedEffects(monster);
 
         if (state.battleOver || monster.hp <= 0 || state.playerHp <= 0) continue;
+        if (typeof isAnimalTurnBlocked === "function" && isAnimalTurnBlocked(monster)) { addLog(monster.name + " est incapable d'agir.", "system"); continue; }
 
         const hpPercent = calculateHealthPercentage(monster.hp, monster.maxHp);
 

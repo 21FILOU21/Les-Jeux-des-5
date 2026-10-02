@@ -239,4 +239,3 @@ function getCharacterImagePath(hero) {
     if (!hero || typeof hero !== "object") return "";
     return normalizeCharacterImagePath(hero.Image);
 }
-

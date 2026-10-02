@@ -26,7 +26,8 @@ const CREATOR_TYPES = [
     "Energies",
     "Statuts",
     "EffetsVisuels",
-    "Items"
+    "Items",
+    "Animaux"
 ];
 
 const CREATOR_TYPE_LABELS = {
@@ -37,7 +38,8 @@ const CREATOR_TYPE_LABELS = {
     Energies: "énergies",
     Statuts: "statuts",
     EffetsVisuels: "effets visuels",
-    Items: "items"
+    Items: "items",
+    Animaux: "animaux"
 };
 
 const CREATOR_EFFECT_TYPES = [
@@ -64,7 +66,8 @@ const creatorStockNames = {
     Effets: [],
     Energies: [],
     Statuts: [],
-    Items: []
+    Items: [],
+    Animaux: []
 };
 
 function captureStockContentNames() {
@@ -266,6 +269,14 @@ function startCreatorForm(type, existing) {
             startItemCreator(existing);
 
             break;
+        case "Animaux":
+            startAnimalCreator(existing);
+
+            break;
+        case "Animaux":
+            startAnimalCreator(existing);
+
+            break;
     }
 }
 
@@ -293,6 +304,10 @@ function getDevObjectSummary(type, obj) {
             return getVfxSummary(obj);
         case "Items":
             return `${obj.Categorie || "Autre"} · ${(obj.Effets || []).length} effet(s) · Qté max ${obj.QuantiteMax || 999}${obj.MegaStone ? " · Méga Stone" : ""}`;
+        case "Animaux":
+            return `${obj.Rarete || "Commun"} · Vie ${obj.Vie || 0} · ${obj.TypeBuff || "Aucun"} / ${obj.TypeDebuff || "Aucun"}`;
+        case "Animaux":
+            return `${obj.Rarete || "Commun"} · Vie ${obj.Vie || 0} · ${obj.TypeBuff || "Aucun"} / ${obj.TypeDebuff || "Aucun"}`;
         default:
             return "";
     }

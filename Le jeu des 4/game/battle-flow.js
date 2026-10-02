@@ -92,7 +92,6 @@ function bindEvents() {
     $("#close-item-modal").addEventListener("click", closeItemModal);
     $("#inventory-close-footer").addEventListener("click", closeItemModal);
 
-    $("#clear-log-btn").addEventListener("click", clearLog);
 
     $("#restart-btn").addEventListener("click", restartGame);
 
@@ -160,6 +159,7 @@ function bindEvents() {
 
     $("#dev-cat-vfx").addEventListener("click", () => showDevCategoryMenu("EffetsVisuels"));
     $("#dev-cat-items").addEventListener("click", () => showDevCategoryMenu("Items"));
+    $("#dev-cat-animaux").addEventListener("click", () => showDevCategoryMenu("Animaux"));
 
     $("#dev-image-input").addEventListener("change", handleDevImageSelected);
 
@@ -307,7 +307,11 @@ function bindEvents() {
         if (action === "confirm") {
             event.preventDefault();
 
-            toggleSaveMenu();
+            if (screens.world && screens.world.classList.contains("active")) {
+                if (typeof toggleWorldOptionsMenu === "function") toggleWorldOptionsMenu();
+            } else {
+                toggleSaveMenu();
+            }
 
             return;
         }
@@ -615,6 +619,9 @@ function startBattle(request = null) {
     state.megaEvolutionBaseHeroId = null;
 
     state.log = [];
+    state.battleAnimals = [];
+    state.animalActiveEffects = [];
+    state.selectedAnimalId = null;
 
     showScreen("battle");
 
@@ -625,6 +632,10 @@ function startBattle(request = null) {
     addLog(`Le combat commence contre ${state.config.monsterName}.`, "system");
 
     addLog(`${state.hero.Nom} entre dans le combat.`, "system");
+
+    if (typeof startAnimalEncounter === "function") startAnimalEncounter();
+
+    if (typeof startAnimalEncounter === "function") startAnimalEncounter();
 
     updateActionButtons();
 }

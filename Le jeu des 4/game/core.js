@@ -66,6 +66,9 @@ const state = {
     inventory: {},
     megaEvolutionUsed: !1,
     megaEvolutionBaseHeroId: null,
+    battleAnimals: [],
+    animalActiveEffects: [],
+    selectedAnimalId: null,
 };
 
 function normalizeContenu(contenu) {
@@ -84,6 +87,10 @@ function normalizeContenu(contenu) {
     if (!Array.isArray(contenu.EffetsVisuels)) contenu.EffetsVisuels = [];
 
     if (!Array.isArray(contenu.Items)) contenu.Items = [];
+
+    if (typeof normalizeAnimauxConfig === "function") normalizeAnimauxConfig(contenu);
+
+    if (typeof normalizeAnimauxConfig === "function") normalizeAnimauxConfig(contenu);
 
     contenu.Effets.forEach((effect, index) => {
         if (!effect || typeof effect !== "object") return;

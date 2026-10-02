@@ -347,15 +347,21 @@ function addLog(message, type = "") {
         ${escapeHtml(message)}
     `;
 
-    container.appendChild(entry);
-
-    container.scrollTop = container.scrollHeight;
+    if (!container.classList.contains("animal-slots")) {
+        container.appendChild(entry);
+        container.scrollTop = container.scrollHeight;
+    }
 
     state.log.push({ message, type, time });
 }
 
 function clearLog() {
-    $("#combat-log").innerHTML = "";
+    const logContainer = $("#combat-log");
+    if (logContainer && logContainer.classList.contains("animal-slots") && typeof renderAnimalBattleSlots === "function") {
+        renderAnimalBattleSlots();
+    } else if (logContainer) {
+        logContainer.innerHTML = "";
+    }
 
     state.log = [];
 }

@@ -44,6 +44,8 @@ function showCriticalBanner(target) {
 function damageMonster(damage, target) {
     const wasAlive = target.hp > 0;
 
+    if (wasAlive && typeof triggerAnimalEffects === "function") triggerAnimalEffects("Sur dégâts subis", { attackerIsEnemy: false, target });
+
     const finalDamage = Math.max(0, damage);
 
     target.hp = Math.max(0, target.hp - finalDamage);
@@ -58,6 +60,7 @@ function damageMonster(damage, target) {
 }
 
 function damagePlayer(damage) {
+    if (typeof triggerAnimalEffects === "function") triggerAnimalEffects("Sur dégâts subis", { attackerIsEnemy: true, target: "player" });
     const finalDamage = Math.max(0, damage - getPlayerArmor());
 
     state.playerHp = Math.max(0, state.playerHp - finalDamage);

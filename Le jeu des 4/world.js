@@ -463,7 +463,7 @@ function isWorldScreenActive() {
     return !!(screen && screen.classList.contains("active"));
 }
 
-function isOverworldBlocked() { const saveMenu = document.getElementById("save-menu"); const filesMenu = document.getElementById("save-files-menu"); const devMenu = document.getElementById("dev-menu"); const settingsMenu = document.getElementById("settings-menu"); if (saveMenu && !saveMenu.classList.contains("hidden")) return !0; if (filesMenu && !filesMenu.classList.contains("hidden")) return !0; if (devMenu && !devMenu.classList.contains("hidden")) return !0; if (settingsMenu && !settingsMenu.classList.contains("hidden")) return !0; return !1 }
+function isOverworldBlocked() { const saveMenu = document.getElementById("save-menu"); const filesMenu = document.getElementById("save-files-menu"); const devMenu = document.getElementById("dev-menu"); const settingsMenu = document.getElementById("settings-menu"); const worldOptions = document.getElementById("world-options-menu"); const playerStats = document.getElementById("world-player-stats"); if (saveMenu && !saveMenu.classList.contains("hidden")) return !0; if (filesMenu && !filesMenu.classList.contains("hidden")) return !0; if (devMenu && !devMenu.classList.contains("hidden")) return !0; if (settingsMenu && !settingsMenu.classList.contains("hidden")) return !0; if (worldOptions && !worldOptions.classList.contains("hidden")) return !0; if (playerStats && !playerStats.classList.contains("hidden")) return !0; return !1 }
 
 function overworldLoop(timestamp) {
     const deltaTime = Math.min(0.05, (timestamp - overworldState.lastFrameTime) / 1000 || 0);
@@ -557,6 +557,85 @@ function hideWorldDialogue() {
     const box = document.getElementById("world-dialogue");
     if (box) box.classList.add("hidden");
     clearTimeout(overworldState.dialogueTimer);
+}
+
+function isWorldOptionsMenuOpen() {
+    const menu = document.getElementById("world-options-menu");
+    return !!(menu && !menu.classList.contains("hidden"));
+}
+
+function closeWorldOptionsMenu() {
+    const menu = document.getElementById("world-options-menu");
+    if (menu) menu.classList.add("hidden");
+}
+
+function toggleWorldOptionsMenu() {
+    if (isWorldOptionsMenuOpen()) closeWorldOptionsMenu();
+    else openWorldOptionsMenu();
+}
+
+function openWorldOptionsMenu() {
+    if (!isWorldScreenActive()) return;
+    if (typeof closeAttackModal === "function") closeAttackModal();
+    if (typeof closeSaveMenu === "function") closeSaveMenu();
+    if (typeof closeSettingsMenu === "function") closeSettingsMenu();
+    if (typeof closeDevMenu === "function") closeDevMenu();
+    closeWorldPlayerStats();
+
+    const menu = document.getElementById("world-options-menu");
+    if (menu) menu.classList.remove("hidden");
+}
+
+function closeWorldPlayerStats() {
+    const modal = document.getElementById("world-player-stats");
+    if (modal) modal.classList.add("hidden");
+}
+
+function renderWorldPlayerStats() {
+    const container = document.getElementById("world-player-stats-body");
+    if (!container) return;
+
+    const hero = state && state.hero;
+    if (!hero) {
+        container.innerHTML = "<p>Aucun personnage actif.</p>";
+        return;
+    }
+
+    const rows = Object.entries(hero)
+        .filter(([key, value]) => value !== undefined && value !== null && typeof value !== "object")
+        .map(([key, value]) => {
+            const label = key.replace(/([A-Z])/g, " $1").replace(/^./, char => char.toUpperCase());
+            return `<div class="world-player-stat"><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></div>`;
+        })
+        .join("");
+
+    const progressionState = typeof globalState !== "undefined" && globalState ? globalState : null;
+    const derived = [
+        ["Niveau", String(progressionState?.playerLevel ?? state.playerLevel ?? 1)],
+        ["PV actuels", String(state.playerHp ?? 0)],
+        ["PV maximum", String(state.playerMaxHp ?? hero.Vie ?? 0)],
+        ["Énergie actuelle", String(state.playerEnergy ?? 0)],
+        ["Énergie maximum", String(state.playerMaxEnergy ?? hero.MaxEnergie ?? 0)],
+        ["Puissance effective", String(typeof getPlayerPower === "function" ? getPlayerPower() : hero.PuissanceBase ?? 0)],
+        ["Armure effective", String(typeof getPlayerArmor === "function" ? getPlayerArmor() : hero.Armure ?? 0)],
+        ["Vitesse effective", String(typeof getPlayerSpeed === "function" ? getPlayerSpeed() : hero.Vitesse ?? 0)],
+        ["XP", String(progressionState?.playerXp ?? state.playerXp ?? 0)],
+        ["XP avant niveau suivant", String(progressionState?.playerXpToNext ?? state.playerXpToNext ?? 0)]
+    ];
+
+    const derivedHtml = derived.map(([label, value]) =>
+        `<div class="world-player-stat world-player-stat-derived"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`
+    ).join("");
+
+    container.innerHTML = `<div class="world-player-stat-section"><h3>Statistiques actives</h3>${derivedHtml}</div><div class="world-player-stat-section"><h3>Données du personnage</h3>${rows || "<p>Aucune donnée disponible.</p>"}</div>`;
+}
+
+function openWorldPlayerStats() {
+    if (!isWorldScreenActive()) return;
+    closeWorldOptionsMenu();
+    renderWorldPlayerStats();
+    const modal = document.getElementById("world-player-stats");
+    if (modal) modal.classList.remove("hidden");
 }
 
 /* ============================================================
@@ -700,13 +779,55 @@ const WORLD_KEY_DIRECTIONS = {
 
 function bindWorldEvents() {
     document.addEventListener("keydown", (event) => {
-        const tag = (event.target && event.target.tagName) || ""; if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return; if (typeof isInventoryOpen === "function" && isInventoryOpen()) return; if (typeof isKeybindCaptureActive === "function" && isKeybindCaptureActive()) { if (event.key.startsWith("Arrow")) { event.preventDefault() } return }
-        const keyName = String(event.key || "").toLowerCase(); let action = null; if (typeof getKeyAction === "function") { action = getKeyAction(keyName) } else { action = WORLD_KEY_DIRECTIONS[keyName] || null }
-        if (action === "fastWalk") { overworldState.fastWalkHeld = !0; return }
-        if (action === "action5") { if (typeof openInventoryModal === "function") openInventoryModal("world"); return; }
-        if (action === "interact") { if (typeof mapEditorInteract === "function") mapEditorInteract(); return; }
-        if (action !== "up" && action !== "down" && action !== "left" && action !== "right") return; overworldState.keys.add(keyName); if (event.key.startsWith("Arrow")) { event.preventDefault() }
-        if (!event.repeat) { requestWorldStep(action) }
+        const tag = (event.target && event.target.tagName) || "";
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+        if (typeof isKeybindCaptureActive === "function" && isKeybindCaptureActive()) return;
+
+        const keyName = String(event.key || "").toLowerCase();
+        let action = null;
+        if (typeof getKeyAction === "function") {
+            action = getKeyAction(keyName);
+        } else {
+            action = WORLD_KEY_DIRECTIONS[keyName] || null;
+        }
+
+        if (action === "confirm") {
+            event.preventDefault();
+            if (typeof toggleWorldOptionsMenu === "function") toggleWorldOptionsMenu();
+            event.stopImmediatePropagation();
+            return;
+        }
+
+        if (typeof isInventoryOpen === "function" && isInventoryOpen()) return;
+
+        if (action === "fastWalk") {
+            overworldState.fastWalkHeld = !0;
+            return;
+        }
+
+        if (action === "action5") {
+            if (typeof openInventoryModal === "function") openInventoryModal("world");
+            return;
+        }
+
+        if (action === "cancel" && isWorldOptionsMenuOpen()) {
+            event.preventDefault();
+            closeWorldOptionsMenu();
+            closeWorldPlayerStats();
+            event.stopImmediatePropagation();
+            return;
+        }
+
+        if (action === "interact") {
+            if (typeof mapEditorInteract === "function") mapEditorInteract();
+            return;
+        }
+
+        if (action !== "up" && action !== "down" && action !== "left" && action !== "right") return;
+
+        overworldState.keys.add(keyName);
+        if (event.key.startsWith("Arrow")) event.preventDefault();
+        if (!event.repeat) requestWorldStep(action);
     }); document.addEventListener("keyup", (event) => {
         const keyName = String(event.key || "").toLowerCase(); let action = null; if (typeof getKeyAction === "function") { action = getKeyAction(keyName) } else { action = WORLD_KEY_DIRECTIONS[keyName] || null }
         if (action === "fastWalk") { overworldState.fastWalkHeld = !1; return }
@@ -735,4 +856,47 @@ function bindWorldEvents() {
     worldMapCanvas = buildWorldMapCanvas();
 
     bindWorldEvents();
+
+    const bindButton = (id, handler) => {
+        const button = document.getElementById(id);
+        if (button) button.addEventListener("click", handler);
+    };
+
+    bindButton("world-option-inventory", () => {
+        closeWorldOptionsMenu();
+        if (typeof openInventoryModal === "function") openInventoryModal("world");
+    });
+
+    bindButton("world-option-player", openWorldPlayerStats);
+
+    bindButton("world-option-creatures", () => {
+        closeWorldOptionsMenu();
+        if (typeof openCreaturesMenu === "function") openCreaturesMenu();
+    });
+
+    bindButton("world-option-settings", () => {
+        closeWorldOptionsMenu();
+        if (typeof openSettingsMenu === "function") openSettingsMenu();
+    });
+
+    bindButton("world-option-save", () => {
+        closeWorldOptionsMenu();
+        if (typeof openSaveMenu === "function") openSaveMenu();
+    });
+
+    bindButton("world-option-creator", () => {
+        closeWorldOptionsMenu();
+        if (typeof openDevMenu === "function") openDevMenu();
+    });
+
+    bindButton("world-options-close", closeWorldOptionsMenu);
+    bindButton("world-player-stats-close", closeWorldPlayerStats);
+
+    document.getElementById("world-options-menu")?.addEventListener("click", event => {
+        if (event.target.id === "world-options-menu") closeWorldOptionsMenu();
+    });
+
+    document.getElementById("world-player-stats")?.addEventListener("click", event => {
+        if (event.target.id === "world-player-stats") closeWorldPlayerStats();
+    });
 })();

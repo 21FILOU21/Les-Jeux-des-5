@@ -269,6 +269,8 @@ function canUseItem(item, context = "battle") {
         return { ok: !1, reason: "Cet item ne peut pas être utilisé hors combat." };
     }
 
+    if (item.Categorie === "Attraper" && typeof canCaptureAnimalItem === "function") return canCaptureAnimalItem(item, context);
+
     if (isMegaStoneItem(item)) {
         if (context !== "battle") return { ok: !1, reason: "La Méga Stone s'utilise pendant un combat." };
 
@@ -406,6 +408,35 @@ async function useInventoryItem(itemId, context = "battle") {
     }
 
     if (context === "battle" && typeof canPlayerAct === "function" && !canPlayerAct()) return;
+
+    if (item.Categorie === "Attraper") {
+        closeItemModal();
+        state.busy = context === "battle";
+
+        const result = typeof captureBattleAnimal === "function" ? captureBattleAnimal(item) : { ok: false, reason: "Le système de capture est indisponible." };
+
+        if (!result.ok) {
+            if (context === "battle") state.busy = !1;
+            showToast("Capture impossible", result.reason || "Impossible d'utiliser cet item.");
+            updateActionButtons();
+            return;
+        }
+
+        if (item.Consommable !== !1) removeItemFromInventory(item.Id, 1);
+
+        addLog(result.captured ? item.Nom + " a réussi la capture." : item.Nom + " n'a pas réussi la capture.", "system");
+        renderInventoryModal();
+        updateBattleUI();
+
+        if (context === "battle") {
+            state.busy = !1;
+            state.turn = "monster";
+            updateActionButtons();
+            await sleep(400);
+            if (!state.battleOver && typeof monsterTurn === "function") await monsterTurn();
+        }
+        return;
+    }
 
     if (isMegaStoneItem(item)) {
         closeItemModal();

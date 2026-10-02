@@ -181,10 +181,35 @@
         ====================================================== -->
         <section id="world-screen" class="screen">
             <div class="world-container">
-                <div class="world-hud">
-                    <span class="eyebrow">Exploration</span>
-                    <p>Utilise les flèches ou WASD pour vous déplacer dans les hautes herbes.</p>
-                    <button id="inventory-world-btn" class="secondary-button" type="button">🎒 Inventaire</button>
+                
+                <div id="world-options-menu" class="world-options-menu hidden" aria-modal="true" role="dialog" aria-label="Menu des options">
+                    <div class="world-options-content">
+                        <div class="world-options-header">
+                            <span class="eyebrow">MENU</span>
+                            <h2>Options</h2>
+                            <p>Entrée pour ouvrir ou fermer ce menu.</p>
+                        </div>
+                        <div class="world-options-list">
+                            <button id="world-option-inventory" class="secondary-button" type="button">Inventaire</button>
+                            <button id="world-option-creatures" class="secondary-button" type="button">Créatures</button>
+                            <button id="world-option-player" class="secondary-button" type="button">Player</button>
+                            <button id="world-option-settings" class="secondary-button" type="button">Paramètres</button>
+                            <button id="world-option-save" class="secondary-button" type="button">Sauvegarde</button>
+                            <button id="world-option-creator" class="secondary-button" type="button">Dernier créateur</button>
+                        </div>
+                        <button id="world-options-close" class="secondary-button" type="button">Fermer</button>
+                    </div>
+                </div>
+
+                <div id="world-player-stats" class="world-player-stats hidden" aria-modal="true" role="dialog" aria-label="Statistiques du personnage">
+                    <div class="world-player-stats-content">
+                        <div class="world-options-header">
+                            <span class="eyebrow">PLAYER</span>
+                            <h2>Statistiques du personnage</h2>
+                        </div>
+                        <div id="world-player-stats-body"></div>
+                        <button id="world-player-stats-close" class="secondary-button" type="button">Retour</button>
+                    </div>
                 </div>
 
                 <div class="canvas-wrapper">
@@ -549,27 +574,7 @@
 
             <section class="bottom-grid">
 
-
-                <!-- JOURNAL -->
-
-                <div class="log-card">
-
-                    <div class="section-title">
-
-                        <span>
-                            Journal de combat
-                        </span>
-
-                        <button id="clear-log-btn" class="small-button">
-                            Effacer
-                        </button>
-
-                    </div>
-
-
-                    <div id="combat-log" class="combat-log"></div>
-
-                </div>
+                <div id="combat-log" class="combat-log" aria-label="Animaux en combat"></div>
 
             </section>
 
@@ -952,6 +957,10 @@
                     🎒 Items
                 </button>
 
+                <button id="dev-cat-animaux" class="secondary-button" type="button">
+                    🐾 Animaux
+                </button>
+
                 <button id="dev-export-disk-btn" class="secondary-button" type="button" style="grid-column: 1 / -1;">
                     💾 Écrire sur le disque (Contenu.json + Saves.json + images)
                 </button>
@@ -1064,6 +1073,7 @@
     <script src="game/types.js"></script>
     <script src="game/effects.js"></script>
     <script src="game/items.js"></script>
+    <script src="game/animals.js"></script>
     <script src="game/enemy.js"></script>
     <script src="game/player.js"></script>
     <script src="game/battle-ui.js"></script>
@@ -1071,6 +1081,7 @@
     <script src="game/evolution.js"></script>
     <script src="game/creator-core.js"></script>
     <script src="game/creator-item.js"></script>
+    <script src="game/creator-animal.js"></script>
     <script src="game/map-editor.js"></script>
     <script src="game/creator-images.js"></script>
     <script src="game/creator-personnage.js"></script>
