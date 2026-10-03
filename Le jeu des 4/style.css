@@ -6019,7 +6019,8 @@ body:has(#world-screen.active) {
 
 /* ============================================================
    CRÉATEUR — CASES À COCHER / TOGGLES
-   Remplace la case native par un contrôle pixel UI cohérent.
+   Cercle transparent au repos, pastille blanche activée,
+   avec anneau bleu animé autour de la sélection.
 ============================================================ */
 
 #dev-panel input[type="checkbox"] {
@@ -6027,71 +6028,92 @@ body:has(#world-screen.active) {
     -webkit-appearance: none;
     position: relative;
     flex: 0 0 auto;
-    width: 20px;
-    height: 20px;
+    width: 21px;
+    height: 21px;
     margin: 0;
-    border: 1px solid #3b5f82;
-    border-radius: 5px;
-    background:
-        linear-gradient(180deg, #10243a, #081727);
-    box-shadow:
-        inset 0 1px 2px rgba(0,0,0,.45),
-        0 1px 0 rgba(255,255,255,.025);
+    border: 2px solid rgba(255,255,255,.96);
+    border-radius: 50%;
+    background: transparent;
+    box-shadow: none;
     cursor: pointer;
     vertical-align: middle;
     transition:
-        background .12s ease,
-        border-color .12s ease,
-        box-shadow .12s ease,
-        transform .08s ease;
+        background .16s ease,
+        border-color .16s ease,
+        transform .12s ease,
+        box-shadow .16s ease;
 }
 
+/* Anneau de sélection : invisible tant que la case est décochée. */
+#dev-panel input[type="checkbox"]::before {
+    content: "";
+    position: absolute;
+    inset: -5px;
+    border: 2px solid transparent;
+    border-top-color: #3d8dff;
+    border-right-color: rgba(61,141,255,.28);
+    border-radius: 50%;
+    opacity: 0;
+    transform: rotate(0deg);
+    pointer-events: none;
+}
+
+/* Petit halo blanc qui accompagne l'activation. */
 #dev-panel input[type="checkbox"]::after {
     content: "";
     position: absolute;
-    left: 5px;
-    top: 1px;
-    width: 7px;
-    height: 12px;
-    border-right: 2px solid #06101d;
-    border-bottom: 2px solid #06101d;
+    inset: 4px;
+    border-radius: 50%;
+    background: transparent;
     opacity: 0;
-    transform: rotate(45deg) scale(.7);
-    transition: opacity .1s ease, transform .1s ease;
+    transform: scale(.55);
+    transition:
+        background .16s ease,
+        opacity .16s ease,
+        transform .18s cubic-bezier(.2,.9,.25,1.35);
+    pointer-events: none;
 }
 
 #dev-panel input[type="checkbox"]:hover {
-    border-color: #6b9dcc;
-    background: linear-gradient(180deg, #15304b, #0b1d31);
-    box-shadow:
-        0 0 0 2px rgba(61,141,255,.10),
-        inset 0 1px 2px rgba(0,0,0,.4);
+    border-color: #ffffff;
+    box-shadow: 0 0 0 2px rgba(255,255,255,.08);
 }
 
 #dev-panel input[type="checkbox"]:checked {
-    border-color: #78b9ff;
-    background: linear-gradient(180deg, #6fb0ff, #3578d4);
+    border-color: #ffffff;
+    background: #ffffff;
     box-shadow:
-        0 0 0 2px rgba(61,141,255,.13),
-        0 0 12px rgba(61,141,255,.18),
-        inset 0 1px 0 rgba(255,255,255,.3);
+        0 0 0 2px rgba(255,255,255,.06),
+        0 0 10px rgba(61,141,255,.16);
+}
+
+#dev-panel input[type="checkbox"]:checked::before {
+    opacity: 1;
+    animation: creator-checkbox-spin .85s linear infinite;
 }
 
 #dev-panel input[type="checkbox"]:checked::after {
     opacity: 1;
-    transform: rotate(45deg) scale(1);
+    background: #ffffff;
+    transform: scale(1);
 }
 
 #dev-panel input[type="checkbox"]:active {
-    transform: scale(.92);
+    transform: scale(.88);
 }
 
 #dev-panel input[type="checkbox"]:focus-visible {
-    outline: 2px solid rgba(111,176,255,.85);
-    outline-offset: 2px;
+    outline: 2px solid rgba(111,176,255,.9);
+    outline-offset: 4px;
 }
 
-/* Le bloc devient lui-même un contrôle visuel : toute la ligne est lisible. */
+@keyframes creator-checkbox-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Le bloc reste discret : le contrôle circulaire devient le point focal. */
 #dev-panel .dev-check-item {
     position: relative;
     gap: 10px;
@@ -6130,16 +6152,10 @@ body:has(#world-screen.active) {
     color: #eef6ff;
 }
 
+/* L'ancien badge ACTIF est volontairement supprimé :
+   l'état est maintenant porté par le cercle + son animation. */
 #dev-panel .dev-check-item:has(input[type="checkbox"]:checked)::after {
-    content: "ACTIF";
-    margin-left: auto;
-    padding: 3px 6px;
-    border: 1px solid rgba(111,176,255,.28);
-    border-radius: 4px;
-    color: #8fc4ff;
-    background: rgba(61,141,255,.08);
-    font: 800 .55rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    letter-spacing: .08em;
+    content: none;
 }
 
 #dev-panel .keybind-subtoggle .dev-check-item {
@@ -6147,17 +6163,9 @@ body:has(#world-screen.active) {
     background: rgba(8,22,37,.72);
 }
 
-#dev-panel .keybind-subtoggle .dev-check-item:has(input[type="checkbox"]:checked)::after {
-    content: "ON";
-}
-
 @media (max-width: 600px) {
     #dev-panel input[type="checkbox"] {
-        width: 19px;
-        height: 19px;
-    }
-
-    #dev-panel .dev-check-item:has(input[type="checkbox"]:checked)::after {
-        display: none;
+        width: 20px;
+        height: 20px;
     }
 }
