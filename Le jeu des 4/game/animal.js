@@ -620,18 +620,22 @@ function renderCreaturesMenu() {
     if (!list || !details) return;
 
     const animals = getCapturedAnimals();
+    const debuffAnimals = animals.filter(instance => {
+        const definition = getCapturedAnimalDefinition(instance);
+        return definition && Boolean(getAnimalAbility(definition, "debuff").Type);
+    });
     list.innerHTML = "";
 
-    if (animals.length === 0) {
-        list.innerHTML = '<p class="dev-info-note">Aucun animal capturé.</p>';
-        details.innerHTML = '<p class="dev-info-note">Capture un Animal pour le retrouver ici.</p>';
+    if (debuffAnimals.length === 0) {
+        list.innerHTML = '<p class="dev-info-note">Aucun animal capturé avec un debuff.</p>';
+        details.innerHTML = '<p class="dev-info-note">Capture un Animal possédant un debuff pour le retrouver ici.</p>';
         return;
     }
 
-    const selectedId = state.selectedAnimalId || animals[0].Id;
-    if (!animals.some(animal => animal.Id === selectedId)) state.selectedAnimalId = animals[0].Id;
+    const selectedId = state.selectedAnimalId || debuffAnimals[0].Id;
+    if (!debuffAnimals.some(animal => animal.Id === selectedId)) state.selectedAnimalId = debuffAnimals[0].Id;
 
-    animals.forEach(instance => {
+    debuffAnimals.forEach(instance => {
         const definition = getCapturedAnimalDefinition(instance);
         if (!definition) return;
 
@@ -653,7 +657,7 @@ function renderCreaturesMenu() {
         list.appendChild(button);
     });
 
-    const selected = animals.find(instance => instance.Id === state.selectedAnimalId) || animals[0];
+    const selected = debuffAnimals.find(instance => instance.Id === state.selectedAnimalId) || debuffAnimals[0];
     const definition = getCapturedAnimalDefinition(selected);
     if (!definition) return;
 
