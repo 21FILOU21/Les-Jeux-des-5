@@ -34,8 +34,12 @@ async function handleDevImageSelected(event) {
 
     if (!file) return;
 
-    if (file.type !== "image/png" && !file.name.toLowerCase().endsWith(".png")) {
-        showToast("Format non supporté", "Choisis un fichier .png.");
+    const lowerName = file.name.toLowerCase();
+    const isPng = file.type === "image/png" || lowerName.endsWith(".png");
+    const isJpg = file.type === "image/jpeg" || lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg");
+
+    if (!isPng && !isJpg) {
+        showToast("Format non supporté", "Choisis un fichier .png ou .jpg.");
 
         return;
     }
@@ -93,7 +97,8 @@ async function copyDevImageToAssets(file, subfolder, nom) {
             create: !0
         });
 
-        const fileHandle = await targetDir.getFileHandle(`${nom}.png`, {
+        const extension = file.type === "image/jpeg" || /\.jpe?g$/i.test(file.name) ? "jpg" : "png";
+        const fileHandle = await targetDir.getFileHandle(nom + "." + extension, {
             create: !0
         });
 
@@ -105,7 +110,7 @@ async function copyDevImageToAssets(file, subfolder, nom) {
             await writable.close();
         }
 
-        return `assets/${subfolder}/${nom}.png`;
+        return "assets/" + subfolder + "/" + nom + "." + extension;
     } catch (error) {
         console.error("Copie de l'image vers assets impossible :", error);
 
