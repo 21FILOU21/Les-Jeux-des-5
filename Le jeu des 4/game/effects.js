@@ -42,10 +42,6 @@ function showCriticalBanner(target) {
 ============================================================ */
 
 function damageMonster(damage, target) {
-    const wasAlive = target.hp > 0;
-
-    if (wasAlive && typeof triggerAnimalEffects === "function") triggerAnimalEffects("Sur dégâts subis", { attackerIsEnemy: false, target });
-
     const finalDamage = Math.max(0, damage);
 
     target.hp = Math.max(0, target.hp - finalDamage);
@@ -60,7 +56,6 @@ function damageMonster(damage, target) {
 }
 
 function damagePlayer(damage) {
-    if (typeof triggerAnimalEffects === "function") triggerAnimalEffects("Sur dégâts subis", { attackerIsEnemy: true, target: "player" });
     const finalDamage = Math.max(0, damage - getPlayerArmor());
 
     state.playerHp = Math.max(0, state.playerHp - finalDamage);
@@ -70,6 +65,14 @@ function damagePlayer(damage) {
     addLog(`${state.hero.Nom} reçoit ${finalDamage} dégâts.`, "damage");
 
     fireVfxFor(vfxAttachedTo(state._currentAttack));
+
+    if (finalDamage > 0 && typeof triggerAnimalEffects === "function") {
+        triggerAnimalEffects("Sur dégâts subis", {
+            attackerIsEnemy: true,
+            target: "player",
+            source: state._currentAttackerMonster || null
+        });
+    }
 }
 
 /* ============================================================
@@ -100,6 +103,79 @@ function getEffectValue(effect) {
     return Number.isFinite(value) ? value : 1;
 }
 
+function getCombatantDamageMultiplier(attacker) {
+    if (attacker === "player" || attacker === state) return Math.max(0, Number(state.damageMultiplier) || 1);
+    return Math.max(0, Number(attacker?.damageMultiplier) || 1);
+}
+
+function recomputeDamageMultiplier(target) {
+    const effects = target === "player" ? state.playerStatusEffects : target?.statusEffects;
+    if (!Array.isArray(effects)) return;
+    const delta = effects.filter(effect => effect?.kind === "damageMultiplier")
+        .reduce((sum, effect) => sum + (Number(effect.value) || 0), 0);
+    if (target === "player") state.damageMultiplier = Math.max(0, 1 + delta);
+    else target.damageMultiplier = Math.max(0, 1 + delta);
+}
+
+function addTimedStatus(target, status, turns, metadata = null) {
+    const duration = Math.max(1, Number.parseInt(turns, 10) || 1);
+    const effects = target === "player" ? state.playerStatusEffects : target?.statusEffects;
+    const normalizedStatus = String(status || "").trim().toLowerCase();
+    if (!normalizedStatus || !Array.isArray(effects)) return;
+
+    if (metadata?.sourceAnimalId && metadata?.sourceAnimalKind) {
+        for (let i = effects.length - 1; i >= 0; i--) {
+            const existing = effects[i];
+            if (existing.kind === "condition" &&
+                existing.sourceAnimalId === metadata.sourceAnimalId &&
+                existing.sourceAnimalKind === metadata.sourceAnimalKind) {
+                effects.splice(i, 1);
+            }
+        }
+    }
+
+    effects.push({ kind: "condition", status: normalizedStatus, remainingTurns: duration, ...(metadata || {}) });
+    addLog((target === "player" ? state.hero?.Nom : target?.name || "Cible") +
+        " est affecté par " + normalizedStatus + " (" + duration + " tour(s)).", "system");
+}
+
+function hasTimedStatus(target, statuses) {
+    const effects = target === "player" ? state.playerStatusEffects : target?.statusEffects;
+    if (!Array.isArray(effects)) return false;
+    const wanted = Array.isArray(statuses) ? statuses : [statuses];
+    return effects.some(effect => effect?.kind === "condition" && wanted.includes(effect.status) && effect.remainingTurns > 0);
+}
+
+function addTimedDamageMultiplier(target, multiplier, turns, metadata = null, stackable = true) {
+    const effects = target === "player" ? state.playerStatusEffects : target?.statusEffects;
+    if (!Array.isArray(effects)) return;
+    const numericMultiplier = Math.max(0, Number(multiplier) || 0);
+
+    if (!stackable && metadata?.sourceAnimalId && metadata?.sourceAnimalKind) {
+        for (let i = effects.length - 1; i >= 0; i--) {
+            const existing = effects[i];
+            if (existing.kind === "damageMultiplier" &&
+                existing.sourceAnimalId === metadata.sourceAnimalId &&
+                existing.sourceAnimalKind === metadata.sourceAnimalKind) {
+                effects.splice(i, 1);
+            }
+        }
+    }
+
+    effects.push({
+        kind: "damageMultiplier",
+        value: numericMultiplier - 1,
+        multiplier: numericMultiplier,
+        remainingTurns: Math.max(1, Number.parseInt(turns, 10) || 1),
+        ...(metadata || {})
+    });
+    recomputeDamageMultiplier(target);
+}
+
+function isCombatantStatusBlocked(target) {
+    return hasTimedStatus(target, ["paralysie", "sommeil", "shocked", "electrocution"]);
+}
+
 /* ============================================================
    DISPATCHER PRINCIPAL
 ============================================================ */
@@ -111,6 +187,7 @@ function applyAttackEffects(effects, selectedMonster, roulettePower, typeMultipl
         const value = getEffectValue(effect);
 
         const attackerPower = fromEnemy ? getMonsterPower(selectedMonster) : getPlayerPower();
+        const attackerDamageMultiplier = getCombatantDamageMultiplier(fromEnemy ? selectedMonster : "player");
 
         const vfxNames = vfxAttachedTo(carrier);
 
@@ -122,7 +199,7 @@ function applyAttackEffects(effects, selectedMonster, roulettePower, typeMultipl
             if (type === "degats" || type === "damage") {
                 const typeMult = attackEnergyType ? (target === "player" ? (fromEnemy ? getTypeMultiplier(attackEnergyType, getHeroEnergyTypes()) : 1) : getTypeMultiplier(attackEnergyType, getMonsterEnergyTypes(target))) : (typeMultiplier || 1);
 
-                let baseDamage = roulettePower * attackerPower * typeMult * value;
+                let baseDamage = roulettePower * attackerPower * typeMult * value * attackerDamageMultiplier;
 
                 if (critical) baseDamage *= CRITICAL_HIT_MULTIPLIER;
 
@@ -261,7 +338,7 @@ function rechargeEffectTarget(target, amount) {
    EFFETS TEMPORISÉS (brûlure, buffs, debuffs)
 ============================================================ */
 
-function addTimedEffect(target, kind, value, turns) {
+function addTimedEffect(target, kind, value, turns, metadata = null) {
     const duration = Math.max(1, Number.parseInt(turns, 10) || 1);
 
     const effects = target === "player" ? state.playerStatusEffects : target.statusEffects;
@@ -270,7 +347,7 @@ function addTimedEffect(target, kind, value, turns) {
 
     fireVfxFor(vfxAttachedTo(state._vfxCarrier || null), "onStatut", { side: target === "player" ? "player" : "enemy", target });
 
-    effects.push({ kind, value, remainingTurns });
+    effects.push({ kind, value, remainingTurns, ...(metadata || {}) });
 
     if (kind === "power") {
         target === "player" ? state.playerPowerModifier += value : target.powerModifier += value;
@@ -309,6 +386,16 @@ async function processTimedEffects(target) {
             addLog(`${targetName} subit ${damage} dégâts de brûlure.`, "damage");
         }
 
+        if (effect.kind === "condition") {
+            effect.remainingTurns--;
+            continue;
+        }
+
+        if (effect.kind === "damageMultiplier") {
+            effect.remainingTurns--;
+            continue;
+        }
+
         if (effect.kind === "rollburn") {
             const roulettePower = await rollRoulette(state.playerMinRoulette, state.playerMaxRoulette, isRouletteAnimationSkipped(), "Brûlure");
 
@@ -333,7 +420,9 @@ async function processTimedEffects(target) {
     const expired = effects.filter(effect => effect.remainingTurns <= 0);
 
     expired.forEach(effect => {
-        if (effect.kind === "power") {
+        if (effect.kind === "damageMultiplier") {
+            recomputeDamageMultiplier(target);
+        } else if (effect.kind === "power") {
             target === "player" ? state.playerPowerModifier -= effect.value : target.powerModifier -= effect.value;
         } else if (effect.kind === "armor") {
             target === "player" ? state.playerArmorModifier -= effect.value : target.armorModifier -= effect.value;
@@ -344,6 +433,8 @@ async function processTimedEffects(target) {
 
     if (target === "player") state.playerStatusEffects = active;
     else target.statusEffects = active;
+
+    recomputeDamageMultiplier(target);
 
     if (target !== "player") await handleMonsterDeath(target);
 
