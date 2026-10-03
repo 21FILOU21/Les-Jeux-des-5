@@ -134,7 +134,9 @@ function normalizeAnimauxConfig(contenu) {
 }
 
 function getAnimalDefinition(idOrName) {
-    const value = String(idOrName || "").trim();
+    const value = typeof idOrName === "object"
+        ? String(idOrName?.Id || idOrName?.id || idOrName?.Nom || "").trim()
+        : String(idOrName || "").trim();
     return (state.contenu?.Animaux || []).find(animal =>
         animal && (String(animal.Id || "") === value || String(animal.Nom || "") === value)
     ) || null;
