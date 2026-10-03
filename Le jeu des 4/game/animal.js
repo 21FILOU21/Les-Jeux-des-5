@@ -460,6 +460,16 @@ function tickAnimalCooldowns() {
     }
 }
 
+function getAnimalCaptureChance(item, target) {
+    const value = Number(item?.CaptureChance ?? item?.Valeur);
+    if (!Number.isFinite(value)) return 0;
+
+    /* Formule centrale : la Valeur d'attrape est directement exprimée en
+       pourcentage. Elle est plafonnée à 99 % afin qu'un item courant ne
+       transforme pas une capture en réussite garantie. */
+    return Math.max(0, Math.min(99, value));
+}
+
 function captureBattleAnimal(item) {
     if (state.animalCaptureInProgress) return { ok: false, reason: "Une capture est déjà en cours." };
     state.animalCaptureInProgress = true;
@@ -474,7 +484,7 @@ function captureBattleAnimal(item) {
             return { ok: false, reason: "Les 6 emplacements d'animaux sont déjà occupés." };
         }
 
-        const chance = Math.max(0, Math.min(99, Number(item?.CaptureChance ?? item?.Valeur) || 0));
+        const chance = getAnimalCaptureChance(item, target);
         const success = Math.random() * 100 < chance;
 
         if (!success) {
@@ -514,8 +524,8 @@ function canCaptureAnimalItem(item, context) {
     if (getCapturedAnimals().length >= ANIMAL_MAX_TEAM_SIZE) {
         return { ok: false, reason: "Les 6 emplacements d'animaux sont déjà occupés." };
     }
-    const chance = Number(item.CaptureChance ?? item.Valeur);
-    if (!Number.isFinite(chance) || chance <= 0 || chance >= 100) {
+    const chance = getAnimalCaptureChance(item, target);
+    if (chance <= 0) {
         return { ok: false, reason: "La Valeur d'attrape doit être supérieure à 0 et inférieure à 100 %." };
     }
     return { ok: true };
