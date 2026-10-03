@@ -214,7 +214,7 @@ function hardcodeEnsureStyles() {
         ".hardcode-updater-note{color:var(--muted);font-size:.9rem;line-height:1.45}",
         ".hardcode-type-section{border:1px solid rgba(255,255,255,.09);border-radius:12px;overflow:hidden;background:rgba(0,0,0,.12)}",
         ".hardcode-type-header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,.035)}",
-        ".hardcode-type-header h4{margin:0}",
+        ".hardcode-type-header h4{margin:0}.hardcode-type-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:0;color:inherit;cursor:pointer;background:transparent;text-align:left}.hardcode-type-chevron{font-size:.9rem;transition:transform .15s ease}.hardcode-type-section.collapsed .hardcode-type-chevron{transform:rotate(-90deg)}.hardcode-type-body{display:block}.hardcode-type-section.collapsed .hardcode-type-body{display:none}",
         ".hardcode-type-count,.hardcode-runtime-only{color:var(--muted);font-size:.8rem}",
         ".hardcode-entry{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start;padding:10px 12px;border-top:1px solid rgba(255,255,255,.06)}",
         ".hardcode-entry-checkbox{width:18px;height:18px;margin-top:2px;accent-color:#68d391}",
@@ -311,6 +311,11 @@ function hardcodeRenderEntries() {
         const header = document.createElement("div");
         header.className = "hardcode-type-header";
 
+        const typeToggle = document.createElement("button");
+        typeToggle.type = "button";
+        typeToggle.className = "hardcode-type-toggle";
+        typeToggle.setAttribute("aria-expanded", "true");
+
         const titleWrap = document.createElement("div");
         const title = document.createElement("h4");
         title.textContent = type === "EffetsVisuels" ? "Effets visuels" : type;
@@ -318,6 +323,13 @@ function hardcodeRenderEntries() {
         count.className = "hardcode-type-count";
         count.textContent = " " + typeEntries.length + " élément(s)";
         titleWrap.append(title, count);
+
+        const chevron = document.createElement("span");
+        chevron.className = "hardcode-type-chevron";
+        chevron.textContent = "▾";
+        chevron.setAttribute("aria-hidden", "true");
+
+        typeToggle.append(titleWrap, chevron);
 
         const actions = document.createElement("div");
         actions.className = "hardcode-type-actions";
@@ -336,15 +348,18 @@ function hardcodeRenderEntries() {
         actions.append(typeSelect);
         if (HARDCODED_MANAGED_TYPES.includes(type)) actions.append(typeDelete);
 
-        header.append(titleWrap, actions);
+        header.append(typeToggle, actions);
         section.appendChild(header);
+
+        const body = document.createElement("div");
+        body.className = "hardcode-type-body";
 
         if (type === "Monstres") {
             const info = document.createElement("p");
             info.className = "hardcode-runtime-only";
             info.style.padding = "8px 12px";
             info.textContent = "Les monstres du créateur sont affichés pour information : le ContenuJeu.json actuel ne possède pas de section Monstres consommée par le chargeur.";
-            section.appendChild(info);
+            body.appendChild(info);
         }
 
         typeEntries.forEach(entry => {
@@ -402,7 +417,7 @@ function hardcodeRenderEntries() {
             });
 
             row.append(checkbox, main, toggle, details);
-            section.appendChild(row);
+            body.appendChild(row);
         });
 
         if (!typeEntries.length) {
@@ -410,8 +425,15 @@ function hardcodeRenderEntries() {
             empty.className = "hardcode-updater-note";
             empty.style.padding = "8px 12px";
             empty.textContent = "Aucun élément dans cette catégorie.";
-            section.appendChild(empty);
+            body.appendChild(empty);
         }
+
+        section.appendChild(body);
+
+        typeToggle.addEventListener("click", () => {
+            const collapsed = section.classList.toggle("collapsed");
+            typeToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+        });
 
         typeSelect.addEventListener("click", () => {
             typeEntries.forEach(entry => {
