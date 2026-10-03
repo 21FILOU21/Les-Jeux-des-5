@@ -6019,7 +6019,7 @@ body:has(#world-screen.active) {
 
 /* ============================================================
    CRÉATEUR — CASES À COCHER / TOGGLES
-   Repos transparent, hover blanc, clic blanc → bleu.
+   Repos transparent, hover bleu, coché bleu.
 ============================================================ */
 
 #dev-panel input[type="checkbox"] {
@@ -6043,40 +6043,20 @@ body:has(#world-screen.active) {
         transform .1s ease;
 }
 
-/* Au survol : le rond devient entièrement blanc. */
+/* Hover : le rond et sa bordure deviennent bleus. */
 #dev-panel input[type="checkbox"]:hover {
-    border-color: #ffffff;
-    background: #ffffff;
-    box-shadow: 0 0 7px rgba(255,255,255,.22);
+    border-color: #4d9cff;
+    background: #4d9cff;
+    box-shadow: 0 0 7px rgba(61,141,255,.24);
 }
 
-/* Coché : état final bleu. */
+/* Coché : reste bleu. */
 #dev-panel input[type="checkbox"]:checked {
     border-color: #4d9cff;
     background: #4d9cff;
     box-shadow:
         0 0 0 2px rgba(61,141,255,.10),
         0 0 8px rgba(61,141,255,.28);
-    animation: creator-checkbox-white-to-blue .36s ease-out;
-}
-
-/* La transition démarre blanche et arrive au bleu. */
-@keyframes creator-checkbox-white-to-blue {
-    0% {
-        background: #ffffff;
-        border-color: #ffffff;
-        box-shadow:
-            0 0 0 2px rgba(255,255,255,.14),
-            0 0 9px rgba(255,255,255,.24);
-    }
-
-    100% {
-        background: #4d9cff;
-        border-color: #4d9cff;
-        box-shadow:
-            0 0 0 2px rgba(61,141,255,.10),
-            0 0 8px rgba(61,141,255,.28);
-    }
 }
 
 #dev-panel input[type="checkbox"]:active {
