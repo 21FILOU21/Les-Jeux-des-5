@@ -6054,6 +6054,31 @@ body:has(#world-screen.active) {
     box-shadow:
         0 0 0 2px rgba(61,141,255,.10),
         0 0 8px rgba(61,141,255,.28);
+    animation: creator-checkbox-blue-white-blue .42s ease-out;
+}
+
+@keyframes creator-checkbox-blue-white-blue {
+    0% {
+        background: #4d9cff;
+        border-color: #4d9cff;
+        box-shadow:
+            0 0 0 2px rgba(61,141,255,.10),
+            0 0 8px rgba(61,141,255,.28);
+    }
+    45% {
+        background: #ffffff;
+        border-color: #ffffff;
+        box-shadow:
+            0 0 0 2px rgba(255,255,255,.16),
+            0 0 10px rgba(255,255,255,.28);
+    }
+    100% {
+        background: #4d9cff;
+        border-color: #4d9cff;
+        box-shadow:
+            0 0 0 2px rgba(61,141,255,.10),
+            0 0 8px rgba(61,141,255,.28);
+    }
 }
 
 #dev-panel input[type="checkbox"]:active {
