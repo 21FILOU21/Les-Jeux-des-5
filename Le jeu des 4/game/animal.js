@@ -620,22 +620,18 @@ function renderCreaturesMenu() {
     if (!list || !details) return;
 
     const animals = getCapturedAnimals();
-    const debuffAnimals = animals.filter(instance => {
-        const definition = getCapturedAnimalDefinition(instance);
-        return definition && Boolean(getAnimalAbility(definition, "debuff").Type);
-    });
     list.innerHTML = "";
 
-    if (debuffAnimals.length === 0) {
-        list.innerHTML = '<p class="dev-info-note">Aucun animal capturé avec un debuff.</p>';
-        details.innerHTML = '<p class="dev-info-note">Capture un Animal possédant un debuff pour le retrouver ici.</p>';
+    if (animals.length === 0) {
+        list.innerHTML = '<p class="dev-info-note">Aucun animal capturé.</p>';
+        details.innerHTML = '<p class="dev-info-note">Capture un Animal pour le retrouver ici.</p>';
         return;
     }
 
-    const selectedId = state.selectedAnimalId || debuffAnimals[0].Id;
-    if (!debuffAnimals.some(animal => animal.Id === selectedId)) state.selectedAnimalId = debuffAnimals[0].Id;
+    const selectedId = state.selectedAnimalId || animals[0].Id;
+    if (!animals.some(animal => animal.Id === selectedId)) state.selectedAnimalId = animals[0].Id;
 
-    debuffAnimals.forEach(instance => {
+    animals.forEach(instance => {
         const definition = getCapturedAnimalDefinition(instance);
         if (!definition) return;
 
@@ -657,7 +653,7 @@ function renderCreaturesMenu() {
         list.appendChild(button);
     });
 
-    const selected = debuffAnimals.find(instance => instance.Id === state.selectedAnimalId) || debuffAnimals[0];
+    const selected = animals.find(instance => instance.Id === state.selectedAnimalId) || animals[0];
     const definition = getCapturedAnimalDefinition(selected);
     if (!definition) return;
 
@@ -680,7 +676,7 @@ function renderCreaturesMenu() {
         '<span>Bonus maître</span><strong>' + escapeHtml(String(definition.AugmentationMaitre || 0)) + '</strong>' +
         '</div>' +
         '<div class="creature-ability"><h4>Buff</h4><p>' + escapeHtml(buff.Type || "Aucun") + ' · Valeur effective ' + escapeHtml(String(getAnimalEffectiveValue(definition, selected, "buff"))) + ' · ' + escapeHtml(String(buff.Tours)) + ' tour(s)</p><p>Activation : ' + escapeHtml(buff.Activation) + ' · Cooldown : ' + escapeHtml(String(buff.Cooldown)) + ' · Stackable : ' + (buff.Stackable ? "Oui" : "Non") + '</p></div>' +
-        '<div class="creature-ability"><h4>Debuff</h4><p>' + escapeHtml(debuff.Type || "Aucun") + ' · Valeur effective ' + escapeHtml(String(getAnimalEffectiveValue(definition, selected, "debuff"))) + ' · ' + escapeHtml(String(debuff.Tours)) + ' tour(s)</p><p>Activation : ' + escapeHtml(debuff.Activation) + ' · Cooldown : ' + escapeHtml(String(debuff.Cooldown)) + ' · Stackable : ' + (debuff.Stackable ? "Oui" : "Non") + '</p></div>';
+        (debuff.Type ? '<div class="creature-ability"><h4>Debuff</h4><p>' + escapeHtml(debuff.Type) + ' · Valeur effective ' + escapeHtml(String(getAnimalEffectiveValue(definition, selected, "debuff"))) + ' · ' + escapeHtml(String(debuff.Tours)) + ' tour(s)</p><p>Activation : ' + escapeHtml(debuff.Activation) + ' · Cooldown : ' + escapeHtml(String(debuff.Cooldown)) + ' · Stackable : ' + (debuff.Stackable ? "Oui" : "Non") + '</p></div>' : '');
 }
 
 function gainAnimalXp(amount, animalId = null) {
