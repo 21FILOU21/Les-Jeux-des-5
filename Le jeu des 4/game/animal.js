@@ -327,6 +327,10 @@ function createAnimalCombatant(definition, level = 1) {
         Image: getAnimalImagePath(animal),
         rarete: animal.Rarete,
         animalStatuses: [],
+        buff: animal.Buff,
+        debuff: animal.Debuff,
+        abilityCooldowns: { buff: 0, debuff: 0 },
+        captured: false,
         defeatHandled: false,
         isBoss: false,
         unavailable: false
