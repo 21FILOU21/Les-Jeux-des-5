@@ -637,7 +637,7 @@ function startBattle(request = null) {
     state.megaEvolutionBaseHeroId = null;
 
     state.log = [];
-    state.selectedAnimalId = state.selectedAnimalId || getCapturedAnimals?.()[0]?.Id || null;
+    state.selectedAnimalId = state.selectedAnimalId || (typeof getCapturedAnimals === "function" ? getCapturedAnimals()[0]?.Id : null) || null;
 
     showScreen("battle");
 
@@ -675,6 +675,7 @@ function beginAdventure() {
     state.playerPowerModifier = 0;
 
     state.playerArmorModifier = 0;
+    state.damageMultiplier = 1;
 
     state.playerStatusEffects = [];
 
@@ -708,6 +709,7 @@ function beginAdventure() {
     globalState.evolutionDeclinedThreshold = null;
 
     globalState.evolutionDeclinedLevel = null;
+    globalState.animaux = [];
 
     if (typeof mapEditorResetOpenedObjectsForNewRun === "function") {
         mapEditorResetOpenedObjectsForNewRun();
