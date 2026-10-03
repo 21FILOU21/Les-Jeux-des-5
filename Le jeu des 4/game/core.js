@@ -46,6 +46,7 @@ const state = {
     playerPowerBase: 0,
     playerPowerModifier: 0,
     playerArmorModifier: 0,
+    damageMultiplier: 1,
     playerStatusEffects: [],
     pendingXp: 0,
     monsterHp: 0,
