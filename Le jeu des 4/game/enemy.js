@@ -329,21 +329,27 @@ const MONSTER_LOOT_TABLE = [
     { id: "bandage", label: "Bandage", weight: 40 },
     { id: "force", label: "Potion de Force", weight: 25 },
     { id: "armor", label: "Armure", weight: 20 },
-    { id: "totem", label: "Totem", weight: 15 }
+    { id: "totem", label: "Totem", weight: 15 },
+    { id: "partage-experiences", label: "Partage d'expériences", weight: 5 }
 ];
 
 function rollMonsterLoot() {
-    const total = MONSTER_LOOT_TABLE.reduce((sum, entry) => sum + entry.weight, 0);
+    const available = MONSTER_LOOT_TABLE.filter(entry => {
+        if (entry.id !== "partage-experiences") return true;
+        return typeof getItemQuantity !== "function" || getItemQuantity(entry.id) < 1;
+    });
 
+    if (available.length === 0) return null;
+
+    const total = available.reduce((sum, entry) => sum + entry.weight, 0);
     let roll = Math.random() * total;
 
-    for (const entry of MONSTER_LOOT_TABLE) {
+    for (const entry of available) {
         roll -= entry.weight;
-
         if (roll <= 0) return entry;
     }
 
-    return MONSTER_LOOT_TABLE[0];
+    return available[0];
 }
 
 function grantMonsterLoot(monster) {
@@ -352,23 +358,23 @@ function grantMonsterLoot(monster) {
     if (Math.random() >= chance) return;
 
     const loot = rollMonsterLoot();
+    if (!loot) return;
 
     switch (loot.id) {
         case "bandage":
             state.itemBandage++;
-
             break;
         case "force":
             state.itemPotionForce++;
-
             break;
         case "armor":
             state.itemArmor++;
-
             break;
         case "totem":
             state.itemTotem++;
-
+            break;
+        default:
+            if (typeof addItemToInventory === "function") addItemToInventory(loot.id, 1);
             break;
     }
 
@@ -884,7 +890,12 @@ async function monsterKilled(target, finalizeBattle = !0) {
 
     state.pendingXp = (state.pendingXp || 0) + xpGain;
 
-    if (typeof gainAnimalXp === "function") gainAnimalXp(xpGain);
+    const shareXp = typeof getItemQuantity === "function" && getItemQuantity("partage-experiences") > 0;
+    if (shareXp && typeof animateAnimalXpGain === "function") {
+        await animateAnimalXpGain(xpGain);
+    } else if (typeof gainAnimalXp === "function") {
+        gainAnimalXp(xpGain, state.selectedAnimalId);
+    }
 
     addLog(`+${xpGain} XP gagnés.`, "reward");
 
