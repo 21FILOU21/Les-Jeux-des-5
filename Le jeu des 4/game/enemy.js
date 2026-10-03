@@ -622,7 +622,10 @@ async function monsterTurn() {
         await processTimedEffects(monster);
 
         if (state.battleOver || monster.hp <= 0 || state.playerHp <= 0) continue;
-        if (typeof isAnimalTurnBlocked === "function" && isAnimalTurnBlocked(monster)) { addLog(monster.name + " est incapable d'agir.", "system"); continue; }
+        if (typeof isCombatantStatusBlocked === "function" && isCombatantStatusBlocked(monster)) {
+            addLog(monster.name + " est incapable d'agir.", "system");
+            continue;
+        }
 
         const hpPercent = calculateHealthPercentage(monster.hp, monster.maxHp);
 
@@ -638,6 +641,8 @@ async function monsterTurn() {
     if (state.battleOver) {
         return;
     }
+
+    if (typeof tickAnimalCooldowns === "function") tickAnimalCooldowns();
 
     state.busy = !1;
 
@@ -700,6 +705,7 @@ async function monsterAttack(monster) {
     const wheels = getMonsterWheels(monster);
 
     state._currentAttack = attackData;
+    state._currentAttackerMonster = monster;
 
     for (let i = 0; i < wheels.length; i++) {
         if (state.battleOver) {
@@ -719,7 +725,8 @@ async function monsterAttack(monster) {
         if (damageEffects.length > 0) {
             applyAttackEffects(damageEffects, monster, puissance, 1, !1, attackEnergyType, !0, attackData);
         } else {
-            const baseDamage = puissance * getMonsterPower(monster) * (effectivenessMultiplier || 1);
+            const baseDamage = puissance * getMonsterPower(monster) * (effectivenessMultiplier || 1) *
+                (typeof getCombatantDamageMultiplier === "function" ? getCombatantDamageMultiplier(monster) : 1);
             const rawDamage = roundAwayFromZero(baseDamage);
             let incoming = rawDamage;
 
@@ -733,6 +740,14 @@ async function monsterAttack(monster) {
         animateHit($("#player-panel"));
 
         updateBattleUI();
+
+        if (typeof triggerAnimalEffects === "function" && state.playerHp > 0) {
+            triggerAnimalEffects("Sur attaque réussie", {
+                attackerIsEnemy: true,
+                target: null,
+                source: monster
+            });
+        }
 
         if (state.playerHp <= 0) {
             if (state.itemTotem > 0) {
@@ -802,6 +817,16 @@ async function monsterHeal(monster) {
 
 async function handleMonsterDeath(monster, finalizeBattle = !0) {
     if (!monster || monster.hp > 0 || monster.defeatHandled) return !1;
+
+    if (monster.isAnimal || monster.type === "animal") {
+        if (typeof handleAnimalDefeat === "function") {
+            return handleAnimalDefeat(monster);
+        }
+        monster.defeatHandled = true;
+        state.remainingMonsters = Math.max(0, getLivingMonsters().length - 1);
+        if (finalizeBattle && state.remainingMonsters <= 0) await finishBattleIfNoLivingMonsters();
+        return !0;
+    }
 
     const totems = (monster.items && Number(monster.items.totem)) || 0;
 
