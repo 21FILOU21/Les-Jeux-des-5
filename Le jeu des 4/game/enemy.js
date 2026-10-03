@@ -861,8 +861,8 @@ async function handleMonsterDeath(monster, finalizeBattle = !0) {
     return !0;
 }
 
-async function awardPendingAnimalXp() {
-    const amount = Math.max(0, Math.round(Number(state.pendingAnimalXp) || 0));
+async function awardPendingAnimalXp(totalXp = 0) {
+    const amount = Math.max(0, Math.round(Number(totalXp) || 0));
     if (amount <= 0) return;
 
     const shareXp = typeof getItemQuantity === "function"
@@ -874,7 +874,6 @@ async function awardPendingAnimalXp() {
         gainAnimalXp(amount, state.pendingAnimalXpTargetId || state.selectedAnimalId);
     }
 
-    state.pendingAnimalXp = 0;
     state.pendingAnimalXpTargetId = null;
 }
 
@@ -885,9 +884,11 @@ async function finishBattleIfNoLivingMonsters() {
 
     state.battleOver = !0;
 
+    const totalXp = Math.max(0, Math.round(Number(state.pendingXp) || 0));
+
     await animateVictoryXp();
 
-    await awardPendingAnimalXp();
+    await awardPendingAnimalXp(totalXp);
 
     await maybePromptEvolution();
 
@@ -908,8 +909,6 @@ async function monsterKilled(target, finalizeBattle = !0) {
     const xpGain = monsterXpReward(target);
 
     state.pendingXp = (state.pendingXp || 0) + xpGain;
-    state.pendingAnimalXp = (state.pendingAnimalXp || 0) + xpGain;
-
     if (!state.pendingAnimalXpTargetId && state.selectedAnimalId) {
         state.pendingAnimalXpTargetId = state.selectedAnimalId;
     }
