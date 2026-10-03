@@ -488,6 +488,9 @@ function restoreSaveData(save) {
         state.playerStatusEffects = [];
     }
     if (!Number.isFinite(state.damageMultiplier)) state.damageMultiplier = 1;
+    if (typeof createBattleAnimalTeam === "function") {
+        state.battleAnimals = createBattleAnimalTeam();
+    }
 
     if (!Array.isArray(state.heroAttacks)) {
         state.heroAttacks = [];
