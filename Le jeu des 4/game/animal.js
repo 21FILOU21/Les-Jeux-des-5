@@ -679,6 +679,57 @@ function renderCreaturesMenu() {
         (debuff.Type ? '<div class="creature-ability"><h4>Debuff</h4><p>' + escapeHtml(debuff.Type) + ' · Valeur effective ' + escapeHtml(String(getAnimalEffectiveValue(definition, selected, "debuff"))) + ' · ' + escapeHtml(String(debuff.Tours)) + ' tour(s)</p><p>Activation : ' + escapeHtml(debuff.Activation) + ' · Cooldown : ' + escapeHtml(String(debuff.Cooldown)) + ' · Stackable : ' + (debuff.Stackable ? "Oui" : "Non") + '</p></div>' : '');
 }
 
+async function animateAnimalXpGain(amount, animalId = null) {
+    const value = Math.max(0, Math.round(Number(amount) || 0));
+    if (value <= 0) return [];
+
+    const animals = getCapturedAnimals();
+    const targets = animalId
+        ? animals.filter(animal => String(animal.Id) === String(animalId))
+        : animals;
+
+    if (targets.length === 0) return [];
+
+    const results = targets.map(instance => ({
+        instance,
+        remaining: value,
+        levelsGained: 0
+    }));
+
+    for (const result of results) {
+        const instance = result.instance;
+        while (result.remaining > 0) {
+            const required = animalXpRequired(instance.Niveau);
+            const needed = Math.max(1, required - Math.max(0, Number(instance.XP) || 0));
+            const chunk = Math.min(result.remaining, needed);
+            const steps = Math.min(30, Math.max(1, chunk));
+            const stepValue = Math.max(1, Math.ceil(chunk / steps));
+
+            let progressed = 0;
+            while (progressed < chunk) {
+                const step = Math.min(stepValue, chunk - progressed);
+                instance.XP = Math.max(0, Number(instance.XP) || 0) + step;
+                progressed += step;
+                result.remaining -= step;
+                renderAnimalBattleSlots();
+                await sleep(30);
+            }
+
+            if (instance.XP >= required) {
+                instance.XP -= required;
+                instance.Niveau++;
+                result.levelsGained++;
+                renderAnimalBattleSlots();
+                await sleep(450);
+            }
+        }
+    }
+
+    updateSaveMemory();
+    renderAnimalBattleSlots();
+    return results;
+}
+
 function gainAnimalXp(amount, animalId = null) {
     const value = Math.max(0, Number(amount) || 0);
     if (value <= 0) return null;
