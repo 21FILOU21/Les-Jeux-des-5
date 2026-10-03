@@ -593,7 +593,7 @@ async function hardcodeDeleteType(type) {
     if (!confirm("Supprimer tout le type " + type + " de " + HARDCODED_CONTENT_PATH + " ?\n\n" + current.length + " élément(s) seront supprimés.")) return;
 
     try {
-        const output = normalizeContenuData(hardcodeClone(await hardcodeReadDiskContent()));
+        const output = hardcodeClone(await hardcodeReadDiskContent());
         output[type] = [];
         await hardcodeWriteFile(output);
 
