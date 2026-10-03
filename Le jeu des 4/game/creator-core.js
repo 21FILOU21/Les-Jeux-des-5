@@ -273,10 +273,6 @@ function startCreatorForm(type, existing) {
             startAnimalCreator(existing);
 
             break;
-        case "Animaux":
-            startAnimalCreator(existing);
-
-            break;
     }
 }
 
@@ -305,9 +301,7 @@ function getDevObjectSummary(type, obj) {
         case "Items":
             return `${obj.Categorie || "Autre"} · ${(obj.Effets || []).length} effet(s) · Qté max ${obj.QuantiteMax || 999}${obj.MegaStone ? " · Méga Stone" : ""}`;
         case "Animaux":
-            return `${obj.Rarete || "Commun"} · Vie ${obj.Vie || 0} · ${obj.TypeBuff || "Aucun"} / ${obj.TypeDebuff || "Aucun"}`;
-        case "Animaux":
-            return `${obj.Rarete || "Commun"} · Vie ${obj.Vie || 0} · ${obj.TypeBuff || "Aucun"} / ${obj.TypeDebuff || "Aucun"}`;
+            return `${obj.Rarete || "Commun"} · Vie ${obj.Vie || 0} · ${obj.TypeBuff || "Aucun"} / ${obj.TypeDebuff || "Aucun"} · Rencontre ${obj.ChanceRencontre ?? obj.ChanceSelection ?? 0}%`;
         default:
             return "";
     }
