@@ -180,7 +180,7 @@ async function exportCreatorContentToDisk() {
 
                     /* Fusion : la mémoire (éditions en cours) gagne ;
                        le disque comble uniquement ce qui manque. */
-                    ["Personnages", "Monstres", "Attaques", "Effets", "Energies", "Statuts", "Items"].forEach(key => {
+                    ["Personnages", "Monstres", "Attaques", "Effets", "Energies", "Statuts", "Items", "Animaux"].forEach(key => {
                         diskContent[key].forEach(entry => {
                             if (!entry || !entry.Nom) return;
 
