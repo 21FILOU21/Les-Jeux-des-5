@@ -596,11 +596,29 @@ function startBattle(request = null) {
 
     state.heroAttacks = (state.contenu.Attaques || []).filter(attaque => attaque.Personnage === state.hero.Nom);
 
-    state.remainingMonsters = state.config.monsterCount;
-
     state.currentMonsterNumber = globalState.monsterKilled + 1;
 
-    state.monsters = createBattleMonsters(state.config.monsterCount, encounterRequest);
+    state.battleAnimals = typeof createBattleAnimalTeam === "function" ? createBattleAnimalTeam() : [];
+    state.animalCaptureInProgress = false;
+    state.animalCaptureCompleted = false;
+    state.damageMultiplier = 1;
+    state._currentAttackerMonster = null;
+
+    const animalEncounter = !encounterRequest && typeof rollAnimalEncounterAtBattleStart === "function"
+        ? rollAnimalEncounterAtBattleStart()
+        : null;
+
+    if (animalEncounter) {
+        state.monsters = [animalEncounter];
+        state.config.monsterCount = 1;
+        state.config.monsterName = animalEncounter.name;
+        state.currentEncounterType = "animal";
+    } else {
+        state.monsters = createBattleMonsters(state.config.monsterCount, encounterRequest);
+        state.currentEncounterType = "monster";
+    }
+
+    state.remainingMonsters = state.monsters.length;
 
     const monsterList = $("#monster-list");
 
@@ -619,9 +637,7 @@ function startBattle(request = null) {
     state.megaEvolutionBaseHeroId = null;
 
     state.log = [];
-    state.battleAnimals = [];
-    state.animalActiveEffects = [];
-    state.selectedAnimalId = null;
+    state.selectedAnimalId = state.selectedAnimalId || getCapturedAnimals?.()[0]?.Id || null;
 
     showScreen("battle");
 
@@ -633,11 +649,8 @@ function startBattle(request = null) {
 
     addLog(`${state.hero.Nom} entre dans le combat.`, "system");
 
-    if (typeof startAnimalEncounter === "function") startAnimalEncounter();
-
-    if (typeof startAnimalEncounter === "function") startAnimalEncounter();
-
     updateActionButtons();
+    if (typeof renderAnimalBattleSlots === "function") renderAnimalBattleSlots();
 }
 
 function beginAdventure() {
@@ -758,7 +771,10 @@ function runEncounterTransition(request = null) {
 function triggerWildBattle(request = null) {
     startBattle(request);
 
-    addLog(` Combat engagé ! ${state.config.monsterCount} ennemi(s) apparaît(vent) dans les hautes herbes !`, "system");
+    const subject = state.currentEncounterType === "animal"
+        ? "Animal"
+        : `${state.config.monsterCount} ennemi(s)`;
+    addLog(` Combat engagé ! ${subject} apparaît(vent) dans les hautes herbes !`, "system");
 }
 
 /* ============================================================
