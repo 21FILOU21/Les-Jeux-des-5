@@ -403,7 +403,9 @@ function applyAnimalAbility(instance, kind, target, activation, context) {
     if (normalized === "brulure") {
         if (typeof addTimedEffect === "function") addTimedEffect(target, "burn", value, ability.Tours, metadata);
     } else if (normalized === "paralysie" || normalized === "sommeil" || normalized === "shocked") {
-        if (typeof addTimedStatus === "function") addTimedStatus(target, normalized, ability.Tours, metadata);
+        if (typeof addTimedStatus === "function") {
+            addTimedStatus(target, normalized, ability.Tours, { ...metadata, stackable: ability.Stackable });
+        }
     } else if (normalized === "puissance") {
         if (typeof addTimedEffect === "function") addTimedEffect(target, kind === "buff" ? "power" : "power", kind === "buff" ? value : -value, ability.Tours, metadata);
     } else if (normalized === "armure") {
