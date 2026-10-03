@@ -255,7 +255,7 @@ async function hardcodeReadDiskContent() {
     if (!response.ok) {
         throw new Error("Impossible de lire " + HARDCODED_CONTENT_PATH + " (" + response.status + ").");
     }
-    return normalizeContenuData(hardcodeClone(await response.json()));
+    return hardcodeClone(await response.json());
 }
 
 function hardcodeRenderDiff(container, comparison) {
@@ -558,7 +558,7 @@ async function applyHardcodeUpdates() {
     if (!confirm("Mettre à jour " + supported.length + " élément(s) dans " + HARDCODED_CONTENT_PATH + " ?")) return;
 
     try {
-        const output = normalizeContenuData(hardcodeClone(await hardcodeReadDiskContent()));
+        const output = hardcodeClone(await hardcodeReadDiskContent());
         let updated = 0;
         let added = 0;
 
