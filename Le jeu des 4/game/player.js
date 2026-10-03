@@ -43,6 +43,17 @@ async function beginPlayerTurn() {
 
     if (state.battleOver || state.playerHp <= 0) return;
 
+    if (typeof isCombatantStatusBlocked === "function" && isCombatantStatusBlocked("player")) {
+        addLog(state.hero.Nom + " ne peut pas agir ce tour.", "system");
+        state.busy = true;
+        await sleep(350);
+        if (!state.battleOver) {
+            state.turn = "monster";
+            await monsterTurn();
+        }
+        return;
+    }
+
     let autoRegen = 0;
 
     getHeroEnergyTypes().forEach(energieNom => {
@@ -260,7 +271,17 @@ async function executeAttack(attaque, target = getSelectedMonster()) {
         await animatePlayerAttack(target);
 
         state._currentAttack = attaque;
+        const targetHpBefore = Number(target.hp) || 0;
         applyAttackEffects(damageEffects, target, puissance, 1, isCritical, attackEnergyType, !1, attaque);
+
+        if ((Number(target.hp) || 0) < targetHpBefore && typeof triggerAnimalEffects === "function") {
+            triggerAnimalEffects("Sur attaque réussie", {
+                attackerIsEnemy: false,
+                target,
+                source: state.hero
+            });
+        }
+
         fireVfxFor(vfxAttachedTo(attaque), "onDamageDealt", { side: "player", target, crit: isCritical });
 
         const effectiveness = getTypeMultiplier(attackEnergyType, getMonsterEnergyTypes(target));
