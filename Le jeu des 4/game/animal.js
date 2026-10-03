@@ -554,7 +554,7 @@ function renderAnimalBattleSlots() {
     for (let i = 0; i < ANIMAL_MAX_TEAM_SIZE; i++) {
         const instance = animals[i];
         const slot = document.createElement("article");
-        slot.className = "animal-battle-slot" + (instance ? "" : " empty");
+        slot.className = "animal-battle-slot" + (instance ? "" : " empty") + (instance && instance.Id === state.selectedAnimalId ? " selected-animal" : "");
 
         if (instance) {
             const definition = getCapturedAnimalDefinition(instance) || {};
