@@ -67,11 +67,13 @@ function damagePlayer(damage) {
     fireVfxFor(vfxAttachedTo(state._currentAttack));
 
     if (finalDamage > 0 && typeof triggerAnimalEffects === "function") {
-        triggerAnimalEffects("Sur dégâts subis", {
+        const context = {
             attackerIsEnemy: true,
             target: "player",
             source: state._currentAttackerMonster || null
-        });
+        };
+        triggerAnimalEffects("Sur dégâts subis", context);
+        triggerAnimalEffects("Sur dégâts reçus", context);
     }
 }
 
