@@ -547,5 +547,17 @@
       "UtilisableHorsCombat": false,
       "Consommable": false
     }
-  ]
+  ],
+  "Animaux": [],
+  "AnimauxConfig": {
+    "Raretes": {
+      "Commun": 70,
+      "Rare": 20,
+      "Épique": 8,
+      "Mythique": 2
+    }
+  },
+  "suppressions": {
+    "Animaux": []
+  }
 }
