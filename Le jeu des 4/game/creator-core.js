@@ -138,6 +138,102 @@ function showDevMenuMain() {
     if (main) main.classList.remove("hidden");
 }
 
+
+const CREATOR_MENU_ICONS = {
+    Personnages: "👤",
+    Monstres: "👹",
+    Attaques: "⚔",
+    Effets: "✨",
+    Energies: "⚡",
+    Statuts: "🌀",
+    EffetsVisuels: "🎞",
+    Items: "🎒",
+    Animaux: "🐾"
+};
+
+function initDevCategoryAccordions() {
+    const main = document.getElementById("dev-menu-main");
+    if (!main || main.dataset.categoryAccordionsReady === "1") return;
+
+    const categories = [
+        ["Personnages", "dev-cat-personnages"],
+        ["Monstres", "dev-cat-monstres"],
+        ["Attaques", "dev-cat-attaques"],
+        ["Effets", "dev-cat-effets"],
+        ["Energies", "dev-cat-energies"],
+        ["Statuts", "dev-cat-statuts"],
+        ["EffetsVisuels", "dev-cat-vfx"],
+        ["Items", "dev-cat-items"],
+        ["Animaux", "dev-cat-animaux"]
+    ];
+
+    categories.forEach(([type, buttonId]) => {
+        const button = document.getElementById(buttonId);
+        if (!button || button.dataset.categoryAccordionReady === "1") return;
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "dev-category-accordion";
+        wrapper.style.gridColumn = "span 1";
+
+        const categoryButton = button.cloneNode(true);
+        categoryButton.dataset.categoryAccordionReady = "1";
+        categoryButton.setAttribute("aria-expanded", "false");
+        categoryButton.innerHTML = (CREATOR_MENU_ICONS[type] || "") + " " + type + ' <span class="dev-category-chevron" aria-hidden="true">▾</span>';
+
+        const submenu = document.createElement("div");
+        submenu.className = "dev-category-submenu hidden";
+        submenu.style.display = "grid";
+        submenu.style.gridTemplateColumns = "repeat(2, minmax(0, 1fr))";
+        submenu.style.gap = "6px";
+        submenu.style.marginTop = "6px";
+        submenu.style.padding = "6px";
+        submenu.style.borderRadius = "8px";
+        submenu.style.background = "rgba(0,0,0,.12)";
+
+        [
+            ["Créer", "primary-button", () => startCreatorForm(type, null)],
+            ["Modifier", "secondary-button", () => showDevObjectPicker(type, "modifier")],
+            ["Supprimer", "secondary-button", () => showDevObjectPicker(type, "supprimer")],
+            ["Voir la liste", "secondary-button", () => showDevObjectList(type)]
+        ].forEach(([label, className, action]) => {
+            const actionButton = document.createElement("button");
+            actionButton.type = "button";
+            actionButton.className = className;
+            actionButton.textContent = label;
+            actionButton.addEventListener("click", action);
+            submenu.appendChild(actionButton);
+        });
+
+        categoryButton.addEventListener("click", () => {
+            const open = !submenu.classList.contains("hidden");
+
+            main.querySelectorAll(".dev-category-submenu").forEach(other => {
+                other.classList.add("hidden");
+                other.style.display = "none";
+            });
+            main.querySelectorAll("[data-category-accordion-ready]").forEach(other => {
+                if (other !== categoryButton) other.setAttribute("aria-expanded", "false");
+            });
+
+            submenu.classList.toggle("hidden", open);
+            submenu.style.display = open ? "none" : "grid";
+            categoryButton.setAttribute("aria-expanded", open ? "false" : "true");
+
+            const chevron = categoryButton.querySelector(".dev-category-chevron");
+            if (chevron) chevron.textContent = open ? "▾" : "▴";
+        });
+
+        wrapper.append(categoryButton, submenu);
+        button.replaceWith(wrapper);
+    });
+
+    main.dataset.categoryAccordionsReady = "1";
+}
+
+document.addEventListener("DOMContentLoaded", initDevCategoryAccordions);
+
+
+
 function resetDevPanel() {
     const main = $("#dev-menu-main");
 
