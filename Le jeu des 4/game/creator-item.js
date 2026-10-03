@@ -65,8 +65,8 @@ function startItemCreator(existing) {
         <label class="dev-check-item"><input type="checkbox" id="dev-item-outside" ${item.UtilisableHorsCombat === !0 ? "checked" : ""}> Utilisable hors combat</label>
         <label class="dev-check-item"><input type="checkbox" id="dev-item-consumable" ${item.MegaStone ? (item.Consommable !== !1 ? "checked" : "") : (item.Categorie === "Méga Stone" ? "" : "checked")}> Consommer une unité à l'utilisation</label>
         <div id="dev-item-capture-config" class="${item.Categorie === "Attraper" ? "" : "hidden"}">
-            <div class="input-group"><label for="dev-item-capture-chance">Chance de capture (%)</label><input type="number" id="dev-item-capture-chance" min="0" max="100" step="any" value="${item.Categorie === "Attraper" ? (item.CaptureChance ?? item.Valeur ?? 10) : 10}"></div>
-            <p class="dev-info-note">La valeur est directement exprimée en pourcentage : 1 = 1 %, 5 = 5 %, 100 = 100 %.</p>
+            <div class="input-group"><label for="dev-item-capture-chance">Valeur d'attrape (%)</label><input type="number" id="dev-item-capture-chance" min="0" max="100" step="any" value="${item.Categorie === "Attraper" ? (item.CaptureChance ?? item.Valeur ?? 10) : 10}"></div>
+            <p class="dev-info-note">La Valeur d'attrape est directement exprimée en pourcentage : 1 = 1 %, 5 = 5 %, 100 = 100 %.</p>
         </div>
 
         <div class="dev-section-title">Effets</div>
