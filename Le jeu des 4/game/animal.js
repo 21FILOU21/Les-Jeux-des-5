@@ -374,6 +374,8 @@ function removeAnimalAbilityEffects(instanceId, abilityKind, target) {
 
     if (target === "player") state.playerStatusEffects = filtered;
     else target.statusEffects = filtered;
+
+    if (typeof recomputeDamageMultiplier === "function") recomputeDamageMultiplier(target);
 }
 
 function applyAnimalAbility(instance, kind, target, activation, context) {
@@ -683,8 +685,5 @@ function handleAnimalDefeat(target) {
     target.hp = 0;
     state.remainingMonsters = 0;
     addLog(target.name + " est vaincu.", "system");
-    if (typeof finishBattleIfNoLivingMonsters === "function") {
-        finishBattleIfNoLivingMonsters();
-    }
     return true;
 }
