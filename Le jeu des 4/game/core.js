@@ -25,6 +25,7 @@ const globalState = {
     playerXpTotal: 0,
     evolutionDeclinedThreshold: null,
     evolutionDeclinedLevel: null,
+    animaux: [],
 };
 
 const state = {
@@ -88,8 +89,6 @@ function normalizeContenu(contenu) {
     if (!Array.isArray(contenu.EffetsVisuels)) contenu.EffetsVisuels = [];
 
     if (!Array.isArray(contenu.Items)) contenu.Items = [];
-
-    if (typeof normalizeAnimauxConfig === "function") normalizeAnimauxConfig(contenu);
 
     if (typeof normalizeAnimauxConfig === "function") normalizeAnimauxConfig(contenu);
 
