@@ -269,6 +269,14 @@ function canUseItem(item, context = "battle") {
         return { ok: !1, reason: "Cet item ne peut pas être utilisé hors combat." };
     }
 
+    if (String(item.Categorie || "").toLowerCase() === "nourritures") {
+        const animals = typeof getCapturedAnimals === "function" ? getCapturedAnimals() : [];
+        if (!animals.length) return { ok: !1, reason: "Il faut avoir au moins un animal." };
+        const value = Number(item.Valeur);
+        if (!Number.isFinite(value) || value <= 0) return { ok: !1, reason: "Cette nourriture n'a pas de valeur d'XP valide." };
+        return { ok: !0 };
+    }
+
     if (item.Categorie === "Attraper" && typeof canCaptureAnimalItem === "function") return canCaptureAnimalItem(item, context);
 
     if (isMegaStoneItem(item)) {
@@ -408,6 +416,32 @@ async function useInventoryItem(itemId, context = "battle") {
     }
 
     if (context === "battle" && typeof canPlayerAct === "function" && !canPlayerAct()) return;
+
+    if (String(item.Categorie || "").toLowerCase() === "nourritures") {
+        const value = Math.max(0, Number(item.Valeur) || 0);
+        const result = typeof gainAnimalXp === "function" ? gainAnimalXp(value, state.selectedAnimalId) : null;
+        if (!result) {
+            showToast("Nourriture indisponible", "Aucun animal sélectionné.");
+            return;
+        }
+
+        if (item.Consommable !== !1) removeItemFromInventory(item.Id, 1);
+        addLog(result.levelsGained > 0
+            ? item.Nom + " : +" + value + " XP à " + result.instance.AnimalNom + " (niveau " + result.instance.Niveau + ")."
+            : item.Nom + " : +" + value + " XP à " + result.instance.AnimalNom + ".", "reward");
+        showToast(item.Nom, "+" + value + " XP pour " + result.instance.AnimalNom + ".");
+
+        closeItemModal();
+        updateBattleUI();
+        if (context === "battle") {
+            state.busy = !1;
+            state.turn = "monster";
+            updateActionButtons();
+            await sleep(400);
+            if (!state.battleOver && typeof monsterTurn === "function") await monsterTurn();
+        }
+        return;
+    }
 
     if (item.Categorie === "Attraper") {
         closeItemModal();
