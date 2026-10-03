@@ -819,13 +819,11 @@ async function handleMonsterDeath(monster, finalizeBattle = !0) {
     if (!monster || monster.hp > 0 || monster.defeatHandled) return !1;
 
     if (monster.isAnimal || monster.type === "animal") {
-        if (typeof handleAnimalDefeat === "function") {
-            return handleAnimalDefeat(monster);
-        }
-        monster.defeatHandled = true;
-        state.remainingMonsters = Math.max(0, getLivingMonsters().length - 1);
-        if (finalizeBattle && state.remainingMonsters <= 0) await finishBattleIfNoLivingMonsters();
-        return !0;
+        const handled = typeof handleAnimalDefeat === "function"
+            ? handleAnimalDefeat(monster)
+            : false;
+        if (handled && finalizeBattle) await finishBattleIfNoLivingMonsters();
+        return handled;
     }
 
     const totems = (monster.items && Number(monster.items.totem)) || 0;
