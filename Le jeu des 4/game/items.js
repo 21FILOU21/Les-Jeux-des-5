@@ -430,6 +430,15 @@ async function useInventoryItem(itemId, context = "battle") {
 
         if (context === "battle") {
             state.busy = !1;
+
+            if (result.captured) {
+                updateActionButtons();
+                if (typeof finishBattleIfNoLivingMonsters === "function") {
+                    await finishBattleIfNoLivingMonsters();
+                }
+                return;
+            }
+
             state.turn = "monster";
             updateActionButtons();
             await sleep(400);
