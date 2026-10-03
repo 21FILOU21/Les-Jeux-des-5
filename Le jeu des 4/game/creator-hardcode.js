@@ -285,11 +285,11 @@ function hardcodeRenderEntries() {
 
     const selectAll = document.createElement("button");
     selectAll.className = "secondary-button";
-    selectAll.textContent = "Tout cocher";
+    selectAll.textContent = "Sélectionner tout";
 
     const unselectAll = document.createElement("button");
     unselectAll.className = "secondary-button";
-    unselectAll.textContent = "Tout décocher";
+    unselectAll.textContent = "Désélectionner tout";
 
     const refresh = document.createElement("button");
     refresh.className = "secondary-button";
