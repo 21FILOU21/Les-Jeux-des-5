@@ -111,10 +111,14 @@ function getCombatantDamageMultiplier(attacker) {
 function recomputeDamageMultiplier(target) {
     const effects = target === "player" ? state.playerStatusEffects : target?.statusEffects;
     if (!Array.isArray(effects)) return;
-    const delta = effects.filter(effect => effect?.kind === "damageMultiplier")
-        .reduce((sum, effect) => sum + (Number(effect.value) || 0), 0);
-    if (target === "player") state.damageMultiplier = Math.max(0, 1 + delta);
-    else target.damageMultiplier = Math.max(0, 1 + delta);
+    const multipliers = effects
+        .filter(effect => effect?.kind === "damageMultiplier")
+        .map(effect => Math.max(0, Number(effect.multiplier ?? effect.value) || 0));
+    const value = multipliers.length > 0
+        ? multipliers.reduce((sum, multiplier) => sum + multiplier, 0)
+        : 1;
+    if (target === "player") state.damageMultiplier = value;
+    else target.damageMultiplier = value;
 }
 
 function addTimedStatus(target, status, turns, metadata = null) {
@@ -164,7 +168,7 @@ function addTimedDamageMultiplier(target, multiplier, turns, metadata = null, st
 
     effects.push({
         kind: "damageMultiplier",
-        value: numericMultiplier - 1,
+        value: numericMultiplier,
         multiplier: numericMultiplier,
         remainingTurns: Math.max(1, Number.parseInt(turns, 10) || 1),
         ...(metadata || {})
