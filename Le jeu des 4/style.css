@@ -5540,3 +5540,32 @@ body {
 }
 .world-player-stat span { color: #9bb3cc; }
 .world-player-stat strong { color: #edf5ff; text-align: right; word-break: break-word; }
+
+/* ============================================================
+   ANIMAUX — ÉQUIPE ET MENU CRÉATURES
+============================================================ */
+.creatures-menu-content { width: min(1100px, 94vw); }
+.creatures-layout { display:grid; grid-template-columns:minmax(260px,.8fr) minmax(360px,1.2fr); gap:16px; min-height:360px; }
+.creatures-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; align-content:start; overflow-y:auto; max-height:520px; }
+.creature-card { appearance:none; border:1px solid var(--border); background:var(--bg-secondary); color:var(--text); border-radius:10px; padding:8px; display:flex; align-items:center; gap:8px; text-align:left; cursor:pointer; }
+.creature-card.selected { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+.creature-card img,.creature-placeholder { width:54px; height:54px; flex:0 0 54px; border-radius:8px; object-fit:contain; display:grid; place-items:center; background:var(--panel); }
+.creature-placeholder { font-size:1.5rem; }
+.creature-placeholder.large { width:110px; height:110px; flex-basis:110px; font-size:3rem; }
+.creature-card-text { min-width:0; display:flex; flex-direction:column; gap:3px; }
+.creature-card-text strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.creature-card-text small { color:var(--muted); }
+.creatures-details { border:1px solid var(--border); border-radius:12px; background:var(--bg-secondary); padding:16px; overflow-y:auto; }
+.creature-detail-head { display:flex; gap:14px; align-items:center; }
+.creature-detail-head img { width:110px; height:110px; object-fit:contain; border-radius:10px; background:var(--panel); }
+.creature-detail-head h3 { margin:0 0 4px; }
+.creature-detail-head p,.creature-description { color:var(--muted); }
+.creature-stat-grid { display:grid; grid-template-columns:1fr auto; gap:6px 12px; margin:14px 0; }
+.creature-stat-grid span { color:var(--muted); }
+.creature-ability { border-top:1px solid var(--border); padding-top:10px; margin-top:10px; }
+.creature-ability h4 { margin:0 0 5px; }
+.creature-ability p { margin:4px 0; color:var(--muted); }
+@media (max-width:760px) {
+    .creatures-layout { grid-template-columns:1fr; }
+    .creatures-list { grid-template-columns:1fr; max-height:240px; }
+}
