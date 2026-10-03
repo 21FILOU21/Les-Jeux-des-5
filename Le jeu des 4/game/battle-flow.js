@@ -693,6 +693,7 @@ function beginAdventure() {
     state.coins = 0;
 
     state.pendingXp = 0;
+    state.pendingAnimalXpTargetId = null;
 
     globalState.monsterKilled = 0;
 
@@ -892,6 +893,10 @@ function restartGame() {
                     state.pendingXp = 0;
 
                     gainXp(pending);
+
+                    if (typeof awardPendingAnimalXp === "function") {
+                        awardPendingAnimalXp(pending);
+                    }
                 }
             } catch (error) {
                 console.error("Crédit XP avant fin de combat :", error);
@@ -930,6 +935,7 @@ function restartGame() {
             globalState.evolutionDeclinedLevel = null;
 
             state.pendingXp = 0;
+            state.pendingAnimalXpTargetId = null;
 
             globalState.monsterKilled = 0;
 
