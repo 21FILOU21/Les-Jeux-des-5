@@ -130,7 +130,8 @@ function addTimedStatus(target, status, turns, metadata = null) {
     if (metadata?.sourceAnimalId && metadata?.sourceAnimalKind) {
         for (let i = effects.length - 1; i >= 0; i--) {
             const existing = effects[i];
-            if (existing.kind === "condition" &&
+            if (metadata.stackable !== true &&
+                existing.kind === "condition" &&
                 existing.sourceAnimalId === metadata.sourceAnimalId &&
                 existing.sourceAnimalKind === metadata.sourceAnimalKind) {
                 effects.splice(i, 1);
