@@ -568,6 +568,10 @@ function renderAnimalBattleSlots() {
                 '<div class="animal-slot-footer">' +
                 '<strong>' + escapeHtml(definition.Nom || instance.AnimalNom || "Animal") + '</strong>' +
                 '<span>Niv. ' + escapeHtml(String(instance.Niveau || 1)) + ' · ' + escapeHtml(definition.Rarete || "Commun") + '</span>' +
+                '<div class="resource-block animal-xp-block">' +
+                '<div class="resource-header"><span>XP</span><span><strong>' + escapeHtml(String(Math.max(0, Math.floor(Number(instance.XP) || 0)))) + '</strong> / <span>' + escapeHtml(String(animalXpRequired(instance.Niveau))) + '</span></span></div>' +
+                '<div class="resource-bar xp-bar"><div class="resource-fill" style="width:' + Math.min(100, ((Math.max(0, Number(instance.XP) || 0) / animalXpRequired(instance.Niveau)) * 100)).toFixed(1) + '%"></div></div>' +
+                '</div>' +
                 '</div>';
 
             slot.addEventListener("click", () => {
@@ -677,20 +681,30 @@ function renderCreaturesMenu() {
         '<div class="creature-ability"><h4>Debuff</h4><p>' + escapeHtml(debuff.Type || "Aucun") + ' · Valeur effective ' + escapeHtml(String(getAnimalEffectiveValue(definition, selected, "debuff"))) + ' · ' + escapeHtml(String(debuff.Tours)) + ' tour(s)</p><p>Activation : ' + escapeHtml(debuff.Activation) + ' · Cooldown : ' + escapeHtml(String(debuff.Cooldown)) + ' · Stackable : ' + (debuff.Stackable ? "Oui" : "Non") + '</p></div>';
 }
 
-function gainAnimalXp(amount) {
+function gainAnimalXp(amount, animalId = null) {
     const value = Math.max(0, Number(amount) || 0);
-    if (value <= 0) return;
+    if (value <= 0) return null;
 
-    for (const instance of getCapturedAnimals()) {
-        instance.XP += value;
-        while (instance.XP >= animalXpRequired(instance.Niveau)) {
-            instance.XP -= animalXpRequired(instance.Niveau);
-            instance.Niveau++;
-        }
+    const animals = getCapturedAnimals();
+    if (animals.length === 0) return null;
+
+    const requestedId = animalId || state.selectedAnimalId;
+    const instance = animals.find(animal => String(animal.Id) === String(requestedId)) || animals[0];
+    if (!instance) return null;
+
+    state.selectedAnimalId = instance.Id;
+    instance.XP = Math.max(0, Number(instance.XP) || 0) + value;
+
+    let levelsGained = 0;
+    while (instance.XP >= animalXpRequired(instance.Niveau)) {
+        instance.XP -= animalXpRequired(instance.Niveau);
+        instance.Niveau++;
+        levelsGained++;
     }
 
     updateSaveMemory();
     renderAnimalBattleSlots();
+    return { instance, value, levelsGained };
 }
 
 function animalXpRequired(level) {
