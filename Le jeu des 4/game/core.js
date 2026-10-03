@@ -71,6 +71,8 @@ const state = {
     battleAnimals: [],
     animalActiveEffects: [],
     selectedAnimalId: null,
+    animalCaptureInProgress: false,
+    animalCaptureCompleted: false,
 };
 
 function normalizeContenu(contenu) {
