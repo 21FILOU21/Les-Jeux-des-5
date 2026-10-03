@@ -44,6 +44,19 @@ const LEGACY_ITEM_DEFINITIONS = [
         Consommable: !1
     },
     {
+        Id: "partage-experiences",
+        Nom: "Partage d'expériences",
+        Description: "Permet à tous les animaux de l'équipe de recevoir l'XP gagnée contre les monstres.",
+        Image: "",
+        Categorie: "Récompense",
+        Effets: [],
+        Valeur: 0,
+        QuantiteMax: 1,
+        Utilisable: !1,
+        UtilisableHorsCombat: !1,
+        Consommable: !1
+    },
+    {
         Id: "totem",
         Nom: "Totem",
         Description: "Objet spécial conservé par le système d'inventaire existant.",
