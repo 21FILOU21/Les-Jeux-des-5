@@ -675,7 +675,7 @@ function renderCreaturesMenu() {
         '<span>Maître</span><strong>' + escapeHtml(definition.Maitre || "Aucun") + '</strong>' +
         '<span>Bonus maître</span><strong>' + escapeHtml(String(definition.AugmentationMaitre || 0)) + '</strong>' +
         '</div>' +
-        '<div class="creature-ability"><h4>Buff</h4><p>' + escapeHtml(buff.Type || "Aucun") + ' · Valeur effective ' + escapeHtml(String(getAnimalEffectiveValue(definition, selected, "buff"))) + ' · ' + escapeHtml(String(buff.Tours)) + ' tour(s)</p><p>Activation : ' + escapeHtml(buff.Activation) + ' · Cooldown : ' + escapeHtml(String(buff.Cooldown)) + ' · Stackable : ' + (buff.Stackable ? "Oui" : "Non") + '</p></div>' +
+        (buff.Type ? '<div class="creature-ability"><h4>Buff</h4><p>' + escapeHtml(buff.Type) + ' · Valeur effective ' + escapeHtml(String(getAnimalEffectiveValue(definition, selected, "buff"))) + ' · ' + escapeHtml(String(buff.Tours)) + ' tour(s)</p><p>Activation : ' + escapeHtml(buff.Activation) + ' · Cooldown : ' + escapeHtml(String(buff.Cooldown)) + ' · Stackable : ' + (buff.Stackable ? "Oui" : "Non") + '</p></div>' : '') +
         (debuff.Type ? '<div class="creature-ability"><h4>Debuff</h4><p>' + escapeHtml(debuff.Type) + ' · Valeur effective ' + escapeHtml(String(getAnimalEffectiveValue(definition, selected, "debuff"))) + ' · ' + escapeHtml(String(debuff.Tours)) + ' tour(s)</p><p>Activation : ' + escapeHtml(debuff.Activation) + ' · Cooldown : ' + escapeHtml(String(debuff.Cooldown)) + ' · Stackable : ' + (debuff.Stackable ? "Oui" : "Non") + '</p></div>' : '');
 }
 
