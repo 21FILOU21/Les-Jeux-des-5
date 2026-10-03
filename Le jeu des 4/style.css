@@ -6046,7 +6046,7 @@ body:has(#world-screen.active) {
 /* Hover : le rond et sa bordure deviennent bleus. */
 #dev-panel input[type="checkbox"]:hover {
     border-color: #4d9cff;
-    background: #4d9cff;
+    background: transparent;
     box-shadow: 0 0 7px rgba(61,141,255,.24);
 }
 
