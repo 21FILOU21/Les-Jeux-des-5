@@ -86,7 +86,8 @@ function createEmptyContenu() {
             Energies: [],
             Statuts: [],
             EffetsVisuels: [],
-            Items: []
+            Items: [],
+            Animaux: []
         }
     }
 }
@@ -109,6 +110,7 @@ function normalizeContenuData(data) {
     });
 
     if (!data.AnimauxConfig || typeof data.AnimauxConfig !== "object") data.AnimauxConfig = { Raretes: { Commun: 70, Rare: 20, "Épique": 8, "Mythique": 2 } };
+    if (typeof normalizeAnimauxConfig === "function") normalizeAnimauxConfig(data);
     if (!data.suppressions || typeof data.suppressions !== "object" || Array.isArray(data.suppressions)) data.suppressions = {};
 
     ["Personnages", "Attaques", "Effets", "Energies", "Statuts", "EffetsVisuels", "Items", "Animaux"].forEach(key => {
