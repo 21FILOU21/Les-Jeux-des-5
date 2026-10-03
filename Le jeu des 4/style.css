@@ -954,6 +954,21 @@ button:disabled {
     cursor: pointer;
 }
 
+
+.animal-battle-slot.selected-animal {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(108, 124, 255, 0.2), var(--shadow);
+}
+
+.animal-battle-slot {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.animal-battle-slot:not(.empty):hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
 .animal-battle-slot.empty {
     opacity: 0.55;
     cursor: default;
