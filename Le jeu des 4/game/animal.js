@@ -567,11 +567,9 @@ function renderAnimalBattleSlots() {
                 '<div class="animal-slot-image">' + image + '</div>' +
                 '<div class="animal-slot-footer">' +
                 '<strong>' + escapeHtml(definition.Nom || instance.AnimalNom || "Animal") + '</strong>' +
+                '<span class="animal-xp-label">XP ' + escapeHtml(String(Math.max(0, Math.floor(Number(instance.XP) || 0)))) + ' / ' + escapeHtml(String(animalXpRequired(instance.Niveau))) + '</span>' +
                 '<span>Niv. ' + escapeHtml(String(instance.Niveau || 1)) + ' · ' + escapeHtml(definition.Rarete || "Commun") + '</span>' +
-                '<div class="resource-block animal-xp-block">' +
-                '<div class="resource-header"><span>XP</span><span><strong>' + escapeHtml(String(Math.max(0, Math.floor(Number(instance.XP) || 0)))) + '</strong> / <span>' + escapeHtml(String(animalXpRequired(instance.Niveau))) + '</span></span></div>' +
-                '<div class="resource-bar xp-bar"><div class="resource-fill" style="width:' + Math.min(100, ((Math.max(0, Number(instance.XP) || 0) / animalXpRequired(instance.Niveau)) * 100)).toFixed(1) + '%"></div></div>' +
-                '</div>' +
+                '<div class="resource-bar xp-bar animal-xp-block"><div class="resource-fill" style="width:' + Math.min(100, ((Math.max(0, Number(instance.XP) || 0) / animalXpRequired(instance.Niveau)) * 100)).toFixed(1) + '%"></div></div>' +
                 '</div>';
 
             slot.addEventListener("click", () => {
