@@ -38,7 +38,7 @@ function startItemCreator(existing) {
 
     const isEdit = Boolean(existing);
     const item = existing || {};
-    const categories = ["Soin", "Combat", "Attraper", "Évolution", "Méga Stone", "Exploration", "Clé", "Récompense", "Autre"];
+    const categories = ["Soin", "Combat", "Attraper", "Nourritures", "Évolution", "Méga Stone", "Exploration", "Clé", "Récompense", "Autre"];
     const categoryOptions = categories.map(category => `<option value="${escapeHtml(category)}"${item.Categorie === category ? " selected" : ""}>${escapeHtml(category)}</option>`).join("");
     const effectRows = renderCreatorItemEffectRows(item.Effets || []);
 
@@ -48,6 +48,10 @@ function startItemCreator(existing) {
         <div class="input-group"><label for="dev-item-id">ID unique</label><input type="text" id="dev-item-id" maxlength="60" value="${escapeHtml(item.Id || "")}" placeholder="ex: mega-stone-flamme"></div>
         <div class="input-group"><label for="dev-item-nom">Nom</label><input type="text" id="dev-item-nom" maxlength="60" value="${escapeHtml(item.Nom || "")}"></div>
         <div class="input-group"><label for="dev-item-description">Description</label><textarea id="dev-item-description" rows="3">${escapeHtml(item.Description || "")}</textarea></div>
+        <div id="dev-item-food-config" class="${item.Categorie === "Nourritures" ? "" : "hidden"}">
+            <div class="input-group"><label for="dev-item-food-xp">XP donnée à l'animal</label><input type="number" id="dev-item-food-xp" min="1" step="1" value="${item.Categorie === "Nourritures" ? Math.max(1, Math.floor(Number(item.Valeur) || 1)) : 1}"></div>
+            <p class="dev-info-note">La nourriture est utilisable en combat et hors combat. Elle donne cette quantité d'XP à l'animal sélectionné.</p>
+        </div>
 
         <div class="input-group">
             <label>Image</label>
@@ -119,6 +123,7 @@ function startItemCreator(existing) {
         const category = $("#dev-item-category").value;
         const mega = category === "Méga Stone";
         $("#dev-item-capture-config").classList.toggle("hidden", category !== "Attraper");
+        $("#dev-item-food-config").classList.toggle("hidden", category !== "Nourritures");
         $("#dev-item-mega").checked = mega || $("#dev-item-mega").checked;
         if (mega) {
             $("#dev-item-usable").checked = true;
@@ -187,6 +192,19 @@ function submitItemCreator(existing) {
         UtilisableHorsCombat: $("#dev-item-outside").checked,
         Consommable: $("#dev-item-consumable").checked
     };
+
+    if (category === "Nourritures") {
+        const foodXp = Number($("#dev-item-food-xp").value);
+        if (!Number.isFinite(foodXp) || foodXp <= 0) {
+            showToast("XP invalide", "La nourriture doit donner une quantité d'XP supérieure à 0.");
+            return;
+        }
+        item.Valeur = Math.floor(foodXp);
+        item.Effets = [];
+        item.Utilisable = true;
+        item.UtilisableHorsCombat = true;
+        item.Consommable = true;
+    }
 
     if (category === "Attraper") {
         const captureChance = Number($("#dev-item-capture-chance").value);
