@@ -574,6 +574,7 @@ function renderAnimalBattleSlots() {
 
             slot.addEventListener("click", () => {
                 state.selectedAnimalId = instance.Id;
+                renderAnimalBattleSlots();
                 openCreaturesMenu();
             });
         } else {
@@ -647,6 +648,7 @@ function renderCreaturesMenu() {
 
         button.addEventListener("click", () => {
             state.selectedAnimalId = instance.Id;
+            renderAnimalBattleSlots();
             renderCreaturesMenu();
         });
 
