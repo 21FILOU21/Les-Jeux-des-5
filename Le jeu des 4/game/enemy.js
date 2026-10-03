@@ -861,6 +861,23 @@ async function handleMonsterDeath(monster, finalizeBattle = !0) {
     return !0;
 }
 
+async function awardPendingAnimalXp() {
+    const amount = Math.max(0, Math.round(Number(state.pendingAnimalXp) || 0));
+    if (amount <= 0) return;
+
+    const shareXp = typeof getItemQuantity === "function"
+        && getItemQuantity("partage-experiences") > 0;
+
+    if (shareXp && typeof animateAnimalXpGain === "function") {
+        await animateAnimalXpGain(amount);
+    } else if (typeof gainAnimalXp === "function") {
+        gainAnimalXp(amount, state.pendingAnimalXpTargetId || state.selectedAnimalId);
+    }
+
+    state.pendingAnimalXp = 0;
+    state.pendingAnimalXpTargetId = null;
+}
+
 async function finishBattleIfNoLivingMonsters() {
     if (getLivingMonsters().length > 0 || state.battleOver) return !1;
 
@@ -869,6 +886,8 @@ async function finishBattleIfNoLivingMonsters() {
     state.battleOver = !0;
 
     await animateVictoryXp();
+
+    await awardPendingAnimalXp();
 
     await maybePromptEvolution();
 
@@ -889,12 +908,10 @@ async function monsterKilled(target, finalizeBattle = !0) {
     const xpGain = monsterXpReward(target);
 
     state.pendingXp = (state.pendingXp || 0) + xpGain;
+    state.pendingAnimalXp = (state.pendingAnimalXp || 0) + xpGain;
 
-    const shareXp = typeof getItemQuantity === "function" && getItemQuantity("partage-experiences") > 0;
-    if (shareXp && typeof animateAnimalXpGain === "function") {
-        await animateAnimalXpGain(xpGain);
-    } else if (typeof gainAnimalXp === "function") {
-        gainAnimalXp(xpGain, state.selectedAnimalId);
+    if (!state.pendingAnimalXpTargetId && state.selectedAnimalId) {
+        state.pendingAnimalXpTargetId = state.selectedAnimalId;
     }
 
     addLog(`+${xpGain} XP gagnés.`, "reward");
