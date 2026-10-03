@@ -508,6 +508,12 @@ function createSaveData(saveName) {
 
     delete savedState._restoredScreen;
 
+    /* Les cooldowns/instances runtime des animaux sont temporaires au combat.
+       L'équipe persistante vit dans globalState.animaux. */
+    savedState.battleAnimals = [];
+    savedState.animalCaptureInProgress = false;
+    savedState.animalCaptureCompleted = false;
+
     return {
         name: saveName,
         date: new Date().toISOString(),
