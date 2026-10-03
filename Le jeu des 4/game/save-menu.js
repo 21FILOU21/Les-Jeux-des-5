@@ -421,6 +421,13 @@ function restoreSaveData(save) {
 
     Object.assign(globalState, structuredClone(save.globalState));
 
+    if (!Array.isArray(globalState.animaux)) globalState.animaux = [];
+    if (typeof ensureAnimalCollection === "function") {
+        ensureAnimalCollection();
+    } else {
+        globalState.animaux = globalState.animaux.slice(0, 6);
+    }
+
     if (!Number.isFinite(globalState.playerLevel) || globalState.playerLevel < 1) {
         globalState.playerLevel = 1;
     }
@@ -458,6 +465,10 @@ function restoreSaveData(save) {
     if (!Number.isFinite(restoredState.escapeAttempts)) restoredState.escapeAttempts = 0;
 
     if (!restoredState.monsters) restoredState.monsters = [];
+    if (!Array.isArray(restoredState.battleAnimals)) restoredState.battleAnimals = [];
+    if (!Number.isFinite(restoredState.damageMultiplier)) restoredState.damageMultiplier = 1;
+    if (restoredState.animalCaptureInProgress !== true) restoredState.animalCaptureInProgress = false;
+    if (restoredState.animalCaptureCompleted !== true) restoredState.animalCaptureCompleted = false;
 
     Object.assign(state, restoredState);
 
@@ -476,6 +487,7 @@ function restoreSaveData(save) {
     if (!Array.isArray(state.playerStatusEffects)) {
         state.playerStatusEffects = [];
     }
+    if (!Number.isFinite(state.damageMultiplier)) state.damageMultiplier = 1;
 
     if (!Array.isArray(state.heroAttacks)) {
         state.heroAttacks = [];
