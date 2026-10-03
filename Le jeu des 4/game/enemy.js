@@ -886,6 +886,8 @@ async function monsterKilled(target, finalizeBattle = !0) {
 
     state.pendingXp = (state.pendingXp || 0) + xpGain;
 
+    if (typeof gainAnimalXp === "function") gainAnimalXp(xpGain);
+
     addLog(`+${xpGain} XP gagnés.`, "reward");
 
     globalState.monsterKilled++;
