@@ -318,7 +318,9 @@ function updateActionNumberBadges() {
 }
 
 function canPlayerAct() {
-    return (!state.battleOver && state.turn === "player" && !state.busy && state.playerHp > 0 && state.remainingMonsters > 0);
+    if (state.battleOver || state.turn !== "player" || state.busy || state.playerHp <= 0 || state.remainingMonsters <= 0) return false;
+    if (typeof isCombatantStatusBlocked === "function" && isCombatantStatusBlocked("player")) return false;
+    return true;
 }
 
 /* ============================================================
