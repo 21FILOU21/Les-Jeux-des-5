@@ -1,70 +1,41 @@
 "use strict";
 
 /* ============================================================
-   game/animals.js — Système Animal
-   Définitions, rencontres, exemplaires capturés, effets temporaires,
-   capture et menu Créatures.
+   game/animal.js — Système Animal
+   Définitions, instances capturées, rencontres, capacités,
+   capture, équipe de 6 et menu Créatures.
+   Le combat, les effets et l'inventaire restent partagés.
 ============================================================ */
 
-const ANIMAL_RARITIES = ["Commun", "Rare", "Épique", "Mythique"];
-const ANIMAL_RARITY_WEIGHTS = { Commun: 70, Rare: 20, Épique: 8, Mythique: 2 };
-const ANIMAL_ACTIVATIONS = ["Sur attaque", "Sur dégâts subis"];
-const ANIMAL_EFFECTS = [
-    "", "Dégâts", "Puissance", "Armure", "Énergie",
-    "Brûlure", "Paralysie", "Sommeil", "Shocked"
-];
+const ANIMAL_MAX_TEAM_SIZE = 6;
+const ANIMAL_ENCOUNTER_CHANCE = 0.10;
 const ANIMAL_DEFAULT_LEVEL = 1;
-const ANIMAL_ENCOUNTER_CHANCE = 10;
+const ANIMAL_RARITIES = ["Commun", "Rare", "Épique", "Mythique"];
+const ANIMAL_ACTIVATIONS = [
+    "Sur attaque",
+    "Sur attaque réussie",
+    "Sur dégâts subis",
+    "Sur dégâts reçus"
+];
+const ANIMAL_EFFECTS = [
+    "",
+    "Dégâts",
+    "Puissance",
+    "Armure",
+    "Énergie",
+    "Brûlure",
+    "Paralysie",
+    "Sommeil",
+    "Shocked"
+];
 
-function normalizeAnimauxConfig(contenu) {
-    if (!contenu || typeof contenu !== "object") return contenu;
-    if (!Array.isArray(contenu.Animaux)) contenu.Animaux = [];
-    if (!contenu.AnimauxConfig || typeof contenu.AnimauxConfig !== "object") contenu.AnimauxConfig = {};
-    const weights = contenu.AnimauxConfig.Raretes;
-    if (!weights || typeof weights !== "object") contenu.AnimauxConfig.Raretes = structuredClone(ANIMAL_RARITY_WEIGHTS);
-    ANIMAL_RARITIES.forEach(r => {
-        const value = Number(contenu.AnimauxConfig.Raretes[r]);
-        if (!Number.isFinite(value) || value < 0) contenu.AnimauxConfig.Raretes[r] = ANIMAL_RARITY_WEIGHTS[r];
-    });
-    const total = ANIMAL_RARITIES.reduce((sum, r) => sum + Number(contenu.AnimauxConfig.Raretes[r] || 0), 0);
-    if (total <= 0) contenu.AnimauxConfig.Raretes = structuredClone(ANIMAL_RARITY_WEIGHTS);
-    contenu.Animaux = contenu.Animaux.filter(isValidAnimalDefinition).map(normalizeAnimalDefinition);
-    return contenu;
-}
-
-function isValidAnimalDefinition(animal) {
-    return !!animal && typeof animal === "object" && String(animal.Nom || "").trim();
-}
-
-function normalizeAnimalDefinition(animal) {
-    const out = structuredClone(animal || {});
-    out.Nom = String(out.Nom || "").trim();
-    out.Description = String(out.Description || "");
-    out.Image = String(out.Image || "");
-    out.Vie = Math.max(1, Number(out.Vie) || 1);
-    out.Puissance = Math.max(0, Number(out.Puissance) || 0);
-    out.Armure = Math.max(0, Number(out.Armure) || 0);
-    out.MaxEnergie = Math.max(0, Number(out.MaxEnergie) || 0);
-    out.MinRoulette = Math.max(0, Math.floor(Number(out.MinRoulette) || 0));
-    out.MaxRoulette = Math.max(out.MinRoulette, Math.floor(Number(out.MaxRoulette) || out.MinRoulette));
-    out.ValeurBuff = Number.isFinite(Number(out.ValeurBuff)) ? Number(out.ValeurBuff) : 0;
-    out.ValeurDebuff = Number.isFinite(Number(out.ValeurDebuff)) ? Number(out.ValeurDebuff) : 0;
-    out.Tours = Math.max(1, Math.floor(Number(out.Tours) || 1));
-    out.CooldownActivation = Math.max(0, Math.floor(Number(out.CooldownActivation) || 0));
-    out.Rarete = ANIMAL_RARITIES.includes(out.Rarete) ? out.Rarete : "Commun";
-    out.ChanceSelection = Math.max(0, Number(out.ChanceSelection) || 0);
-    out.Maitre = String(out.Maitre || "");
-    out.AugmentationMaitre = Number.isFinite(Number(out.AugmentationMaitre)) ? Number(out.AugmentationMaitre) : 0;
-    out.Progression = {
-        Mode: String(out.Progression?.Mode || "additive"),
-        ValeurParNiveau: Number.isFinite(Number(out.Progression?.ValeurParNiveau)) ? Number(out.Progression.ValeurParNiveau) : 0,
-        MultiplicateurParNiveau: Number.isFinite(Number(out.Progression?.MultiplicateurParNiveau)) ? Number(out.Progression.MultiplicateurParNiveau) : 1
-    };
-    out.TypeBuff = ANIMAL_EFFECTS.includes(out.TypeBuff) ? out.TypeBuff : "";
-    out.TypeDebuff = ANIMAL_EFFECTS.includes(out.TypeDebuff) ? out.TypeDebuff : "";
-    out.TypeActivation = ANIMAL_ACTIVATIONS.includes(out.TypeActivation) ? out.TypeActivation : "Sur attaque";
-    out.Stackable = out.Stackable === true;
-    return out;
+function animalSlug(value) {
+    return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9_-]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .toLowerCase();
 }
 
 function animalUuid() {
@@ -72,333 +43,521 @@ function animalUuid() {
     return "animal-" + Date.now() + "-" + Math.random().toString(36).slice(2);
 }
 
-function getAnimalDefinition(name) {
-    return (state.contenu?.Animaux || []).find(a => a && a.Nom === name) || null;
+function normalizeAnimalAbility(raw, fallbackType, fallbackValue, fallbackTurns, fallbackActivation, fallbackCooldown, fallbackStackable) {
+    const source = raw && typeof raw === "object" ? raw : {};
+    return {
+        Type: ANIMAL_EFFECTS.includes(source.Type) ? source.Type : (ANIMAL_EFFECTS.includes(fallbackType) ? fallbackType : ""),
+        Valeur: Number.isFinite(Number(source.Valeur)) ? Number(source.Valeur) : Number(fallbackValue) || 0,
+        Tours: Math.max(1, Math.floor(Number(source.Tours ?? fallbackTurns) || 1)),
+        Activation: ANIMAL_ACTIVATIONS.includes(source.Activation) ? source.Activation : (ANIMAL_ACTIVATIONS.includes(fallbackActivation) ? fallbackActivation : "Sur attaque"),
+        Cooldown: Math.max(0, Math.floor(Number(source.Cooldown ?? fallbackCooldown) || 0)),
+        Stackable: source.Stackable === true || (source.Stackable === undefined && fallbackStackable === true)
+    };
 }
 
-function getAnimalEffectValue(animal, instance, kind) {
-    const definition = animal || {};
-    const base = Number(kind === "buff" ? definition.ValeurBuff : definition.ValeurDebuff) || 0;
-    const level = Math.max(1, Math.floor(Number(instance?.Niveau) || 1));
-    const progression = definition.Progression || {};
-    let value = base;
+function normalizeAnimalDefinition(animal) {
+    const out = structuredClone(animal || {});
+    const oldBuff = normalizeAnimalAbility(
+        out.Buff,
+        out.TypeBuff,
+        out.ValeurBuff,
+        out.Tours,
+        out.TypeActivation,
+        out.CooldownActivation,
+        out.Stackable
+    );
+    const oldDebuff = normalizeAnimalAbility(
+        out.Debuff,
+        out.TypeDebuff,
+        out.ValeurDebuff,
+        out.Tours,
+        out.TypeActivation,
+        out.CooldownActivation,
+        out.Stackable
+    );
+
+    out.Id = String(out.Id || animalSlug(out.Nom) || animalUuid()).trim();
+    out.Nom = String(out.Nom || "").trim();
+    out.Description = String(out.Description || "");
+    out.Image = String(out.Image || "");
+    out.Vie = Math.max(1, Number(out.Vie) || 1);
+    out.Puissance = Math.max(0, Number(out.Puissance) || 0);
+    out.Armure = Math.max(0, Number(out.Armure) || 0);
+    out.MinRoulette = Math.max(0, Math.floor(Number(out.MinRoulette) || 0));
+    out.MaxRoulette = Math.max(out.MinRoulette, Math.floor(Number(out.MaxRoulette) || out.MinRoulette));
+    out.MaxEnergie = Math.max(0, Math.floor(Number(out.MaxEnergie) || 0));
+    out.TypeEnergie = String(out.TypeEnergie || "");
+    out.Rarete = ANIMAL_RARITIES.includes(out.Rarete) ? out.Rarete : "Commun";
+    out.ChanceRencontre = Math.max(0, Number(out.ChanceRencontre ?? out.ChanceSelection) || 0);
+    out.Maitre = String(out.Maitre || "");
+    out.AugmentationMaitre = Number.isFinite(Number(out.AugmentationMaitre)) ? Number(out.AugmentationMaitre) : 0;
+    out.NiveauInitial = Math.max(1, Math.floor(Number(out.NiveauInitial) || ANIMAL_DEFAULT_LEVEL));
+    out.Progression = {
+        Mode: out.Progression?.Mode === "multiplicative" ? "multiplicative" : "additive",
+        ValeurParNiveau: Number.isFinite(Number(out.Progression?.ValeurParNiveau)) ? Number(out.Progression.ValeurParNiveau) : 0,
+        MultiplicateurParNiveau: Math.max(0, Number(out.Progression?.MultiplicateurParNiveau) || 1)
+    };
+
+    out.Buff = oldBuff;
+    out.Debuff = oldDebuff;
+
+    /* Compatibilité avec les anciennes données plates. */
+    out.TypeBuff = oldBuff.Type;
+    out.ValeurBuff = oldBuff.Valeur;
+    out.TypeDebuff = oldDebuff.Type;
+    out.ValeurDebuff = oldDebuff.Valeur;
+    out.Tours = Math.max(oldBuff.Tours, oldDebuff.Tours);
+    out.TypeActivation = oldBuff.Activation;
+    out.CooldownActivation = Math.max(oldBuff.Cooldown, oldDebuff.Cooldown);
+    out.Stackable = oldBuff.Stackable || oldDebuff.Stackable;
+
+    return out;
+}
+
+function normalizeAnimauxConfig(contenu) {
+    if (!contenu || typeof contenu !== "object") return contenu;
+    if (!Array.isArray(contenu.Animaux)) contenu.Animaux = [];
+    contenu.Animaux = contenu.Animaux
+        .filter(animal => animal && typeof animal === "object" && String(animal.Nom || "").trim())
+        .map(normalizeAnimalDefinition);
+
+    const seen = new Set();
+    contenu.Animaux = contenu.Animaux.filter(animal => {
+        let id = animal.Id || animalSlug(animal.Nom) || animalUuid();
+        if (seen.has(id)) id += "-" + animalUuid().slice(-6);
+        animal.Id = id;
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+    });
+    return contenu;
+}
+
+function getAnimalDefinition(idOrName) {
+    const value = String(idOrName || "").trim();
+    return (state.contenu?.Animaux || []).find(animal =>
+        animal && (String(animal.Id || "") === value || String(animal.Nom || "") === value)
+    ) || null;
+}
+
+function getAnimalImagePath(animalOrDefinition) {
+    return typeof animalOrDefinition?.Image === "string" ? animalOrDefinition.Image.trim() : "";
+}
+
+function getAnimalAbility(definition, kind) {
+    const ability = definition?.[kind === "buff" ? "Buff" : "Debuff"];
+    return normalizeAnimalAbility(
+        ability,
+        kind === "buff" ? definition?.TypeBuff : definition?.TypeDebuff,
+        kind === "buff" ? definition?.ValeurBuff : definition?.ValeurDebuff,
+        definition?.Tours,
+        definition?.TypeActivation,
+        definition?.CooldownActivation,
+        definition?.Stackable
+    );
+}
+
+function getAnimalEffectiveValue(definition, instance, kind) {
+    const ability = getAnimalAbility(definition, kind);
+    const level = Math.max(1, Math.floor(Number(instance?.Niveau) || definition?.NiveauInitial || 1));
+    const progression = definition?.Progression || {};
+    let value = Number(ability.Valeur) || 0;
+
     if (progression.Mode === "multiplicative") {
-        value = base * Math.pow(Number(progression.MultiplicateurParNiveau) || 1, level - 1);
+        value *= Math.pow(Number(progression.MultiplicateurParNiveau) || 1, level - 1);
     } else {
-        value = base + (Number(progression.ValeurParNiveau) || 0) * (level - 1);
+        value += (Number(progression.ValeurParNiveau) || 0) * (level - 1);
     }
-    if (definition.Maitre && state.hero && definition.Maitre === state.hero.Nom) {
-        value += Number(definition.AugmentationMaitre) || 0;
-    }
+
+    const master = String(instance?.Maitre || definition?.Maitre || "");
+    const heroId = String(state.hero?.Id || state.hero?.id || "");
+    const heroName = String(state.hero?.Nom || "");
+    const masterMatches = master && (master === heroId || master === heroName);
+
+    if (masterMatches) value += Number(definition?.AugmentationMaitre) || 0;
+
     return Math.max(0, Math.round(value * 1000) / 1000);
 }
 
-function createCapturedAnimal(definition) {
+function createCapturedAnimal(definition, level = null) {
     const animal = normalizeAnimalDefinition(definition);
     return {
         Id: animalUuid(),
+        AnimalId: animal.Id,
         AnimalNom: animal.Nom,
-        Niveau: 1,
-        XP: 0
+        Niveau: Math.max(1, Math.floor(Number(level) || animal.NiveauInitial || 1)),
+        XP: 0,
+        Maitre: animal.Maitre || "",
     };
 }
 
 function ensureAnimalCollection() {
     if (!Array.isArray(globalState.animaux)) globalState.animaux = [];
-    globalState.animaux = globalState.animaux.filter(item => item && item.Id && item.AnimalNom && getAnimalDefinition(item.AnimalNom))
-        .map(item => ({ Id: String(item.Id), AnimalNom: String(item.AnimalNom), Niveau: Math.max(1, Math.floor(Number(item.Niveau) || 1)), XP: Math.max(0, Number(item.XP) || 0) }));
+
+    const normalized = [];
+    const used = new Set();
+
+    for (const raw of globalState.animaux) {
+        if (!raw || !raw.Id || used.has(String(raw.Id))) continue;
+        const definition = getAnimalDefinition(raw.AnimalId || raw.AnimalNom);
+        if (!definition) continue;
+
+        const instance = {
+            Id: String(raw.Id),
+            AnimalId: definition.Id,
+            AnimalNom: definition.Nom,
+            Niveau: Math.max(1, Math.floor(Number(raw.Niveau) || definition.NiveauInitial || 1)),
+            XP: Math.max(0, Number(raw.XP) || 0),
+            Maitre: String(raw.Maitre ?? definition.Maitre ?? "")
+        };
+
+        used.add(instance.Id);
+        normalized.push(instance);
+
+        if (normalized.length >= ANIMAL_MAX_TEAM_SIZE) break;
+    }
+
+    globalState.animaux = normalized;
+    return normalized;
 }
 
 function getCapturedAnimals() {
-    ensureAnimalCollection();
-    return globalState.animaux;
+    return ensureAnimalCollection();
 }
 
-function addCapturedAnimal(animalName, level = 1) {
-    const definition = getAnimalDefinition(animalName);
+function getCapturedAnimalDefinition(instance) {
+    return getAnimalDefinition(instance?.AnimalId || instance?.AnimalNom);
+}
+
+function addCapturedAnimal(definitionOrId, level = 1) {
+    const team = getCapturedAnimals();
+    if (team.length >= ANIMAL_MAX_TEAM_SIZE) return null;
+
+    const definition = getAnimalDefinition(definitionOrId);
     if (!definition) return null;
-    const instance = createCapturedAnimal(definition);
-    instance.Niveau = Math.max(1, Math.floor(Number(level) || 1));
-    globalState.animaux.push(instance);
+
+    const instance = createCapturedAnimal(definition, level);
+    team.push(instance);
     updateSaveMemory();
+    renderAnimalBattleSlots();
     return instance;
 }
 
-function rollWeighted(entries, weightGetter) {
-    const valid = entries.filter(Boolean);
-    const total = valid.reduce((sum, entry) => sum + Math.max(0, Number(weightGetter(entry)) || 0), 0);
-    if (total <= 0) return null;
-    let roll = Math.random() * total;
-    for (const entry of valid) {
-        roll -= Math.max(0, Number(weightGetter(entry)) || 0);
-        if (roll < 0) return entry;
-    }
-    return valid[valid.length - 1] || null;
-}
+function buildAnimalEncounterTable() {
+    const entries = (state.contenu?.Animaux || [])
+        .map(normalizeAnimalDefinition)
+        .filter(animal => Number(animal.ChanceRencontre) > 0);
 
-function selectAnimalRarity() {
-    const weights = state.contenu?.AnimauxConfig?.Raretes || ANIMAL_RARITY_WEIGHTS;
-    return rollWeighted(ANIMAL_RARITIES, rarity => weights[rarity]) || null;
-}
+    const total = entries.reduce((sum, animal) => sum + Math.max(0, Number(animal.ChanceRencontre) || 0), 0);
+    if (total <= 0) return [];
 
-function selectAnimalForRarity(rarity) {
-    const pool = (state.contenu?.Animaux || []).filter(a => a && a.Rarete === rarity && Number(a.ChanceSelection) > 0);
-    return rollWeighted(pool, animal => animal.ChanceSelection);
-}
-
-function createAnimalEncounterInstance(definition) {
-    const animal = normalizeAnimalDefinition(definition);
-    return {
-        id: "wild-animal-" + animalUuid(),
+    /* Les pourcentages sont normalisés : 10 % global déclenche un animal,
+       puis cette table choisit l'animal même si sa somme n'est pas exactement 100. */
+    return entries.map(animal => ({
         definition: animal,
-        hp: animal.Vie,
-        maxHp: animal.Vie,
+        weight: Math.max(0, Number(animal.ChanceRencontre) || 0) / total
+    }));
+}
+
+function selectAnimalForEncounter() {
+    const table = buildAnimalEncounterTable();
+    if (table.length === 0) return null;
+
+    let roll = Math.random();
+    for (const entry of table) {
+        roll -= entry.weight;
+        if (roll < 0) return entry.definition;
+    }
+    return table[table.length - 1].definition;
+}
+
+function rollAnimalEncounterAtBattleStart(options = {}) {
+    if (!options.force && Math.random() >= ANIMAL_ENCOUNTER_CHANCE) return null;
+
+    const definition = selectAnimalForEncounter();
+    if (!definition) return null;
+
+    const level = Math.max(1, Math.floor(Number(definition.NiveauInitial) || ANIMAL_DEFAULT_LEVEL));
+    return createAnimalCombatant(definition, level);
+}
+
+function buildAnimalWheels(definition, level) {
+    const growth = Math.max(0, level - 1);
+    const min = Math.max(0, Math.floor(Number(definition.MinRoulette) || 0) + Math.floor(growth / 4));
+    const max = Math.max(min, Math.floor(Number(definition.MaxRoulette) || min) + Math.floor(growth / 2));
+    return [{ min, max }];
+}
+
+function createAnimalCombatant(definition, level = 1) {
+    const animal = normalizeAnimalDefinition(definition);
+    const lv = Math.max(1, Math.floor(Number(level) || 1));
+    const scale = Math.pow(1.08, lv - 1);
+    const wheels = buildAnimalWheels(animal, lv);
+
+    return {
+        id: "animal-" + animalUuid(),
+        type: "animal",
+        isAnimal: true,
+        definitionId: animal.Id,
+        animalDefinition: animal,
+        name: animal.Nom,
+        number: 1,
+        level: lv,
+        hp: Math.max(1, Math.floor(animal.Vie * scale)),
+        maxHp: Math.max(1, Math.floor(animal.Vie * scale)),
+        power: Math.max(0, Math.floor(animal.Puissance * scale)),
+        armor: Math.max(0, Math.floor(animal.Armure * scale)),
+        powerModifier: 0,
+        armorModifier: 0,
+        damageMultiplier: 1,
+        statusEffects: [],
+        items: { force: 0, bandage: 0, armor: 0, totem: 0 },
+        energyType: animal.TypeEnergie || "Animal",
+        energyTypes: animal.TypeEnergie ? [animal.TypeEnergie] : ["Animal"],
         energy: animal.MaxEnergie,
         maxEnergy: animal.MaxEnergie,
-        power: animal.Puissance,
-        armor: animal.Armure,
-        level: 1,
-        cooldown: 0,
-        activeEffects: [],
-        captured: false,
+        wheels,
+        minRoulette: wheels[0].min,
+        maxRoulette: wheels[0].max,
+        nombreRoulette: wheels.length,
+        attacks: [],
+        Vitesse: lv,
+        Image: getAnimalImagePath(animal),
+        rarete: animal.Rarete,
+        animalStatuses: [],
+        defeatHandled: false,
+        isBoss: false,
         unavailable: false
     };
 }
 
-function tryCreateAnimalEncounter() {
-    if (Math.random() >= ANIMAL_ENCOUNTER_CHANCE / 100) return null;
-    const rarity = selectAnimalRarity();
-    if (!rarity) return null;
-    const definition = selectAnimalForRarity(rarity);
-    if (!definition) return null;
-    return createAnimalEncounterInstance(definition);
+function createBattleAnimalTeam() {
+    return getCapturedAnimals().map(instance => {
+        const definition = getCapturedAnimalDefinition(instance);
+        if (!definition) return null;
+        return {
+            ...structuredClone(instance),
+            definition,
+            cooldowns: { buff: 0, debuff: 0 }
+        };
+    }).filter(Boolean).slice(0, ANIMAL_MAX_TEAM_SIZE);
 }
 
-function startAnimalEncounter() {
-    state.battleAnimals = [];
-    const encounter = tryCreateAnimalEncounter();
-    if (encounter) {
-        state.battleAnimals.push(encounter);
-        addLog("Une rencontre animale apparaît : " + encounter.definition.Nom + " (" + encounter.definition.Rarete + ").", "system");
+function getAnimalTargetFromContext(activation, context) {
+    if (activation === "Sur dégâts subis" || activation === "Sur dégâts reçus") {
+        return context?.source && typeof context.source === "object" ? context.source : null;
     }
-    renderAnimalBattleSlots();
+    return context?.target && typeof context.target === "object" ? context.target : getSelectedMonster();
 }
 
-function animalActivationMatches(animal, activation) {
-    return animal && animal.definition && animal.definition.TypeActivation === activation && !animal.unavailable && animal.cooldown <= 0;
+function animalActivationMatches(ability, activation) {
+    return ability && ability.Type && ability.Activation === activation;
 }
 
-function getAnimalTargetForEvent(eventType, context) {
-    if (eventType === "Sur attaque") {
-        return context.attackerIsEnemy ? "player" : context.target;
+function removeAnimalAbilityEffects(instanceId, abilityKind, target) {
+    if (!target) return;
+
+    const effects = target === "player" ? state.playerStatusEffects : target.statusEffects;
+    if (!Array.isArray(effects)) return;
+
+    const filtered = [];
+    for (const effect of effects) {
+        if (effect.sourceAnimalId === instanceId && effect.sourceAnimalKind === abilityKind) {
+            if (effect.kind === "power") state.playerPowerModifier -= target === "player" ? effect.value : 0;
+            if (effect.kind === "armor") state.playerArmorModifier -= target === "player" ? effect.value : 0;
+            if (target !== "player" && effect.kind === "power") target.powerModifier -= effect.value;
+            if (target !== "player" && effect.kind === "armor") target.armorModifier -= effect.value;
+            continue;
+        }
+        filtered.push(effect);
     }
-    return context.attackerIsEnemy ? "player" : "player";
+
+    if (target === "player") state.playerStatusEffects = filtered;
+    else target.statusEffects = filtered;
 }
 
-function getAnimalTargetObject(target) {
-    if (target === "player") return "player";
-    return target && typeof target === "object" ? target : null;
-}
+function applyAnimalAbility(instance, kind, target, activation, context) {
+    const definition = instance?.definition;
+    if (!definition || !target) return false;
 
-function removeAnimalAppliedEffect(target, key) {
-    if (!state.animalActiveEffects) state.animalActiveEffects = [];
-    const removed = state.animalActiveEffects.filter(effect => effect.targetKey === key);
-    removed.forEach(effect => applyAnimalModifier(effect, -1));
-    state.animalActiveEffects = state.animalActiveEffects.filter(effect => effect.targetKey !== key);
-}
+    const ability = getAnimalAbility(definition, kind);
+    if (!animalActivationMatches(ability, activation)) return false;
 
-function applyAnimalModifier(effect, direction) {
-    const target = effect.target;
-    const value = Number(effect.value) || 0;
-    if (effect.kind === "power") {
-        if (target === "player") state.playerPowerModifier += direction * value;
-        else if (target) target.powerModifier = (Number(target.powerModifier) || 0) + direction * value;
-    } else if (effect.kind === "armor") {
-        if (target === "player") state.playerArmorModifier += direction * value;
-        else if (target) target.armorModifier = (Number(target.armorModifier) || 0) + direction * value;
-    }
-}
+    const cooldown = Math.max(0, Math.floor(Number(instance.cooldowns?.[kind]) || 0));
+    if (cooldown > 0) return false;
 
-function applyAnimalEffect(animal, instance, kind, target, context) {
-    const type = kind === "buff" ? animal.TypeBuff : animal.TypeDebuff;
-    if (!type || !target) return;
-    const value = getAnimalEffectValue(animal, instance, kind);
-    if (value <= 0) return;
-    const normalized = String(type).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    const effectKey = instance.id + ":" + kind + ":" + normalized + ":" + (target === "player" ? "player" : target.id);
-    if (!animal.Stackable) removeAnimalAppliedEffect(target, effectKey.split(":").slice(0, 3).join(":") + ":" + (target === "player" ? "player" : target.id));
+    const value = getAnimalEffectiveValue(definition, instance, kind);
+    if (value <= 0) return false;
+
+    const normalized = String(ability.Type).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const metadata = {
+        sourceAnimalId: instance.Id,
+        sourceAnimalKind: kind,
+        sourceAnimalAbility: ability.Type
+    };
+
+    if (!ability.Stackable) removeAnimalAbilityEffects(instance.Id, kind, target);
 
     if (normalized === "brulure") {
-        const burnTarget = target === "player" ? "player" : target;
-        if (typeof addTimedEffect === "function") addTimedEffect(burnTarget, "rollburn", value, animal.Tours);
-        return;
-    }
-
-    if (normalized === "paralysie" || normalized === "sommeil" || normalized === "shocked" || normalized === "electrocution") {
-        const statusTarget = target === "player" ? state : target;
-        if (!statusTarget.animalStatuses) statusTarget.animalStatuses = [];
-        if (!animal.Stackable) statusTarget.animalStatuses = statusTarget.animalStatuses.filter(s => s.effectKey !== effectKey);
-        statusTarget.animalStatuses.push({ effectKey, type: normalized, remainingTurns: animal.Tours });
-        addLog((target === "player" ? state.hero.Nom : target.name) + " est affecté par " + type + " (" + animal.Tours + " tour(s)).", "system");
-        return;
-    }
-
-    let modifierKind = null;
-    if (normalized === "puissance" || normalized === "degats" || normalized === "damage") modifierKind = "power";
-    if (normalized === "armure" || normalized === "armor") modifierKind = "armor";
-    if (normalized === "energie" || normalized === "energy") {
+        if (typeof addTimedEffect === "function") addTimedEffect(target, "burn", value, ability.Tours, metadata);
+    } else if (normalized === "paralysie" || normalized === "sommeil" || normalized === "shocked") {
+        if (typeof addTimedStatus === "function") addTimedStatus(target, normalized, ability.Tours, metadata);
+    } else if (normalized === "puissance") {
+        if (typeof addTimedEffect === "function") addTimedEffect(target, kind === "buff" ? "power" : "power", kind === "buff" ? value : -value, ability.Tours, metadata);
+    } else if (normalized === "armure") {
+        if (typeof addTimedEffect === "function") addTimedEffect(target, "armor", kind === "buff" ? value : -value, ability.Tours, metadata);
+    } else if (normalized === "energie" || normalized === "energy") {
         if (target === "player") state.playerEnergy = Math.min(state.playerMaxEnergy, state.playerEnergy + value);
-        else target.energy = Math.min(target.maxEnergy, target.energy + value);
-        return;
+        else target.energy = Math.min(target.maxEnergy || 0, (Number(target.energy) || 0) + value);
+    } else if (normalized === "degats" || normalized === "damage") {
+        if (typeof addTimedDamageMultiplier === "function") {
+            const multiplier = Math.max(0, value);
+            const effectiveMultiplier = kind === "buff" ? multiplier : multiplier;
+            addTimedDamageMultiplier(target, effectiveMultiplier, ability.Tours, metadata, ability.Stackable);
+        }
+    } else {
+        return false;
     }
-    if (!modifierKind) return;
 
-    const effect = {
-        target: target === "player" ? "player" : target,
-        targetKey: effectKey,
-        sourceAnimalId: instance.id,
-        kind: modifierKind,
-        value,
-        remainingTurns: Math.max(1, animal.Tours)
-    };
-    if (!state.animalActiveEffects) state.animalActiveEffects = [];
-    if (!animal.Stackable) {
-        const old = state.animalActiveEffects.filter(e => e.targetKey === effectKey);
-        old.forEach(e => applyAnimalModifier(e, -1));
-        state.animalActiveEffects = state.animalActiveEffects.filter(e => e.targetKey !== effectKey);
-    }
-    state.animalActiveEffects.push(effect);
-    applyAnimalModifier(effect, 1);
-    addLog((target === "player" ? state.hero.Nom : target.name) + " reçoit " + type + " (" + value + ", " + animal.Tours + " tour(s)).", "system");
+    if (!instance.cooldowns) instance.cooldowns = { buff: 0, debuff: 0 };
+    instance.cooldowns[kind] = Math.max(0, Math.floor(Number(ability.Cooldown) || 0));
+
+    addLog(
+        (target === "player" ? state.hero?.Nom : target?.name || "Cible") +
+        " reçoit " + ability.Type + " (" + value + ", " + ability.Tours + " tour(s)).",
+        "system"
+    );
+    return true;
 }
 
 function triggerAnimalEffects(activation, context = {}) {
-    const animals = Array.isArray(state.battleAnimals) ? state.battleAnimals : [];
-    animals.forEach(instance => {
-        if (!animalActivationMatches(instance, activation)) return;
-        const animal = instance.definition;
-        const attackerIsEnemy = context.attackerIsEnemy === true;
-        const buffTarget = state.hero ? "player" : null;
-        const debuffTarget = context.target || (attackerIsEnemy ? "player" : getSelectedMonster());
-        if (animal.TypeBuff) applyAnimalEffect(animal, instance, "buff", buffTarget, context);
-        if (animal.TypeDebuff) applyAnimalEffect(animal, instance, "debuff", debuffTarget, context);
-        instance.cooldown = Math.max(0, Math.floor(Number(animal.CooldownActivation) || 0));
-    });
+    if (!Array.isArray(state.battleAnimals) || state.battleAnimals.length === 0) return;
+
+    const triggered = new Set();
+    for (const instance of state.battleAnimals) {
+        if (!instance?.Id || triggered.has(instance.Id)) continue;
+        triggered.add(instance.Id);
+
+        const buffTarget = "player";
+        const debuffTarget = getAnimalTargetFromContext(activation, context);
+
+        applyAnimalAbility(instance, "buff", buffTarget, activation, context);
+        if (debuffTarget) applyAnimalAbility(instance, "debuff", debuffTarget, activation, context);
+    }
+
     updateBattleUI();
 }
 
-function tickAnimalEffects() {
-    if (!state.animalActiveEffects) state.animalActiveEffects = [];
-    for (const effect of state.animalActiveEffects) effect.remainingTurns--;
-    const expired = state.animalActiveEffects.filter(e => e.remainingTurns <= 0);
-    expired.forEach(effect => applyAnimalModifier(effect, -1));
-    state.animalActiveEffects = state.animalActiveEffects.filter(e => e.remainingTurns > 0);
-    [state, ...(state.monsters || [])].forEach(target => {
-        if (!target.animalStatuses) return;
-        target.animalStatuses.forEach(status => status.remainingTurns--);
-        target.animalStatuses = target.animalStatuses.filter(status => status.remainingTurns > 0);
-    });
-}
-
 function tickAnimalCooldowns() {
-    (state.battleAnimals || []).forEach(animal => {
-        animal.cooldown = Math.max(0, Math.floor(Number(animal.cooldown) || 0) - 1);
-    });
-}
-
-function hasAnimalStatus(target, types) {
-    const statuses = target?.animalStatuses || [];
-    return statuses.some(status => types.includes(status.type) && status.remainingTurns > 0);
-}
-
-function isAnimalTurnBlocked(target) {
-    return hasAnimalStatus(target, ["paralysie", "sommeil", "shocked", "electrocution"]);
-}
-
-function getAnimalCollectionEntry(id) {
-    return getCapturedAnimals().find(item => item.Id === id) || null;
+    for (const instance of state.battleAnimals || []) {
+        if (!instance.cooldowns) instance.cooldowns = { buff: 0, debuff: 0 };
+        instance.cooldowns.buff = Math.max(0, Math.floor(Number(instance.cooldowns.buff) || 0) - 1);
+        instance.cooldowns.debuff = Math.max(0, Math.floor(Number(instance.cooldowns.debuff) || 0) - 1);
+    }
 }
 
 function captureBattleAnimal(item) {
-    const animal = (state.battleAnimals || []).find(entry => entry && !entry.unavailable);
-    if (!animal) return { ok: false, reason: "Aucun animal capturable." };
-    const chance = Math.max(0, Math.min(100, Number(item.CaptureChance ?? item.Valeur) || 0));
-    const success = Math.random() * 100 < chance;
-    if (!success) {
-        addLog("La capture de " + animal.definition.Nom + " échoue.", "system");
-        return { ok: true, captured: false, animal };
+    if (state.animalCaptureInProgress) return { ok: false, reason: "Une capture est déjà en cours." };
+    state.animalCaptureInProgress = true;
+
+    try {
+        const target = getSelectedMonster();
+        if (!target || !target.isAnimal || target.type !== "animal") {
+            return { ok: false, reason: "Aucun Animal n'est actuellement combattu." };
+        }
+
+        if (getCapturedAnimals().length >= ANIMAL_MAX_TEAM_SIZE) {
+            return { ok: false, reason: "Les 6 emplacements d'animaux sont déjà occupés." };
+        }
+
+        const chance = Math.max(0, Math.min(99, Number(item?.CaptureChance ?? item?.Valeur) || 0));
+        const success = Math.random() * 100 < chance;
+
+        if (!success) {
+            addLog("La capture de " + target.name + " échoue.", "system");
+            return { ok: true, captured: false, animal: target };
+        }
+
+        const definition = getAnimalDefinition(target.definitionId || target.animalDefinition?.Id);
+        if (!definition) return { ok: false, reason: "Définition animale introuvable." };
+
+        const instance = addCapturedAnimal(definition, target.level);
+        if (!instance) return { ok: false, reason: "Impossible d'ajouter l'Animal à l'équipe." };
+
+        target.hp = 0;
+        target.unavailable = true;
+        target.defeatHandled = true;
+        state.animalCaptureCompleted = true;
+        state.remainingMonsters = 0;
+
+        addLog(target.name + " a été capturé !", "reward");
+        renderAnimalBattleSlots();
+        updateSaveMemory();
+
+        return { ok: true, captured: true, animal: target, instance };
+    } finally {
+        state.animalCaptureInProgress = false;
     }
-    const instance = addCapturedAnimal(animal.definition.Nom, 1);
-    if (!instance) return { ok: false, reason: "Définition animale introuvable." };
-    animal.captured = true;
-    animal.unavailable = true;
-    animal.hp = 0;
-    state.battleAnimals = state.battleAnimals.filter(entry => entry.id !== animal.id);
-    if (state.animalActiveEffects) {
-        const active = state.animalActiveEffects.filter(effect => effect.sourceAnimalId === animal.id);
-        active.forEach(effect => applyAnimalModifier(effect, -1));
-        state.animalActiveEffects = state.animalActiveEffects.filter(effect => effect.sourceAnimalId !== animal.id);
-    }
-    addLog(animal.definition.Nom + " a été capturé !", "reward");
-    renderAnimalBattleSlots();
-    updateSaveMemory();
-    return { ok: true, captured: true, animal, instance };
 }
 
 function canCaptureAnimalItem(item, context) {
     if (context !== "battle") return { ok: false, reason: "Attraper s'utilise uniquement en combat." };
     if (!item || item.Categorie !== "Attraper") return { ok: false, reason: "Cet objet n'est pas un Attraper." };
-    if (!(state.battleAnimals || []).some(animal => animal && !animal.unavailable)) return { ok: false, reason: "Aucun animal à capturer." };
+    const target = getSelectedMonster();
+    if (!target || !target.isAnimal || target.type !== "animal") {
+        return { ok: false, reason: "Cet item ne peut être utilisé que contre un Animal." };
+    }
+    if (getCapturedAnimals().length >= ANIMAL_MAX_TEAM_SIZE) {
+        return { ok: false, reason: "Les 6 emplacements d'animaux sont déjà occupés." };
+    }
+    const chance = Number(item.CaptureChance ?? item.Valeur);
+    if (!Number.isFinite(chance) || chance <= 0 || chance >= 100) {
+        return { ok: false, reason: "La Valeur d'attrape doit être supérieure à 0 et inférieure à 100 %." };
+    }
     return { ok: true };
 }
 
 function getAnimalDisplayValue(instance, kind) {
-    const definition = instance?.definition || getAnimalDefinition(instance?.AnimalNom);
-    if (!definition) return 0;
-    return getAnimalEffectValue(definition, instance, kind);
+    const definition = instance?.definition || getCapturedAnimalDefinition(instance);
+    return definition ? getAnimalEffectiveValue(definition, instance, kind) : 0;
 }
 
 function renderAnimalBattleSlots() {
     const container = document.getElementById("combat-log");
     if (!container) return;
 
-    const animals = Array.isArray(state.battleAnimals) ? state.battleAnimals.slice(0, 6) : [];
-
+    const animals = getCapturedAnimals().slice(0, ANIMAL_MAX_TEAM_SIZE);
     container.classList.add("animal-slots");
-    container.setAttribute("aria-label", "Animaux en combat");
+    container.setAttribute("aria-label", "Équipe d'animaux");
     container.innerHTML = "";
 
-    for (let i = 0; i < 6; i++) {
-        const animal = animals[i];
+    for (let i = 0; i < ANIMAL_MAX_TEAM_SIZE; i++) {
+        const instance = animals[i];
         const slot = document.createElement("article");
-        slot.className = "animal-battle-slot" + (animal ? "" : " empty");
+        slot.className = "animal-battle-slot" + (instance ? "" : " empty");
 
-        if (animal) {
-            const definition = animal.definition || {};
-            const image = definition.Image
-                ? '<img src="' + escapeHtml(definition.Image) + '" alt="' + escapeHtml(definition.Nom || "Animal") + '">'
+        if (instance) {
+            const definition = getCapturedAnimalDefinition(instance) || {};
+            const imagePath = getAnimalImagePath(definition);
+            const image = imagePath
+                ? '<img src="' + escapeHtml(imagePath) + '" alt="' + escapeHtml(definition.Nom || "Animal") + '">'
                 : '<span class="animal-slot-placeholder">🐾</span>';
 
             slot.innerHTML =
                 '<div class="animal-slot-image">' + image + '</div>' +
                 '<div class="animal-slot-footer">' +
-                    '<strong>' + escapeHtml(definition.Nom || "Animal") + '</strong>' +
-                    '<span>' + escapeHtml(definition.Rarete || "Commun") + '</span>' +
+                '<strong>' + escapeHtml(definition.Nom || instance.AnimalNom || "Animal") + '</strong>' +
+                '<span>Niv. ' + escapeHtml(String(instance.Niveau || 1)) + ' · ' + escapeHtml(definition.Rarete || "Commun") + '</span>' +
                 '</div>';
 
             slot.addEventListener("click", () => {
-                state.selectedAnimalId = animal.id;
-                renderAnimalBattleSlots();
+                state.selectedAnimalId = instance.Id;
+                openCreaturesMenu();
             });
         } else {
             slot.innerHTML =
-                '<div class="animal-slot-image">' +
-                    '<span class="animal-slot-placeholder">＋</span>' +
-                '</div>' +
-                '<div class="animal-slot-footer">' +
-                    '<strong>Emplacement vide</strong>' +
-                    '<span>—</span>' +
-                '</div>';
+                '<div class="animal-slot-image"><span class="animal-slot-placeholder">＋</span></div>' +
+                '<div class="animal-slot-footer"><strong>Emplacement vide</strong><span>—</span></div>';
         }
 
         container.appendChild(slot);
@@ -412,10 +571,17 @@ function openCreaturesMenu() {
         renderCreaturesMenu();
         return;
     }
+
     const modal = document.createElement("div");
     modal.id = "creatures-menu";
     modal.className = "save-menu";
-    modal.innerHTML = '<div class="save-menu-content creatures-menu-content"><div class="save-menu-header"><div><span class="eyebrow">COLLECTION</span><h2>Créatures</h2><p>Animaux capturés individuellement.</p></div><button id="creatures-close" class="close-button" type="button">×</button></div><div id="creatures-list" class="creatures-list"></div><aside id="creatures-details" class="creatures-details"></aside><div class="save-menu-footer"><button id="creatures-close-footer" class="secondary-button" type="button">Fermer</button></div></div>';
+    modal.innerHTML =
+        '<div class="save-menu-content creatures-menu-content">' +
+        '<div class="save-menu-header"><div><span class="eyebrow">COLLECTION</span><h2>Créatures</h2><p>Animaux capturés — équipe maximale de 6.</p></div><button id="creatures-close" class="close-button" type="button">×</button></div>' +
+        '<div class="creatures-layout"><div id="creatures-list" class="creatures-list"></div><aside id="creatures-details" class="creatures-details"></aside></div>' +
+        '<div class="save-menu-footer"><button id="creatures-close-footer" class="secondary-button" type="button">Fermer</button></div>' +
+        '</div>';
+
     document.body.appendChild(modal);
     modal.querySelector("#creatures-close").addEventListener("click", closeCreaturesMenu);
     modal.querySelector("#creatures-close-footer").addEventListener("click", closeCreaturesMenu);
@@ -430,43 +596,95 @@ function renderCreaturesMenu() {
     const list = document.getElementById("creatures-list");
     const details = document.getElementById("creatures-details");
     if (!list || !details) return;
-    const creatures = getCapturedAnimals();
+
+    const animals = getCapturedAnimals();
     list.innerHTML = "";
-    if (!creatures.length) {
-        list.innerHTML = '<p class="inventory-empty">Aucun animal capturé.</p>';
-        details.innerHTML = '<p class="inventory-empty">Capture un animal pour le consulter ici.</p>';
+
+    if (animals.length === 0) {
+        list.innerHTML = '<p class="dev-info-note">Aucun animal capturé.</p>';
+        details.innerHTML = '<p class="dev-info-note">Capture un Animal pour le retrouver ici.</p>';
         return;
     }
-    creatures.forEach((instance, index) => {
-        const definition = getAnimalDefinition(instance.AnimalNom);
+
+    const selectedId = state.selectedAnimalId || animals[0].Id;
+    if (!animals.some(animal => animal.Id === selectedId)) state.selectedAnimalId = animals[0].Id;
+
+    animals.forEach(instance => {
+        const definition = getCapturedAnimalDefinition(instance);
         if (!definition) return;
+
         const button = document.createElement("button");
-        button.className = "inventory-entry";
         button.type = "button";
-        button.innerHTML = '<span class="inventory-entry-icon">' + (definition.Image ? '<img src="' + escapeHtml(definition.Image) + '" alt="">' : '🐾') + '</span><span class="inventory-entry-text"><strong>' + escapeHtml(definition.Nom) + '</strong><small>' + escapeHtml(definition.Rarete) + ' · Niv. ' + instance.Niveau + ' · #' + (index + 1) + '</small></span>';
-        button.addEventListener("click", () => renderCreatureDetails(instance));
+        button.className = "creature-card" + (instance.Id === state.selectedAnimalId ? " selected" : "");
+        button.innerHTML =
+            (getAnimalImagePath(definition)
+                ? '<img src="' + escapeHtml(getAnimalImagePath(definition)) + '" alt="">'
+                : '<span class="creature-placeholder">🐾</span>') +
+            '<span class="creature-card-text"><strong>' + escapeHtml(definition.Nom) + '</strong>' +
+            '<small>' + escapeHtml(definition.Rarete) + ' · Niveau ' + escapeHtml(String(instance.Niveau)) + '</small></span>';
+
+        button.addEventListener("click", () => {
+            state.selectedAnimalId = instance.Id;
+            renderCreaturesMenu();
+        });
+
         list.appendChild(button);
     });
-    renderCreatureDetails(creatures[0]);
+
+    const selected = animals.find(instance => instance.Id === state.selectedAnimalId) || animals[0];
+    const definition = getCapturedAnimalDefinition(selected);
+    if (!definition) return;
+
+    const buff = getAnimalAbility(definition, "buff");
+    const debuff = getAnimalAbility(definition, "debuff");
+
+    details.innerHTML =
+        '<div class="creature-detail-head">' +
+        (getAnimalImagePath(definition) ? '<img src="' + escapeHtml(getAnimalImagePath(definition)) + '" alt="">' : '<span class="creature-placeholder large">🐾</span>') +
+        '<div><h3>' + escapeHtml(definition.Nom) + '</h3><p>' + escapeHtml(definition.Rarete) + ' · Niveau ' + escapeHtml(String(selected.Niveau)) + '</p></div></div>' +
+        '<p class="creature-description">' + escapeHtml(definition.Description || "Aucune description.") + '</p>' +
+        '<div class="creature-stat-grid">' +
+        '<span>Énergie</span><strong>' + escapeHtml(definition.TypeEnergie || "—") + '</strong>' +
+        '<span>Vie</span><strong>' + escapeHtml(String(definition.Vie)) + '</strong>' +
+        '<span>Puissance</span><strong>' + escapeHtml(String(definition.Puissance)) + '</strong>' +
+        '<span>Armure</span><strong>' + escapeHtml(String(definition.Armure)) + '</strong>' +
+        '<span>Min roulette</span><strong>' + escapeHtml(String(definition.MinRoulette)) + '</strong>' +
+        '<span>Max roulette</span><strong>' + escapeHtml(String(definition.MaxRoulette)) + '</strong>' +
+        '<span>Maître</span><strong>' + escapeHtml(definition.Maitre || "Aucun") + '</strong>' +
+        '<span>Bonus maître</span><strong>' + escapeHtml(String(definition.AugmentationMaitre || 0)) + '</strong>' +
+        '</div>' +
+        '<div class="creature-ability"><h4>Buff</h4><p>' + escapeHtml(buff.Type || "Aucun") + ' · Valeur effective ' + escapeHtml(String(getAnimalEffectiveValue(definition, selected, "buff"))) + ' · ' + escapeHtml(String(buff.Tours)) + ' tour(s)</p><p>Activation : ' + escapeHtml(buff.Activation) + ' · Cooldown : ' + escapeHtml(String(buff.Cooldown)) + ' · Stackable : ' + (buff.Stackable ? "Oui" : "Non") + '</p></div>' +
+        '<div class="creature-ability"><h4>Debuff</h4><p>' + escapeHtml(debuff.Type || "Aucun") + ' · Valeur effective ' + escapeHtml(String(getAnimalEffectiveValue(definition, selected, "debuff"))) + ' · ' + escapeHtml(String(debuff.Tours)) + ' tour(s)</p><p>Activation : ' + escapeHtml(debuff.Activation) + ' · Cooldown : ' + escapeHtml(String(debuff.Cooldown)) + ' · Stackable : ' + (debuff.Stackable ? "Oui" : "Non") + '</p></div>';
 }
 
-function renderCreatureDetails(instance) {
-    const details = document.getElementById("creatures-details");
-    const definition = getAnimalDefinition(instance?.AnimalNom);
-    if (!details || !definition) return;
-    const valueBuff = getAnimalEffectValue(definition, instance, "buff");
-    const valueDebuff = getAnimalEffectValue(definition, instance, "debuff");
-    details.innerHTML = '<div class="creature-detail-image">' + (definition.Image ? '<img src="' + escapeHtml(definition.Image) + '" alt="">' : '🐾') + '</div><h3>' + escapeHtml(definition.Nom) + '</h3><p>' + escapeHtml(definition.Description) + '</p><div class="creature-detail-grid"><span>Rareté</span><strong>' + escapeHtml(definition.Rarete) + '</strong><span>Niveau</span><strong>' + instance.Niveau + '</strong><span>Vie</span><strong>' + definition.Vie + '</strong><span>Puissance</span><strong>' + definition.Puissance + '</strong><span>Armure</span><strong>' + definition.Armure + '</strong><span>Énergie</span><strong>' + definition.MaxEnergie + '</strong><span>Min roulette</span><strong>' + definition.MinRoulette + '</strong><span>Max roulette</span><strong>' + definition.MaxRoulette + '</strong><span>Buff</span><strong>' + escapeHtml(definition.TypeBuff || "—") + ' · ' + valueBuff + '</strong><span>Débuff</span><strong>' + escapeHtml(definition.TypeDebuff || "—") + ' · ' + valueDebuff + '</strong><span>Tours</span><strong>' + definition.Tours + '</strong><span>Activation</span><strong>' + escapeHtml(definition.TypeActivation) + '</strong><span>Cooldown</span><strong>' + definition.CooldownActivation + '</strong><span>Stackable</span><strong>' + (definition.Stackable ? "Oui" : "Non") + '</strong><span>Maître</span><strong>' + escapeHtml(definition.Maitre || "Aucun") + '</strong><span>Bonus maître</span><strong>+' + (definition.AugmentationMaitre || 0) + '</strong></div>';
-}
+function gainAnimalXp(amount) {
+    const value = Math.max(0, Number(amount) || 0);
+    if (value <= 0) return;
 
-function gainAnimalXp(amount = 1) {
-    getCapturedAnimals().forEach(instance => {
-        instance.XP += Math.max(0, Number(amount) || 0);
-        const threshold = 10 + instance.Niveau * 10;
-        while (instance.XP >= threshold) {
-            instance.XP -= threshold;
+    for (const instance of getCapturedAnimals()) {
+        instance.XP += value;
+        while (instance.XP >= animalXpRequired(instance.Niveau)) {
+            instance.XP -= animalXpRequired(instance.Niveau);
             instance.Niveau++;
         }
-    });
+    }
+
     updateSaveMemory();
+    renderAnimalBattleSlots();
+}
+
+function animalXpRequired(level) {
+    return Math.max(10, Math.floor(40 * Math.pow(Math.max(1, level), 1.15)));
+}
+
+function handleAnimalDefeat(target) {
+    if (!target || !target.isAnimal || target.defeatHandled) return false;
+    target.defeatHandled = true;
+    target.hp = 0;
+    state.remainingMonsters = 0;
+    addLog(target.name + " est vaincu.", "system");
+    if (typeof finishBattleIfNoLivingMonsters === "function") {
+        finishBattleIfNoLivingMonsters();
+    }
+    return true;
 }
