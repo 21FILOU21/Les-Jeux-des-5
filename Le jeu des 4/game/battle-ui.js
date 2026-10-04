@@ -213,7 +213,7 @@ function renderMonsterCards() {
 
     const seenIds = new Set();
 
-    state.monsters.forEach(monster => {
+    state.monsters.filter(monster => !monster.isTrainerReserve).forEach(monster => {
         seenIds.add(monster.id);
 
         let panel = list.querySelector(`[data-monster-id="${monster.id}"]`);
