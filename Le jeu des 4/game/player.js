@@ -295,7 +295,7 @@ async function executeAttack(attaque, target = getSelectedMonster()) {
         }
 
         const defeatedMonsters = state.monsters.filter(monster =>
-            monster && monster.hp <= 0 && !monster.defeatHandled
+            monster && !monster.isTrainerReserve && monster.hp <= 0 && !monster.defeatHandled
         );
 
         for (const defeatedMonster of defeatedMonsters) {
