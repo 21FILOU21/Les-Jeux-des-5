@@ -704,11 +704,14 @@ function setOverworldPlayerSprite(hero) {
 function startOverworldMode() {
     if (typeof vfxSetSurface === "function") vfxSetSurface("world");
     snapOverworldPlayerToGrid(); if (!overworldState.started) { overworldState.started = !0; showWorldDialogue("Utilise les flèches ou WASD pour explorer. Les hautes herbes cachent des monstres sauvages !", 4500) }
-    overworldState.active = !0; if (typeof showScreen === "function") { showScreen("world") }
+    overworldState.active = !0;
+    if (typeof startTrainerMovementPrograms === "function") startTrainerMovementPrograms();
+    if (typeof showScreen === "function") { showScreen("world") }
     ensureWorldLoop(); updateWorldUI()
 }
 
 function stopOverworldMode() {
+    if (typeof stopTrainerMovementPrograms === "function") stopTrainerMovementPrograms();
     if (typeof vfxSetSurface === "function") vfxSetSurface("battle");
     overworldState.active = !1; overworldState.keys.clear(); overworldState.walking = !1; overworldState.stepCooldown = 0; if (overworldState.moveTarget) { overworldState.playerX = overworldState.moveTarget.x; overworldState.playerY = overworldState.moveTarget.y }
     overworldState.moveFrom = null; overworldState.moveTarget = null; overworldState.moveProgress = 0
