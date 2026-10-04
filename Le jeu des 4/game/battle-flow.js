@@ -621,7 +621,7 @@ function startBattle(request = null) {
     state.damageMultiplier = 1;
     state._currentAttackerMonster = null;
 
-    const animalEncounter = !encounterRequest && typeof rollAnimalEncounterAtBattleStart === "function"
+    const animalEncounter = !encounterRequest && !trainerRequest && typeof rollAnimalEncounterAtBattleStart === "function"
         ? rollAnimalEncounterAtBattleStart()
         : null;
 
