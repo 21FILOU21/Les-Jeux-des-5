@@ -572,7 +572,10 @@ function createMonster(number, index, encounterRequest = null) {
 ============================================================ */
 
 function getLivingMonsters() {
-    return state.monsters.filter(monster => monster.hp > 0);
+    if (state.currentEncounterType === "trainer" && typeof trainerGetActiveCombatants === "function") {
+        return trainerGetActiveCombatants();
+    }
+    return state.monsters.filter(monster => monster.hp > 0 && !monster.isTrainerReserve);
 }
 
 function getSelectedMonster() {
@@ -824,6 +827,19 @@ async function monsterHeal(monster) {
 async function handleMonsterDeath(monster, finalizeBattle = !0) {
     if (!monster || monster.hp > 0 || monster.defeatHandled) return !1;
 
+    if (monster.isTrainerReserve) return !1;
+
+    if (monster.trainerCombatant || monster.type === "trainer") {
+        const handled = typeof handleTrainerCombatantDefeat === "function"
+            ? handleTrainerCombatantDefeat(monster, finalizeBattle)
+            : false;
+        if (handled) {
+            await animateMonsterDeath(monster);
+            updateBattleUI();
+        }
+        return handled;
+    }
+
     if (monster.isAnimal || monster.type === "animal") {
         const handled = typeof handleAnimalDefeat === "function"
             ? handleAnimalDefeat(monster)
@@ -883,6 +899,14 @@ async function finishBattleIfNoLivingMonsters() {
     await sleep(500);
 
     state.battleOver = !0;
+
+    if (state.currentEncounterType === "trainer") {
+        if (typeof trainerFinishBattle === "function") trainerFinishBattle(true);
+        state.pendingXp = 0;
+        state.pendingAnimalXpTargetId = null;
+        startOverworldMode();
+        return !0;
+    }
 
     const totalXp = Math.max(0, Math.round(Number(state.pendingXp) || 0));
 
