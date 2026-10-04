@@ -104,9 +104,18 @@ function mapEditorNormalizeInteractiveDefinition(definition) {
         destinationMapId:null,
         destinationX:0,
         destinationY:0,
-        destinationSide:""
+        destinationSide:"",
+        trainer:null
     },d.interactive||{});
+    if(d.kind==="trainer" && typeof normalizeTrainerDefinitionData==="function"){
+        d.interactive.trainer=normalizeTrainerDefinitionData(d.interactive.trainer||d.trainer||{Id:d.id,Nom:d.name,Image:""});
+        d.trainer=d.interactive.trainer;
+    }
     d.interactive.destinationSide=["top","left","right","bottom"].includes(String(d.interactive.destinationSide))?String(d.interactive.destinationSide):"";
+    if(d.kind==="trainer"){
+        d.interactive.collision=false;
+        d.collision=false;
+    }
     if(d.kind==="transition"){
         d.interactive.collision=false;
         d.interactive.imageOpacity=Math.max(0,Math.min(1,Number(d.interactive.imageOpacity ?? 1)));
@@ -118,9 +127,11 @@ function mapEditorNormalizeInteractiveDefinition(definition) {
         min:Math.max(1,Math.floor(Number(e?.min)||1)),
         max:Math.max(1,Math.floor(Number(e?.max)||1))
     })).filter(e=>e.itemId):[];
-    d.imageKey=d.kind==="transition"
-        ? (d.interactive.transitionImageKey||d.imageKey||null)
-        : (d.interactive.closedImageKey||d.imageKey||null);
+    d.imageKey=d.kind==="trainer"
+        ? (d.interactive.trainer?.Image||d.imageKey||null)
+        : (d.kind==="transition"
+            ? (d.interactive.transitionImageKey||d.imageKey||null)
+            : (d.interactive.closedImageKey||d.imageKey||null));
     return d;
 }
 
@@ -210,6 +221,11 @@ function mapEditorNormalizeInteractiveInstance(m,o,index){
         }
         source.state.opened=mapEditorOpenedObjectIds.has(source.instanceId)||source.state.opened===true||source.opened===true;
         delete source.opened;
+    } else if(source.type==="trainer"){
+        const definition=(m.tileDefinitions||[]).find(t=>t&&t.id===String(source.definitionId||"")&&t.interactive);
+        if(definition)source.definitionId=definition.id;
+        source.state.defeated=source.state.defeated===true;
+        source.state.activationLock=false;
     }
     return source;
 }
@@ -234,10 +250,15 @@ function mapEditorGetInstanceProps(instance){
     const definition=mapEditorGetInstanceDefinition(instance);
     const base=definition?.interactive||{};
     const overrides=instance?.overrides||{};
-    return Object.assign({},base,overrides,{
+    const result=Object.assign({},base,overrides,{
         lootTable:Array.isArray(overrides.lootTable)?overrides.lootTable:(Array.isArray(base.lootTable)?base.lootTable:[]),
         collision:overrides.collision!==undefined?overrides.collision:base.collision!==false
     });
+    if(String(instance?.type||definition?.kind||"")==="trainer" && typeof normalizeTrainerDefinitionData==="function"){
+        result.trainer=normalizeTrainerDefinitionData(Object.assign({},base.trainer||definition?.trainer||{},overrides.trainer||{}));
+        result.Image=result.trainer.Image||result.Image||"";
+    }
+    return result;
 }
 
 function mapEditorGetTransitionConfig(instance){
@@ -311,6 +332,7 @@ function mapEditorCreateInteractiveInstance(definition,col,row){
 function mapEditorGetEffectiveInstanceImage(instance,opened=false){
     const props=mapEditorGetInstanceProps(instance);
     const kind=String(instance?.type||props?.type||"");
+    if(kind==="trainer")return props.trainer?.Image||props.Image||null;
     if(kind==="transition")return props.transitionImageKey||props.closedImageKey||null;
     return opened?props.openImageKey:props.closedImageKey;
 }
@@ -533,6 +555,7 @@ function mapEditorApplyRuntime(requestedId){
         WORLD_START_X=safe.x;WORLD_START_Y=safe.y;
     }
     if(typeof resetOverworldState==="function")resetOverworldState();
+    if(typeof startTrainerMovementPrograms==="function")startTrainerMovementPrograms();
 }
 
 function loadActiveMapIntoWorld(id){
@@ -572,6 +595,11 @@ function mapEditorDrawInteractiveFallback(ctx,x,y,S,instance,props,opened){
         ctx.fillStyle=opened?"#654b2d":"#b87b37";ctx.fillRect(x+S*.12,y+S*.28,S*.76,S*.55);ctx.fillStyle="#e0b34f";ctx.fillRect(x+S*.42,y+S*.44,S*.16,S*.18);
         return;
     }
+    if(kind==="trainer"){
+        ctx.fillStyle="#6d4c8d";ctx.fillRect(x+S*.18,y+S*.12,S*.64,S*.76);
+        ctx.fillStyle="#fff";ctx.font=Math.max(8,Math.floor(S*.24))+"px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("T",x+S*.5,y+S*.5);
+        return;
+    }
     ctx.fillStyle=props?.fallback||"#777";ctx.fillRect(x,y,S,S);
 }
 const mapEditorRuntimeImages=new Map();
@@ -595,11 +623,15 @@ function drawMapEditorRuntimeObjects(ctx,S){
 async function mapEditorLoadRuntimeImages(){
     const objectKeys=(mapEditorCurrent()?.objects||[]).flatMap(o=>{
         const p=mapEditorGetInstanceProps(o);
-        return [p.closedImageKey,p.openImageKey,p.transitionImageKey];
+        return [p.closedImageKey,p.openImageKey,p.transitionImageKey,p.trainer?.Image,p.Image];
     }).filter(Boolean);
     for(const key of objectKeys){
         if(mapEditorRuntimeImages.has(key))continue;
-        const data=await mapEditorGetAsset(key);if(!data)continue;
+        const data=String(key).startsWith("data:image/")?key:await mapEditorGetAsset(key);
+        if(!data){
+            const img=new Image();img.onload=()=>{mapEditorRuntimeImages.set(key,img);if(typeof buildWorldMapCanvas==="function"){worldMapCanvas=buildWorldMapCanvas();renderWorld();}};img.src=key;
+            continue;
+        }
         const img=new Image();img.onload=()=>{mapEditorRuntimeImages.set(key,img);if(typeof buildWorldMapCanvas==="function"){worldMapCanvas=buildWorldMapCanvas();renderWorld();}};img.src=data;
     }
     for(const tile of mapEditorAllTiles()){
@@ -682,12 +714,13 @@ function getMapEditorOverworldSaveData(){
     const m=mapEditorCurrent();
     const opened=new Set(mapEditorOpenedObjectIds);
     for(const o of m?.objects||[])if(o.state?.opened===true)opened.add(o.instanceId||o.id);
-    return {mapId:mapEditorActiveId,openedObjectIds:[...opened]};
+    return {mapId:mapEditorActiveId,openedObjectIds:[...opened],trainerDefeatedIds:typeof getTrainerSaveState==="function"?getTrainerSaveState():[]};
 }
 
 function applyMapEditorOverworldSaveData(data){
     if(data?.mapId)loadActiveMapIntoWorld(data.mapId);
     const m=mapEditorCurrent();if(!m)return;
+    if(typeof mapEditorSetTrainerDefeatedState==="function")mapEditorSetTrainerDefeatedState(data?.trainerDefeatedIds||[]);
     const objects=m.objects||[];
     const validIds=new Set(objects.flatMap(o=>[o.id,o.instanceId].filter(Boolean).map(String)));
     const savedIds=new Set((Array.isArray(data?.openedObjectIds)?data.openedObjectIds:[]).map(String));
@@ -740,6 +773,7 @@ function mapEditorOpenObjectAt(col,row){
     if(Math.abs(playerCol-col)+Math.abs(playerRow-row)!==1)return false;
     const obj=m.objects.find(o=>o.x===col&&o.y===row);if(!obj)return false;
     const props=mapEditorGetInstanceProps(obj);
+    if(obj.type==="trainer")return mapEditorOpenTrainerAt(col,row);
     if(obj.type!=="container")return true;
     if(mapEditorOpenedObjectIds.has(obj.instanceId)||obj.state?.opened===true){showWorldDialogue("Le coffre est déjà ouvert.",1200);return true;}
     mapEditorOpenedObjectIds.add(obj.instanceId);
@@ -1283,7 +1317,7 @@ function mapEditorOpenInteractiveTileForm(existing=null){
         interactive:{type:"container",collision:true,closedImageKey:null,openImageKey:null,transitionImageKey:null,imageOpacity:1,lootTable:[],initialOpen:false}
     });
     const rows=(d.interactive.lootTable||[]).map((e,i)=>'<div class="me-loot-row"><select aria-label="Objet" data-loot-item="'+i+'">'+getMapEditorItemCatalog().map(x=>'<option value="'+x.id+'" '+(x.id===e.itemId?"selected":"")+'>'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-loot-chance="'+i+'" value="'+(e.chance??100)+'"><input type="number" min="1" data-loot-min="'+i+'" value="'+(e.min??1)+'"><input type="number" min="1" data-loot-max="'+i+'" value="'+(e.max??1)+'"><button type="button" data-loot-del="'+i+'">×</button></div>').join("");
-    const html='<div class="map-editor-dialog"><h3>'+(existing?"Modifier":"Créer")+' une tuile interactive</h3><label class="me-tile-type-field"><span>Type de tuiles</span><select id="me-tile-type-config"><option value="normal">Tuiles</option><option value="interactive" selected>Interactives</option></select></label><p class="map-editor-config-note">La définition est réutilisable. Chaque placement aura ensuite sa propre instance.</p><label>ID<input id="me-i-id" value="'+d.id+'"></label><label>Nom<input id="me-i-name" value="'+d.name+'"></label><label>Type<select id="me-i-kind"><option value="container" '+(d.kind==="container"?"selected":"")+'>Coffre / conteneur</option><option value="transition" '+(d.kind==="transition"?"selected":"")+'>Transition de zone</option></select></label><label><input id="me-i-collision" type="checkbox" '+(d.collision!==false?"checked":"")+'> Collision par défaut</label><div id="me-i-transition-fields"><label>Destination<select id="me-i-destination">'+mapEditorMaps.map(m=>'<option value="'+m.id+'" '+(m.id===d.interactive.destinationMapId?"selected":"")+'>'+escapeHtml(m.name)+'</option>').join("")+'</select></label><div id="me-i-destination-side" class="me-transition-side-picker" data-side="'+escapeHtml(d.interactive.destinationSide||"")+'"><strong>Position d’arrivée</strong><div class="me-transition-side-buttons"><button type="button" data-transition-side="top" aria-label="Arrivée par le haut">↑ Haut</button><button type="button" data-transition-side="left" aria-label="Arrivée par la gauche">← Gauche</button><button type="button" data-transition-side="right" aria-label="Arrivée par la droite">Droite →</button><button type="button" data-transition-side="bottom" aria-label="Arrivée par le bas">↓ Bas</button></div><small>Choisis un bord pour placer automatiquement l’arrivée sur la limite de la map. La minimap permet ensuite un réglage précis.</small></div><div id="me-i-destination-minimap-wrap" class="me-destination-minimap-wrap"><canvas id="me-i-destination-minimap" width="320" height="180"></canvas><p class="map-editor-config-note">Clique sur la minimap pour choisir la case d’arrivée.</p></div><input id="me-i-destination-x" type="hidden" value="'+(d.interactive.destinationX??0)+'"><input id="me-i-destination-y" type="hidden" value="'+(d.interactive.destinationY??0)+'"><div id="me-i-destination-position" class="map-editor-config-note"></div></div><div id="me-i-container-images" class="me-interactive-images"><div class="me-interactive-image-card"><strong>Image fermée</strong><label class="me-file-field">Choisir l’image fermée<input id="me-i-closed" type="file" accept="image/png,image/jpeg"></label><div id="me-i-closed-preview" class="me-interactive-image-preview"><div class="me-selected-image-empty">Aucune image</div></div></div><div class="me-interactive-image-card"><strong>Image ouverte</strong><label class="me-file-field">Choisir l’image ouverte<input id="me-i-open" type="file" accept="image/png,image/jpeg"></label><div id="me-i-open-preview" class="me-interactive-image-preview"><div class="me-selected-image-empty">Aucune image</div></div></div><label><input id="me-i-opened" type="checkbox" '+(d.interactive.initialOpen?"checked":"")+'> État initial ouvert</label></div><div id="me-i-transition-image" class="me-interactive-image-card hidden"><strong>Image de transition</strong><label class="me-file-field">Choisir l’image de transition<input id="me-i-transition" type="file" accept="image/png,image/jpeg"></label><div id="me-i-transition-preview" class="me-interactive-image-preview"><div class="me-selected-image-empty">Aucune image</div></div><label>Transparence <span id="me-i-opacity-value">100 %</span><input id="me-i-opacity" type="range" min="0" max="100" step="1" value="'+Math.round((d.interactive.imageOpacity??1)*100)+'"></label></div><h4 id="me-i-loot-title">Table de butin par défaut</h4><div id="me-i-loot-section"><div class="me-loot-head"><span>Objet</span><span>Chance %</span><span>Qté min</span><span>Qté max</span><span></span></div><div id="me-i-loot">'+rows+'</div><button type="button" id="me-i-loot-add" class="secondary-button">+ Récompense</button></div><div class="dev-form-actions"><button id="me-i-save" class="primary-button">Enregistrer</button><button id="me-i-cancel" class="secondary-button">Annuler</button></div></div>';
+    const html='<div class="map-editor-dialog"><h3>'+(existing?"Modifier":"Créer")+' une tuile interactive</h3><label class="me-tile-type-field"><span>Type de tuiles</span><select id="me-tile-type-config"><option value="normal">Tuiles</option><option value="interactive" selected>Interactives</option></select></label><p class="map-editor-config-note">La définition est réutilisable. Chaque placement aura ensuite sa propre instance.</p><label>ID<input id="me-i-id" value="'+d.id+'"></label><label>Nom<input id="me-i-name" value="'+d.name+'"></label><label>Type<select id="me-i-kind"><option value="container" '+(d.kind==="container"?"selected":"")+' >Coffre / conteneur</option><option value="transition" '+(d.kind==="transition"?"selected":"")+' >Transition de zone</option><option value="trainer" '+(d.kind==="trainer"?"selected":"")+' >Trainer</option></select></label><label><input id="me-i-collision" type="checkbox" '+(d.collision!==false?"checked":"")+' > Collision par défaut</label><div id="me-i-trainer-fields" class="hidden"></div><div id="me-i-transition-fields"><label>Destination<select id="me-i-destination">'+mapEditorMaps.map(m=>'<option value="'+m.id+'" '+(m.id===d.interactive.destinationMapId?"selected":"")+'>'+escapeHtml(m.name)+'</option>').join("")+'</select></label><div id="me-i-destination-side" class="me-transition-side-picker" data-side="'+escapeHtml(d.interactive.destinationSide||"")+'"><strong>Position d’arrivée</strong><div class="me-transition-side-buttons"><button type="button" data-transition-side="top" aria-label="Arrivée par le haut">↑ Haut</button><button type="button" data-transition-side="left" aria-label="Arrivée par la gauche">← Gauche</button><button type="button" data-transition-side="right" aria-label="Arrivée par la droite">Droite →</button><button type="button" data-transition-side="bottom" aria-label="Arrivée par le bas">↓ Bas</button></div><small>Choisis un bord pour placer automatiquement l’arrivée sur la limite de la map. La minimap permet ensuite un réglage précis.</small></div><div id="me-i-destination-minimap-wrap" class="me-destination-minimap-wrap"><canvas id="me-i-destination-minimap" width="320" height="180"></canvas><p class="map-editor-config-note">Clique sur la minimap pour choisir la case d’arrivée.</p></div><input id="me-i-destination-x" type="hidden" value="'+(d.interactive.destinationX??0)+'"><input id="me-i-destination-y" type="hidden" value="'+(d.interactive.destinationY??0)+'"><div id="me-i-destination-position" class="map-editor-config-note"></div></div><div id="me-i-container-images" class="me-interactive-images"><div class="me-interactive-image-card"><strong>Image fermée</strong><label class="me-file-field">Choisir l’image fermée<input id="me-i-closed" type="file" accept="image/png,image/jpeg"></label><div id="me-i-closed-preview" class="me-interactive-image-preview"><div class="me-selected-image-empty">Aucune image</div></div></div><div class="me-interactive-image-card"><strong>Image ouverte</strong><label class="me-file-field">Choisir l’image ouverte<input id="me-i-open" type="file" accept="image/png,image/jpeg"></label><div id="me-i-open-preview" class="me-interactive-image-preview"><div class="me-selected-image-empty">Aucune image</div></div></div><label><input id="me-i-opened" type="checkbox" '+(d.interactive.initialOpen?"checked":"")+'> État initial ouvert</label></div><div id="me-i-transition-image" class="me-interactive-image-card hidden"><strong>Image de transition</strong><label class="me-file-field">Choisir l’image de transition<input id="me-i-transition" type="file" accept="image/png,image/jpeg"></label><div id="me-i-transition-preview" class="me-interactive-image-preview"><div class="me-selected-image-empty">Aucune image</div></div><label>Transparence <span id="me-i-opacity-value">100 %</span><input id="me-i-opacity" type="range" min="0" max="100" step="1" value="'+Math.round((d.interactive.imageOpacity??1)*100)+'"></label></div><h4 id="me-i-loot-title">Table de butin par défaut</h4><div id="me-i-loot-section"><div class="me-loot-head"><span>Objet</span><span>Chance %</span><span>Qté min</span><span>Qté max</span><span></span></div><div id="me-i-loot">'+rows+'</div><button type="button" id="me-i-loot-add" class="secondary-button">+ Récompense</button></div><div class="dev-form-actions"><button id="me-i-save" class="primary-button">Enregistrer</button><button id="me-i-cancel" class="secondary-button">Annuler</button></div></div>';
     mapEditorDialog(html);
     document.getElementById("me-tile-type-config")?.addEventListener("change",e=>{if(e.target.value==="normal")mapEditorOpenTileForm();});
     const bindInteractiveImagePreview=(inputId,previewId,imageKey)=>{
@@ -1304,6 +1338,7 @@ function mapEditorOpenInteractiveTileForm(existing=null){
     bindInteractiveImagePreview("me-i-open","me-i-open-preview",d.interactive.openImageKey);
     bindInteractiveImagePreview("me-i-transition","me-i-transition-preview",d.interactive.transitionImageKey||d.imageKey);
     const kindSelect=document.getElementById("me-i-kind"),transitionFields=document.getElementById("me-i-transition-fields"),collisionInput=document.getElementById("me-i-collision");
+    if(typeof buildTrainerMapEditorForm==="function")buildTrainerMapEditorForm(d.trainer||d.interactive.trainer||{}, d.kind==="trainer");
     const minimap=document.getElementById("me-i-destination-minimap"),destinationSelect=document.getElementById("me-i-destination"),destinationSideButtons=[...document.querySelectorAll("[data-transition-side]")];
     const drawDestinationMinimap=()=>{
         const destination=mapEditorMaps.find(m=>m.id===destinationSelect?.value),current=mapEditorCurrent(),ctx=minimap?.getContext("2d");
@@ -1465,32 +1500,36 @@ function mapEditorOpenInteractiveTileForm(existing=null){
     };
     const syncTransitionFields=()=>{
         const transition=kindSelect.value==="transition";
+        const trainer=kindSelect.value==="trainer";
         transitionFields?.classList.toggle("hidden",!transition);
-        document.getElementById("me-i-container-images")?.classList.toggle("hidden",transition);
+        document.getElementById("me-i-trainer-fields")?.classList.toggle("hidden",!trainer);
+        document.getElementById("me-i-container-images")?.classList.toggle("hidden",transition||trainer);
         document.getElementById("me-i-transition-image")?.classList.toggle("hidden",!transition);
-        document.getElementById("me-i-loot-title")?.classList.toggle("hidden",transition);
-        document.getElementById("me-i-loot-section")?.classList.toggle("hidden",transition);
-        document.getElementById("me-i-loot-add")?.classList.toggle("hidden",transition);
-        if(transition&&collisionInput)collisionInput.checked=false;
+        document.getElementById("me-i-loot-title")?.classList.toggle("hidden",transition||trainer);
+        document.getElementById("me-i-loot-section")?.classList.toggle("hidden",transition||trainer);
+        document.getElementById("me-i-loot-add")?.classList.toggle("hidden",transition||trainer);
+        if((transition||trainer)&&collisionInput)collisionInput.checked=false;
         drawDestinationMinimap();
     };
     const opacityInput=document.getElementById("me-i-opacity"),opacityValue=document.getElementById("me-i-opacity-value");
     if(opacityInput&&opacityValue)opacityInput.oninput=()=>{opacityValue.textContent=opacityInput.value+" %";};
-    kindSelect.onchange=syncTransitionFields;destinationSelect.onchange=()=>{const sidePicker=document.getElementById("me-i-destination-side");if(sidePicker)sidePicker.dataset.side="";drawDestinationMinimap();};syncTransitionFields();
+    kindSelect.onchange=()=>{syncTransitionFields();if(kindSelect.value==="trainer"&&typeof buildTrainerMapEditorForm==="function")buildTrainerMapEditorForm(d.trainer||d.interactive.trainer||{},true);};destinationSelect.onchange=()=>{const sidePicker=document.getElementById("me-i-destination-side");if(sidePicker)sidePicker.dataset.side="";drawDestinationMinimap();};syncTransitionFields();
     const loot=document.getElementById("me-i-loot");
     document.getElementById("me-i-loot-add").onclick=()=>{const index=loot.children.length;const div=document.createElement("div");div.className="me-loot-row";div.innerHTML='<select aria-label="Objet" data-loot-item="'+index+'">'+getMapEditorItemCatalog().map(x=>'<option value="'+x.id+'">'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-loot-chance="'+index+'" value="100"><input type="number" min="1" data-loot-min="'+index+'" value="1"><input type="number" min="1" data-loot-max="'+index+'" value="1"><button type="button">×</button>';div.querySelector("button").onclick=()=>div.remove();loot.appendChild(div);};
     loot.querySelectorAll("button[data-loot-del]").forEach(b=>b.onclick=()=>b.parentElement.remove());
     document.getElementById("me-i-cancel").onclick=mapEditorCloseDialog;
     document.getElementById("me-i-save").onclick=async()=>{
         try{
+            const selectedKind=document.getElementById("me-i-kind").value;
+            const trainerData=selectedKind==="trainer"&&typeof readTrainerMapEditorForm==="function"?readTrainerMapEditorForm():null;
             const definition=mapEditorNormalizeInteractiveDefinition({
                 id:mapEditorNormalizeId(document.getElementById("me-i-id").value,d.id),
                 name:document.getElementById("me-i-name").value,
-                kind:document.getElementById("me-i-kind").value,
-                collision:document.getElementById("me-i-collision").checked,
+                kind:selectedKind,
+                collision:selectedKind==="trainer"?false:document.getElementById("me-i-collision").checked,
                 interactive:{
-                    type:document.getElementById("me-i-kind").value,
-                    collision:document.getElementById("me-i-kind").value==="transition"?false:document.getElementById("me-i-collision").checked,
+                    type:selectedKind,
+                    collision:selectedKind==="transition"||selectedKind==="trainer"?false:document.getElementById("me-i-collision").checked,
                     closedImageKey:d.interactive.closedImageKey,
                     openImageKey:d.interactive.openImageKey,
                     transitionImageKey:d.interactive.transitionImageKey,
@@ -1500,9 +1539,17 @@ function mapEditorOpenInteractiveTileForm(existing=null){
                     destinationX:Math.floor(Number(document.getElementById("me-i-destination-x")?.value)||0),
                     destinationY:Math.floor(Number(document.getElementById("me-i-destination-y")?.value)||0),
                     destinationSide:document.getElementById("me-i-destination-side")?.dataset.side||"",
-                    lootTable:[...loot.children].map(row=>({itemId:row.querySelector("[data-loot-item]")?.value,chance:Number(row.querySelector("[data-loot-chance]")?.value)||0,min:Number(row.querySelector("[data-loot-min]")?.value)||1,max:Number(row.querySelector("[data-loot-max]")?.value)||1})).filter(x=>x.itemId)
-                }
+                    lootTable:[...loot.children].map(row=>({itemId:row.querySelector("[data-loot-item]")?.value,chance:Number(row.querySelector("[data-loot-chance]")?.value)||0,min:Number(row.querySelector("[data-loot-min]")?.value)||1,max:Number(row.querySelector("[data-loot-max]")?.value)||1})).filter(x=>x.itemId),
+                    trainer:trainerData
+                },
+                trainer:trainerData
             });
+            if(definition.kind==="trainer"){
+                if(!trainerData)throw new Error("Configuration Trainer indisponible.");
+                definition.trainer=trainerData;
+                definition.interactive.trainer=trainerData;
+                definition.imageKey=trainerData.Image||null;
+            }
             if(definition.kind==="transition"&&!definition.interactive.destinationMapId)throw new Error("Une destination est obligatoire pour une transition de zone.");
             if(definition.kind==="transition"){
                 const transitionFile=document.getElementById("me-i-transition")?.files?.[0];
@@ -1515,10 +1562,12 @@ function mapEditorOpenInteractiveTileForm(existing=null){
             }
             const destinationMap=mapEditorMaps.find(m=>m.id===definition.interactive.destinationMapId);
             if(definition.kind==="transition"&&(!destinationMap||definition.interactive.destinationX<0||definition.interactive.destinationY<0||definition.interactive.destinationX>=destinationMap.cols||definition.interactive.destinationY>=destinationMap.rows))throw new Error("La destination ou les coordonnées d’arrivée sont invalides.");
-            const closedFile=document.getElementById("me-i-closed").files[0],openFile=document.getElementById("me-i-open").files[0];
-            if(closedFile)definition.interactive.closedImageKey=(await mapEditorImportImage(closedFile)).key;
-            if(openFile)definition.interactive.openImageKey=(await mapEditorImportImage(openFile)).key;
-            definition.imageKey=definition.interactive.closedImageKey||definition.imageKey||null;
+            if(definition.kind!=="trainer"){
+                const closedFile=document.getElementById("me-i-closed").files[0],openFile=document.getElementById("me-i-open").files[0];
+                if(closedFile)definition.interactive.closedImageKey=(await mapEditorImportImage(closedFile)).key;
+                if(openFile)definition.interactive.openImageKey=(await mapEditorImportImage(openFile)).key;
+                definition.imageKey=definition.interactive.closedImageKey||definition.imageKey||null;
+            }
             mapEditorRegisterInteractiveDefinition(definition);
             const m=mapEditorCurrent();
             mapEditorEnsureInteractiveDefinitionInMap(m,definition);
@@ -1549,14 +1598,33 @@ async function mapEditorFillConfigImagePreview(elementId,key){
     current.innerHTML='<span class="me-config-image-value">'+escapeHtml(String(key))+'</span><img class="me-config-image-preview" src="'+escapeHtml(data)+'" alt="Aperçu de l’image">';
 }
 
+function mapEditorDuplicateInstance(instance){
+    const m=mapEditorCurrent();if(!m||!instance)return null;
+    const offsets=[[1,0],[-1,0],[0,1],[0,-1],[2,0],[0,2],[-2,0],[0,-2]];
+    for(const [dx,dy] of offsets){
+        const x=Number(instance.x)+dx,y=Number(instance.y)+dy;
+        if(x<0||y<0||x>=m.cols||y>=m.rows)continue;
+        if(mapEditorGetInstanceAtCell(x,y))continue;
+        const copy=mapEditorClone(instance);
+        copy.id=mapEditorUid("instance");copy.instanceId=copy.id;copy.x=x;copy.y=y;
+        copy.state=Object.assign({},copy.state||{},{defeated:false,activationLock:false});
+        m.objects.push(copy);
+        mapEditorSaveCurrent();mapEditorSelectedInstanceId=copy.instanceId;mapEditorRender();
+        return copy;
+    }
+    throw new Error("Aucune case libre pour dupliquer ce Trainer.");
+}
+
 function mapEditorOpenInstanceConfig(instance){
     const m=mapEditorCurrent();if(!m||!instance)return;
     const props=mapEditorGetInstanceProps(instance);
     const rows=(props.lootTable||[]).map((e,i)=>'<div class="me-loot-row"><select aria-label="Objet" data-override-loot-item="'+i+'">'+getMapEditorItemCatalog().map(x=>'<option value="'+x.id+'" '+(x.id===e.itemId?"selected":"")+'>'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-override-loot-chance="'+i+'" value="'+(e.chance??100)+'"><input type="number" min="1" data-override-loot-min="'+i+'" value="'+(e.min??1)+'"><input type="number" min="1" data-override-loot-max="'+i+'" value="'+(e.max??1)+'"><button type="button" data-override-loot-del="'+i+'">×</button></div>').join("");
-    const html='<div class="map-editor-dialog"><h3>Configuration de l’instance</h3><p class="map-editor-config-note">Seule cette instance est modifiée. La définition globale reste inchangée.</p><label>ID instance<input id="me-o-id" value="'+instance.instanceId+'" readonly></label><label>Type<input value="'+(mapEditorGetInstanceDefinition(instance)?.name||instance.type)+'" readonly></label><div id="me-o-transition-fields"></div><label>X<input id="me-o-x" type="number" min="0" max="'+(m.cols-1)+'" value="'+instance.x+'"></label><label>Y<input id="me-o-y" type="number" min="0" max="'+(m.rows-1)+'" value="'+instance.y+'"></label><label><input id="me-o-collision" type="checkbox" '+(props.collision!==false?"checked":"")+'> Collision override</label><label><input id="me-o-use-custom-images" type="checkbox" '+((instance.overrides.closedImageKey||instance.overrides.openImageKey)?"checked":"")+'> Images propres à cette instance</label><div class="me-config-image-field"><strong>Image fermée</strong><div id="me-o-closed-current" class="me-config-image-value">Rien</div></div><label>Remplacer l’image fermée PNG/JPG<input id="me-o-closed" type="file" accept="image/png,image/jpeg"></label><div class="me-config-image-field"><strong>Image ouverte</strong><div id="me-o-open-current" class="me-config-image-value">Rien</div></div><label>Remplacer l’image ouverte PNG/JPG<input id="me-o-open" type="file" accept="image/png,image/jpeg"></label><h4>Loot de cette instance</h4><div class="me-loot-head"><span>Objet</span><span>Chance %</span><span>Qté min</span><span>Qté max</span><span></span></div><div id="me-o-loot">'+rows+'</div><button type="button" id="me-o-loot-add" class="secondary-button">+ Récompense</button><div class="dev-form-actions"><button id="me-o-save" class="primary-button">Appliquer</button><button id="me-o-reset" class="secondary-button">Réinitialiser les overrides</button><button id="me-o-cancel" class="secondary-button">Annuler</button></div></div>';
+    const html='<div class="map-editor-dialog"><h3>Configuration de l’instance</h3><p class="map-editor-config-note">Seule cette instance est modifiée. La définition globale reste inchangée.</p><label>ID instance<input id="me-o-id" value="'+instance.instanceId+'" readonly></label><label>Type<input value="'+(mapEditorGetInstanceDefinition(instance)?.name||instance.type)+'" readonly></label><div id="me-o-transition-fields"></div><div id="me-o-trainer-fields"></div><label>X<input id="me-o-x" type="number" min="0" max="'+(m.cols-1)+'" value="'+instance.x+'"></label><label>Y<input id="me-o-y" type="number" min="0" max="'+(m.rows-1)+'" value="'+instance.y+'"></label><label><input id="me-o-collision" type="checkbox" '+(props.collision!==false?"checked":"")+'> Collision override</label><label><input id="me-o-use-custom-images" type="checkbox" '+((instance.overrides.closedImageKey||instance.overrides.openImageKey)?"checked":"")+'> Images propres à cette instance</label><div class="me-config-image-field"><strong>Image fermée</strong><div id="me-o-closed-current" class="me-config-image-value">Rien</div></div><label>Remplacer l’image fermée PNG/JPG<input id="me-o-closed" type="file" accept="image/png,image/jpeg"></label><div class="me-config-image-field"><strong>Image ouverte</strong><div id="me-o-open-current" class="me-config-image-value">Rien</div></div><label>Remplacer l’image ouverte PNG/JPG<input id="me-o-open" type="file" accept="image/png,image/jpeg"></label><h4>Loot de cette instance</h4><div class="me-loot-head"><span>Objet</span><span>Chance %</span><span>Qté min</span><span>Qté max</span><span></span></div><div id="me-o-loot">'+rows+'</div><button type="button" id="me-o-loot-add" class="secondary-button">+ Récompense</button><div class="dev-form-actions"><button id="me-o-save" class="primary-button">Appliquer</button><button id="me-o-duplicate" class="secondary-button">Dupliquer</button><button id="me-o-reset" class="secondary-button">Réinitialiser les overrides</button><button id="me-o-cancel" class="secondary-button">Annuler</button></div></div>';
     mapEditorDialog(html);
     const definition=mapEditorGetInstanceDefinition(instance);
     const isTransition=String(instance.type||definition?.kind||"")==="transition";
+    const isTrainer=String(instance.type||definition?.kind||"")==="trainer";
+    if(isTrainer&&typeof buildTrainerInstanceConfig==="function")buildTrainerInstanceConfig(instance,props);
     const transitionRoot=document.getElementById("me-o-transition-fields");
     if(transitionRoot&&isTransition){
         const cfg=mapEditorGetTransitionConfig(instance)||{destinationMapId:"",destinationX:0,destinationY:0};
@@ -1568,14 +1636,23 @@ function mapEditorOpenInstanceConfig(instance){
     document.getElementById("me-o-loot-add").onclick=()=>{const index=loot.children.length;const div=document.createElement("div");div.className="me-loot-row";div.innerHTML='<select aria-label="Objet" data-override-loot-item="'+index+'">'+getMapEditorItemCatalog().map(x=>'<option value="'+x.id+'">'+x.label+'</option>').join("")+'</select><input type="number" min="0" max="100" data-override-loot-chance="'+index+'" value="100"><input type="number" min="1" data-override-loot-min="'+index+'" value="1"><input type="number" min="1" data-override-loot-max="'+index+'" value="1"><button type="button">×</button>';div.querySelector("button").onclick=()=>div.remove();loot.appendChild(div);};
     loot.querySelectorAll("button[data-override-loot-del]").forEach(b=>b.onclick=()=>b.parentElement.remove());
     document.getElementById("me-o-cancel").onclick=mapEditorCloseDialog;
+    document.getElementById("me-o-duplicate").onclick=()=>{try{mapEditorDuplicateInstance(instance);mapEditorCloseDialog();}catch(e){alert(e.message);}};
     document.getElementById("me-o-reset").onclick=()=>{instance.overrides={};mapEditorSaveCurrent();mapEditorCloseDialog();mapEditorRender();};
     document.getElementById("me-o-save").onclick=async()=>{
         try{
             const useCustom=document.getElementById("me-o-use-custom-images").checked;
             const overrides={
-                collision:isTransition?false:document.getElementById("me-o-collision").checked,
+                collision:isTransition||isTrainer?false:document.getElementById("me-o-collision").checked,
                 lootTable:[...loot.children].map(row=>({itemId:row.querySelector("[data-override-loot-item]")?.value,chance:Number(row.querySelector("[data-override-loot-chance]")?.value)||0,min:Number(row.querySelector("[data-override-loot-min]")?.value)||1,max:Number(row.querySelector("[data-override-loot-max]")?.value)||1})).filter(x=>x.itemId)
             };
+            if(isTrainer){
+                overrides.trainer=typeof readTrainerInstanceConfig==="function"?readTrainerInstanceConfig(instance):null;
+                if(!overrides.trainer)throw new Error("Configuration Trainer indisponible.");
+                delete overrides.lootTable;
+            }
+            if(isTrainer){
+                delete overrides.closedImageKey;delete overrides.openImageKey;
+            }
             if(isTransition){
                 const destinationMapId=document.getElementById("me-o-transition-destination")?.value||"";
                 const destinationX=Math.floor(Number(document.getElementById("me-o-transition-x")?.value)||0);
