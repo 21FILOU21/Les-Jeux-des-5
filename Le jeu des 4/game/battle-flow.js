@@ -825,6 +825,10 @@ function endGame(victory) {
         return;
     }
 
+    if (state.currentEncounterType === "trainer" && typeof trainerFinishBattle === "function") {
+        trainerFinishBattle(Boolean(victory));
+    }
+
     if (typeof restoreMegaEvolution === "function") {
         restoreMegaEvolution();
     }
