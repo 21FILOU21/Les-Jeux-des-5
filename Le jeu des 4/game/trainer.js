@@ -417,6 +417,7 @@ function trainerFinishBattle(victory) {
     }
 
     state.trainerRuntime = null;
+    state.currentEncounterType = null;
     if (typeof startTrainerMovementPrograms === "function") startTrainerMovementPrograms();
 }
 
