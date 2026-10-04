@@ -783,7 +783,7 @@ function readTrainerMapEditorForm() {
             const price = Math.floor(Number(row.querySelector("[data-trainer-shop-price]")?.value));
             if (!itemId) throw new Error("Item de boutique invalide.");
             if (!Number.isFinite(price) || price < 0) throw new Error("Le prix d'un item de boutique doit être positif ou nul.");
-            if (!getItemDefinition?.(itemId)) throw new Error("Item de boutique introuvable : " + itemId);
+            if (typeof getItemDefinition !== "function" || !getItemDefinition(itemId)) throw new Error("Item de boutique introuvable : " + itemId);
             items.push({ itemId, price });
         });
         boutique = {
@@ -903,7 +903,7 @@ function readTrainerInstanceConfig(instance) {
             const itemId = String(row.querySelector("[data-trainer-shop-item]")?.value || "");
             const price = Math.floor(Number(row.querySelector("[data-trainer-shop-price]")?.value));
             if (!itemId || !Number.isFinite(price) || price < 0) throw new Error("Boutique invalide.");
-            if (!getItemDefinition?.(itemId)) throw new Error("Item de boutique introuvable : " + itemId);
+            if (typeof getItemDefinition !== "function" || !getItemDefinition(itemId)) throw new Error("Item de boutique introuvable : " + itemId);
             items.push({ itemId, price });
         });
         boutique = { id: "shop-" + instance.instanceId, name: String(document.getElementById("me-o-trainer-shop-name")?.value || "Boutique").trim() || "Boutique", items };
