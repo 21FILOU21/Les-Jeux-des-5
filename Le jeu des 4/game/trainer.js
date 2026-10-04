@@ -584,7 +584,7 @@ function trainerImageDataUrl(input, hiddenId, previewId) {
         if (!file) return;
         const lower = String(file.name || "").toLowerCase();
         if (!(file.type === "image/png" || file.type === "image/jpeg" || lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg"))) {
-            showToast?.("Image invalide", "Choisis une image PNG ou JPG.");
+            if(typeof showToast==="function")showToast("Image invalide", "Choisis une image PNG ou JPG.");
             input.value = "";
             return;
         }
