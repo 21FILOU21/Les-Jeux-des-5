@@ -73,6 +73,7 @@ const state = {
     selectedAnimalId: null,
     animalCaptureInProgress: false,
     animalCaptureCompleted: false,
+    trainerRuntime: null,
 };
 
 function normalizeContenu(contenu) {
