@@ -517,23 +517,30 @@ function mapEditorOpenTrainerAt(col, row) {
 }
 
 function mapEditorSetTrainerDefeatedState(ids) {
-    const wanted = new Set((Array.isArray(ids) ? ids : []).map(String));
-    const m = typeof mapEditorCurrent === "function" ? mapEditorCurrent() : null;
-    if (!m) return;
-    for (const instance of m.objects || []) {
-        if (String(instance.type || "") !== "trainer") continue;
-        instance.state = instance.state || {};
-        instance.state.defeated = wanted.has(String(instance.instanceId));
-        instance.state.activationLock = false;
+    const wanted = new Set();
+    for (const entry of Array.isArray(ids) ? ids : []) {
+        if (entry && typeof entry === "object") wanted.add(String(entry.mapId || "") + "::" + String(entry.instanceId || ""));
+        else wanted.add("::" + String(entry));
+    }
+
+    const maps = typeof mapEditorMaps !== "undefined" ? mapEditorMaps : [];
+    for (const map of maps) {
+        for (const instance of map.objects || []) {
+            if (String(instance.type || "") !== "trainer") continue;
+            const key = String(map.id) + "::" + String(instance.instanceId);
+            instance.state = instance.state || {};
+            instance.state.defeated = wanted.has(key) || wanted.has("::" + String(instance.instanceId));
+            instance.state.activationLock = false;
+        }
     }
 }
 
 function getTrainerSaveState() {
-    const m = typeof mapEditorCurrent === "function" ? mapEditorCurrent() : null;
-    return (m?.objects || [])
+    const maps = typeof mapEditorMaps !== "undefined" ? mapEditorMaps : [];
+    return maps.flatMap(map => (map.objects || [])
         .filter(o => String(o.type || "") === "trainer" && o.state?.defeated)
-        .map(o => String(o.instanceId))
-        .filter(Boolean);
+        .map(o => ({ mapId: String(map.id), instanceId: String(o.instanceId) })))
+        .filter(entry => entry.mapId && entry.instanceId);
 }
 
 function createTrainerDefinitionForMapEditor(raw) {
