@@ -1626,6 +1626,15 @@ function mapEditorOpenInstanceConfig(instance){
     const isTrainer=String(instance.type||definition?.kind||"")==="trainer";
     if(isTrainer&&typeof buildTrainerInstanceConfig==="function")buildTrainerInstanceConfig(instance,props);
     const transitionRoot=document.getElementById("me-o-transition-fields");
+    if(isTrainer){
+        ["me-o-collision","me-o-use-custom-images","me-o-closed-current","me-o-closed","me-o-open-current","me-o-open","me-o-loot","me-o-loot-add"].forEach(id=>{
+            const el=document.getElementById(id);
+            if(el){
+                const parent=el.closest("label") || el.closest(".me-config-image-field") || el;
+                parent.classList.add("hidden");
+            }
+        });
+    }
     if(transitionRoot&&isTransition){
         const cfg=mapEditorGetTransitionConfig(instance)||{destinationMapId:"",destinationX:0,destinationY:0};
         transitionRoot.innerHTML='<label>Nom / identifiant de l’instance<input id="me-o-transition-name" value="'+(instance.overrides.instanceName||instance.instanceId)+'"></label><label>Type : Transition de zone</label><label>Destination<select id="me-o-transition-destination">'+mapEditorMaps.map(m=>'<option value="'+m.id+'" '+(m.id===cfg.destinationMapId?"selected":"")+'>'+escapeHtml(m.name)+'</option>').join("")+'</select></label><label>Position d’arrivée X<input id="me-o-transition-x" type="number" min="0" value="'+cfg.destinationX+'"></label><label>Position d’arrivée Y<input id="me-o-transition-y" type="number" min="0" value="'+cfg.destinationY+'"></label>';
