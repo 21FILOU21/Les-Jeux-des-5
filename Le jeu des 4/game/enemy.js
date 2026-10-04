@@ -630,7 +630,13 @@ async function monsterTurn() {
 
         await processTimedEffects(monster);
 
-        if (state.battleOver || monster.hp <= 0 || state.playerHp <= 0) continue;
+        if (monster.hp <= 0) {
+            await handleMonsterDeath(monster, false);
+            if (state.battleOver || state.playerHp <= 0) break;
+            continue;
+        }
+
+        if (state.battleOver || state.playerHp <= 0) continue;
         if (typeof isCombatantStatusBlocked === "function" && isCombatantStatusBlocked(monster)) {
             addLog(monster.name + " est incapable d'agir.", "system");
             continue;
