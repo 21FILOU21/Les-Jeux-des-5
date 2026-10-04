@@ -306,7 +306,7 @@ function trainerScheduleMovement(instance, epoch) {
         }
 
         trainerScheduleMovement(instance, epoch);
-    }, Math.max(0, step.delayMs));
+    }, Math.max(16, step.delayMs));
 
     trainerMovementTimers.set(instance.instanceId, timer);
 }
