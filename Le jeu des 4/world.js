@@ -502,6 +502,7 @@ function completeWorldStep() {
         return;
     }
     if (typeof mapEditorTriggerTransitionAtPlayer==="function" && mapEditorTriggerTransitionAtPlayer()) return;
+    if (typeof mapEditorCheckTrainerDetections==="function" && mapEditorCheckTrainerDetections()) return;
     if (overworldState.graceDistance > 0) { overworldState.graceDistance = Math.max(0, overworldState.graceDistance - TILE_SIZE) }
     tryWorldEncounter()
 }
