@@ -313,6 +313,7 @@ function trainerScheduleMovement(instance, epoch) {
 
 function startTrainerMovementPrograms() {
     stopTrainerMovementPrograms();
+    if (typeof overworldState !== "undefined" && !overworldState.active) return;
     const epoch = trainerMovementEpoch;
     for (const instance of trainerGetInstances()) trainerScheduleMovement(instance, epoch);
 }
