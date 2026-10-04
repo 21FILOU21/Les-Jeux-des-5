@@ -549,8 +549,21 @@ function startBattle(request = null) {
     }
     
     let encounterRequest = null;
+    const trainerRequest = request && request.encounterType === "trainer"
+        ? request
+        : null;
 
-    if (request) {
+    if (trainerRequest) {
+        const trainerDefinition = typeof normalizeTrainerDefinitionData === "function"
+            ? normalizeTrainerDefinitionData(trainerRequest.trainerDefinition || {})
+            : trainerRequest.trainerDefinition;
+        if (!trainerDefinition || !Array.isArray(trainerDefinition.Equipe)) {
+            showToast("Trainer invalide", "La configuration de ce Trainer est invalide.");
+            return;
+        }
+        state.config.monsterCount = Math.min(3, trainerDefinition.Equipe.length);
+        state.config.monsterName = trainerDefinition.Nom || "Trainer";
+    } else if (request) {
         const requestedId = request.monsterId || request.monsterName;
         const definition = (state.contenu?.Monstres || []).find(monster =>
             monster && (String(monster.Nom || "") === String(requestedId) || String(monster.id || "") === String(requestedId))
@@ -574,7 +587,10 @@ function startBattle(request = null) {
         }
     }
 
-    if (encounterRequest) {
+    if (trainerRequest) {
+        state.config.monsterCount = Math.min(3, Array.isArray(trainerRequest.trainerDefinition?.Equipe) ? trainerRequest.trainerDefinition.Equipe.length : 0);
+        state.config.monsterName = trainerRequest.trainerDefinition?.Nom || "Trainer";
+    } else if (encounterRequest) {
         state.config.monsterCount = encounterRequest.count;
         state.config.monsterName = encounterRequest.monsterName;
     } else {
@@ -597,6 +613,7 @@ function startBattle(request = null) {
     state.heroAttacks = (state.contenu.Attaques || []).filter(attaque => attaque.Personnage === state.hero.Nom);
 
     state.currentMonsterNumber = globalState.monsterKilled + 1;
+    state.trainerRuntime = null;
 
     state.battleAnimals = typeof createBattleAnimalTeam === "function" ? createBattleAnimalTeam() : [];
     state.animalCaptureInProgress = false;
@@ -608,17 +625,36 @@ function startBattle(request = null) {
         ? rollAnimalEncounterAtBattleStart()
         : null;
 
-    if (animalEncounter) {
+    if (trainerRequest) {
+        const trainerDefinition = typeof normalizeTrainerDefinitionData === "function"
+            ? normalizeTrainerDefinitionData(trainerRequest.trainerDefinition || {})
+            : trainerRequest.trainerDefinition;
+        state.monsters = typeof trainerCreateCombatTeam === "function"
+            ? trainerCreateCombatTeam(trainerDefinition)
+            : [];
+        state.currentEncounterType = "trainer";
+        state.trainerRuntime = {
+            instanceId: String(trainerRequest.trainerInstanceId || ""),
+            definitionId: String(trainerDefinition?.Id || ""),
+            name: trainerDefinition?.Nom || "Trainer",
+            rewardCoins: Math.max(0, Math.floor(Number(trainerDefinition?.RecompensePieces) || 0)),
+            defeated: false
+        };
+    } else if (animalEncounter) {
         state.monsters = [animalEncounter];
         state.config.monsterCount = 1;
         state.config.monsterName = animalEncounter.name;
         state.currentEncounterType = "animal";
+        state.trainerRuntime = null;
     } else {
         state.monsters = createBattleMonsters(state.config.monsterCount, encounterRequest);
         state.currentEncounterType = "monster";
+        state.trainerRuntime = null;
     }
 
-    state.remainingMonsters = state.monsters.length;
+    state.remainingMonsters = typeof trainerGetActiveCombatants === "function" && state.currentEncounterType === "trainer"
+        ? trainerGetActiveCombatants().length
+        : state.monsters.length;
 
     const monsterList = $("#monster-list");
 
